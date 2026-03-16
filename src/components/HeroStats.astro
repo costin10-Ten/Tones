@@ -1,0 +1,34 @@
+---
+interface Props {
+  totalStories?: number;
+  totalWords?: number;
+  categories?: number;
+  daysActive?: number;
+}
+
+const {
+  totalStories = 47,
+  totalWords = 12840,
+  categories = 8,
+  daysActive = 28,
+} = Astro.props;
+---
+
+<div class="stats-bar">
+  <div class="stat-item">
+    <span class="stat-value">{totalStories}</span>
+    <span class="stat-label">異象檔案</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-value">{(totalWords / 1000).toFixed(1)}K</span>
+    <span class="stat-label">字元記錄</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-value">{categories}</span>
+    <span class="stat-label">視覺主題</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-value">{daysActive}</span>
+    <span class="stat-label">觀測天數</span>
+  </div>
+</div>

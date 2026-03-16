@@ -1,0 +1,1404 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   CSS CUSTOM PROPERTIES — THEME SYSTEM
+   ============================================ */
+
+:root {
+  --bg: #050505;
+  --bg2: #0a0a0a;
+  --surface: #0f0f0f;
+  --border: #260000;
+  --accent: #d90429;
+  --accent2: #8d0801;
+  --accent-dim: rgba(217, 4, 41, 0.1);
+  --text: #e0e0e0;
+  --text-dim: #8a8a8a;
+  --text-muted: #4d4d4d;
+  --danger: #ff0000;
+  --warm: #ff5400;
+  --header-bg: rgba(5, 5, 5, 0.98);
+}
+
+[data-theme="dark"] {
+  --bg: #050505;
+  --bg2: #0a0a0a;
+  --surface: #0f0f0f;
+  --border: #260000;
+  --accent: #d90429;
+  --accent2: #8d0801;
+  --accent-dim: rgba(217, 4, 41, 0.1);
+  --text: #e0e0e0;
+  --text-dim: #8a8a8a;
+  --text-muted: #4d4d4d;
+  --danger: #ff0000;
+  --warm: #ff5400;
+  --header-bg: rgba(5, 5, 5, 0.98);
+}
+
+[data-theme="clinical"] {
+  --bg: #f4f6f6;
+  --bg2: #eaeded;
+  --surface: #ffffff;
+  --border: #b2babb;
+  --accent: #008c72;
+  --accent2: #005f4e;
+  --accent-dim: rgba(0, 140, 114, 0.1);
+  --text: #1a1c1c;
+  --text-dim: #515a5a;
+  --text-muted: #839192;
+  --danger: #c0392b;
+  --warm: #d35400;
+  --header-bg: rgba(244, 246, 246, 0.98);
+}
+
+[data-theme="biohazard"] {
+  --bg: #eef7f2;
+  --bg2: #e2f0e8;
+  --surface: #ffffff;
+  --border: #b5d5c0;
+  --accent: #15803d;
+  --accent2: #166534;
+  --accent-dim: rgba(21, 128, 61, 0.1);
+  --text: #064e3b;
+  --text-dim: #14532d;
+  --text-muted: #166534;
+  --danger: #b91c1c;
+  --warm: #b45309;
+  --header-bg: rgba(238, 247, 242, 0.98);
+}
+
+[data-theme="fog"] {
+  --bg: #1e2426;
+  --bg2: #262d2f;
+  --surface: #2d3538;
+  --border: #455458;
+  --accent: #5b9ea6;
+  --accent2: #3c6e75;
+  --accent-dim: rgba(91, 158, 166, 0.1);
+  --text: #cfd8d9;
+  --text-dim: #88999b;
+  --text-muted: #5c6b6d;
+  --danger: #e74c3c;
+  --warm: #e67e22;
+  --header-bg: rgba(30, 36, 38, 0.98);
+}
+
+[data-theme="dossier"] {
+  --bg: #e3dac9;
+  --bg2: #d6cdbc;
+  --surface: #ebe3d5;
+  --border: #baa991;
+  --accent: #9c1414;
+  --accent2: #630909;
+  --accent-dim: rgba(156, 20, 20, 0.08);
+  --text: #2b2927;
+  --text-dim: #544f49;
+  --text-muted: #787268;
+  --danger: #c0392b;
+  --warm: #a04000;
+  --header-bg: rgba(227, 218, 201, 0.98);
+}
+
+[data-theme="abyss"] {
+  --bg: #030b14;
+  --bg2: #05111f;
+  --surface: #08182b;
+  --border: #112f4d;
+  --accent: #00b4d8;
+  --accent2: #0077b6;
+  --accent-dim: rgba(0, 180, 216, 0.1);
+  --text: #bce4ec;
+  --text-dim: #6d939e;
+  --text-muted: #3b5c66;
+  --danger: #e63946;
+  --warm: #f4a261;
+  --header-bg: rgba(3, 11, 20, 0.98);
+}
+
+[data-theme="cctv"] {
+  --bg: #020a04;
+  --bg2: #041408;
+  --surface: #061c0c;
+  --border: #10401b;
+  --accent: #00ff41;
+  --accent2: #00b32d;
+  --accent-dim: rgba(0, 255, 65, 0.1);
+  --text: #ccffcc;
+  --text-dim: #66b366;
+  --text-muted: #2d662d;
+  --danger: #ff1a1a;
+  --warm: #ffcc00;
+  --header-bg: rgba(2, 10, 4, 0.98);
+}
+
+[data-theme="noir"] {
+  --bg: #000000;
+  --bg2: #111111;
+  --surface: #1a1a1a;
+  --border: #333333;
+  --accent: #ffea00;
+  --accent2: #cca700;
+  --accent-dim: rgba(255, 234, 0, 0.15);
+  --text: #ffffff;
+  --text-dim: #999999;
+  --text-muted: #555555;
+  --danger: #ffffff;
+  --warm: #ffea00;
+  --header-bg: rgba(0, 0, 0, 0.98);
+}
+
+/* ============================================
+   BASE RESET & GLOBAL STYLES
+   ============================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Serif TC', serif;
+  line-height: 1.7;
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Scanline overlay effect */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--accent2);
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ============================================
+   PROGRESS BAR
+   ============================================ */
+
+#progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0%;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent2), var(--accent), var(--warm));
+  z-index: 10000;
+  transition: width 0.1s ease;
+  box-shadow: 0 0 8px var(--accent);
+}
+
+/* ============================================
+   HEADER
+   ============================================ */
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: var(--header-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.header-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.logo-icon {
+  width: 36px;
+  height: 36px;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  color: white;
+  font-weight: 900;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+
+.logo-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.logo-main {
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: var(--text);
+  letter-spacing: 0.05em;
+  line-height: 1.1;
+}
+
+.logo-sub {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+  font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.nav-link {
+  padding: 0.4rem 0.8rem;
+  color: var(--text-dim);
+  font-size: 0.875rem;
+  text-decoration: none;
+  border-radius: 4px;
+  transition: color 0.2s ease, background 0.2s ease;
+  font-family: 'Noto Sans TC', sans-serif;
+  white-space: nowrap;
+}
+
+.nav-link:hover,
+.nav-link.active {
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+/* ============================================
+   HERO SECTION
+   ============================================ */
+
+.hero {
+  position: relative;
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 30%, rgba(217, 4, 41, 0.08) 0%, transparent 60%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+}
+
+.hero-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 60px 60px;
+  opacity: 0.3;
+}
+
+.hero-content {
+  position: relative;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 5rem 1.5rem 4rem;
+  width: 100%;
+}
+
+.hero-eyebrow {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.3em;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.hero-eyebrow::before {
+  content: '';
+  display: inline-block;
+  width: 2rem;
+  height: 1px;
+  background: var(--accent);
+}
+
+.hero-title {
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  font-weight: 900;
+  line-height: 1.1;
+  margin-bottom: 1rem;
+  color: var(--text);
+}
+
+.hero-title span {
+  color: var(--accent);
+}
+
+.hero-subtitle {
+  font-size: clamp(0.9rem, 2vw, 1.1rem);
+  color: var(--text-dim);
+  max-width: 540px;
+  line-height: 1.7;
+  margin-bottom: 2.5rem;
+}
+
+.hero-cta {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+  font-family: 'Noto Sans TC', sans-serif;
+  letter-spacing: 0.05em;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--accent2);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(217, 4, 41, 0.4);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+  background: var(--surface);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ============================================
+   STATS BAR
+   ============================================ */
+
+.stats-bar {
+  display: flex;
+  gap: 2rem;
+  padding: 1.5rem 0;
+  border-top: 1px solid var(--border);
+  margin-top: 2.5rem;
+  flex-wrap: wrap;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.stat-value {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ============================================
+   LAYOUT — MAIN GRID
+   ============================================ */
+
+.site-main {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.main-grid {
+  display: grid;
+  grid-template-columns: 220px 1fr 220px;
+  gap: 2rem;
+  padding: 2rem 0;
+}
+
+@media (max-width: 1200px) {
+  .main-grid {
+    grid-template-columns: 200px 1fr;
+  }
+  .right-sidebar {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .main-grid {
+    grid-template-columns: 1fr;
+  }
+  .left-sidebar {
+    display: none;
+  }
+}
+
+/* ============================================
+   SIDEBARS
+   ============================================ */
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.sidebar-widget {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+.sidebar-title {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sidebar-title::before {
+  content: '//';
+  opacity: 0.5;
+}
+
+.nav-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.nav-list li a {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.nav-list li a:hover,
+.nav-list li a.active {
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.nav-list li a .badge {
+  margin-left: auto;
+  font-size: 0.7rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-family: 'Share Tech Mono', monospace;
+}
+
+/* ============================================
+   TAG FILTER
+   ============================================ */
+
+.tag-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.tag-btn {
+  padding: 0.35rem 0.8rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-family: 'Share Tech Mono', monospace;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--surface);
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+
+.tag-btn:hover,
+.tag-btn.active {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ============================================
+   STORY CARDS
+   ============================================ */
+
+.stories-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.story-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  transition: all 0.25s ease;
+  cursor: pointer;
+  text-decoration: none;
+  display: block;
+  position: relative;
+  overflow: hidden;
+}
+
+.story-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.story-card:hover {
+  border-color: var(--accent);
+  background: var(--bg2);
+  transform: translateX(3px);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+.story-card:hover::before {
+  opacity: 1;
+}
+
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.card-meta-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.file-num {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+}
+
+.card-date {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.level-badge {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.65rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+}
+
+.level-public {
+  background: rgba(21, 128, 61, 0.15);
+  color: #15803d;
+  border: 1px solid rgba(21, 128, 61, 0.3);
+}
+
+.level-restricted {
+  background: rgba(217, 119, 6, 0.15);
+  color: #d97706;
+  border: 1px solid rgba(217, 119, 6, 0.3);
+}
+
+.level-top-secret {
+  background: rgba(217, 4, 41, 0.15);
+  color: var(--accent);
+  border: 1px solid rgba(217, 4, 41, 0.3);
+}
+
+.level-paid {
+  background: rgba(124, 58, 237, 0.15);
+  color: #7c3aed;
+  border: 1px solid rgba(124, 58, 237, 0.3);
+}
+
+.card-icon {
+  font-size: 1.25rem;
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.card-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.4;
+  margin-bottom: 0.5rem;
+  transition: color 0.2s ease;
+}
+
+.story-card:hover .card-title {
+  color: var(--accent);
+}
+
+.card-excerpt {
+  font-size: 0.875rem;
+  color: var(--text-dim);
+  line-height: 1.6;
+  margin-bottom: 1rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.card-tags {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.tag {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 3px;
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.card-stats {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* ============================================
+   SECTION HEADERS
+   ============================================ */
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.section-title {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.section-title::before {
+  content: '▶';
+  color: var(--accent);
+  font-size: 0.6rem;
+}
+
+/* ============================================
+   READER PAGE
+   ============================================ */
+
+.reader-layout {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  display: grid;
+  grid-template-columns: 220px 1fr 220px;
+  gap: 2rem;
+}
+
+@media (max-width: 1200px) {
+  .reader-layout {
+    grid-template-columns: 1fr;
+  }
+  .reader-sidebar {
+    display: none;
+  }
+}
+
+.reader-header {
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.reader-eyebrow {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  color: var(--accent);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.reader-title {
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
+  font-weight: 900;
+  line-height: 1.2;
+  color: var(--text);
+  margin-bottom: 1rem;
+}
+
+.reader-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.reader-meta-sep {
+  opacity: 0.3;
+}
+
+.reader-body {
+  max-width: 680px;
+}
+
+.prose {
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1.9;
+}
+
+.prose p {
+  margin-bottom: 1.5rem;
+  color: var(--text-dim);
+}
+
+.prose h1,
+.prose h2,
+.prose h3 {
+  color: var(--text);
+  font-weight: 700;
+  margin: 2rem 0 1rem;
+  line-height: 1.3;
+}
+
+.prose h2 {
+  font-size: 1.4rem;
+  border-left: 3px solid var(--accent);
+  padding-left: 1rem;
+}
+
+.prose h3 {
+  font-size: 1.15rem;
+  color: var(--text-dim);
+}
+
+.prose blockquote {
+  border-left: 3px solid var(--accent);
+  padding: 1rem 1.25rem;
+  margin: 1.5rem 0;
+  background: var(--accent-dim);
+  border-radius: 0 4px 4px 0;
+}
+
+.prose blockquote p {
+  color: var(--text);
+  margin: 0;
+  font-style: italic;
+}
+
+.prose img {
+  width: 100%;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  margin: 1.5rem 0;
+  opacity: 0.85;
+  transition: opacity 0.2s ease;
+}
+
+.prose img:hover {
+  opacity: 1;
+}
+
+.prose hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2rem 0;
+}
+
+.prose strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.prose em {
+  color: var(--warm);
+  font-style: italic;
+}
+
+.prose code {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.875rem;
+  background: var(--surface);
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  color: var(--accent);
+}
+
+.prose a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ============================================
+   READER NAV
+   ============================================ */
+
+.reader-nav {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border);
+}
+
+.reader-nav-link {
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  background: var(--surface);
+}
+
+.reader-nav-link:hover {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.reader-nav-link.prev {
+  text-align: left;
+}
+
+.reader-nav-link.next {
+  text-align: right;
+}
+
+.reader-nav-dir {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  margin-bottom: 0.35rem;
+}
+
+.reader-nav-title {
+  font-size: 0.875rem;
+  color: var(--text);
+  font-weight: 600;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ============================================
+   PAYMENT GATEWAY / ACCESS RESTRICTED
+   ============================================ */
+
+.access-gate {
+  text-align: center;
+  padding: 3rem 2rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  position: relative;
+  overflow: hidden;
+}
+
+.access-gate::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    var(--bg) 60%
+  );
+  pointer-events: none;
+}
+
+.access-gate-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.access-gate-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+}
+
+.access-gate-desc {
+  font-size: 0.875rem;
+  color: var(--text-dim);
+  margin-bottom: 1.5rem;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.content-blur {
+  filter: blur(5px);
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.4;
+  max-height: 200px;
+  overflow: hidden;
+}
+
+/* ============================================
+   THEME SWITCHER
+   ============================================ */
+
+.theme-switcher {
+  position: relative;
+}
+
+.theme-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.8rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  cursor: pointer;
+  font-family: 'Share Tech Mono', monospace;
+  transition: all 0.2s ease;
+}
+
+.theme-toggle-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.theme-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem;
+  min-width: 160px;
+  display: none;
+  flex-direction: column;
+  gap: 0.25rem;
+  z-index: 1001;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.theme-dropdown.open {
+  display: flex;
+}
+
+.theme-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: 'Noto Sans TC', sans-serif;
+}
+
+.theme-option:hover {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.theme-option.active {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.theme-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* ============================================
+   FOOTER
+   ============================================ */
+
+.site-footer {
+  border-top: 1px solid var(--border);
+  padding: 2rem 1.5rem;
+  margin-top: 4rem;
+}
+
+.footer-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.footer-copy {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.footer-links {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.footer-links a {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.footer-links a:hover {
+  color: var(--accent);
+}
+
+/* ============================================
+   ABOUT PAGE
+   ============================================ */
+
+.about-content {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem;
+}
+
+.about-content h1 {
+  font-size: 2rem;
+  font-weight: 900;
+  margin-bottom: 1.5rem;
+  color: var(--text);
+}
+
+.about-content h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 2rem 0 0.75rem;
+  color: var(--accent);
+  font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 0.1em;
+}
+
+.about-content p {
+  color: var(--text-dim);
+  line-height: 1.8;
+  margin-bottom: 1rem;
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 4px var(--accent);
+  }
+  50% {
+    box-shadow: 0 0 12px var(--accent), 0 0 24px var(--accent2);
+  }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.animate-fade-up {
+  animation: fadeUp 0.5s ease forwards;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease forwards;
+}
+
+.animate-delay-1 { animation-delay: 0.1s; opacity: 0; }
+.animate-delay-2 { animation-delay: 0.2s; opacity: 0; }
+.animate-delay-3 { animation-delay: 0.3s; opacity: 0; }
+.animate-delay-4 { animation-delay: 0.4s; opacity: 0; }
+.animate-delay-5 { animation-delay: 0.5s; opacity: 0; }
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+.mono {
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.text-accent { color: var(--accent); }
+.text-dim { color: var(--text-dim); }
+.text-muted { color: var(--text-muted); }
+
+.cursor-blink::after {
+  content: '█';
+  animation: blink 1s step-end infinite;
+  color: var(--accent);
+  font-size: 0.8em;
+  margin-left: 2px;
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 2rem 0;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ============================================
+   SCROLLBAR STYLING
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg2);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent2);
+}
+
+/* ============================================
+   SELECTION STYLING
+   ============================================ */
+
+::selection {
+  background: var(--accent);
+  color: white;
+}
+
+/* ============================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================ */
+
+@media (max-width: 768px) {
+  .hero-content {
+    padding: 3rem 1rem 2rem;
+  }
+
+  .nav {
+    display: none;
+  }
+
+  .stats-bar {
+    gap: 1.25rem;
+  }
+
+  .reader-nav {
+    grid-template-columns: 1fr;
+  }
+
+  .footer-inner {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-inner {
+    padding: 0 1rem;
+  }
+
+  .hero-title {
+    font-size: 1.8rem;
+  }
+
+  .story-card {
+    padding: 1rem;
+  }
+}

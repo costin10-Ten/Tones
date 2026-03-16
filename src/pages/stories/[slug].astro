@@ -1,0 +1,169 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import ThemeSwitcher from '../../components/ThemeSwitcher.astro';
+import { PaymentGateway } from '../../components/PaymentGateway';
+import { ErrorBoundary } from '../../components/ErrorBoundary';
+import { getCollection, getEntry } from 'astro:content';
+
+export const prerender = false;
+
+const { slug } = Astro.params;
+if (!slug) return Astro.redirect('/stories');
+
+const entry = await getEntry('stories', slug);
+if (!entry || !entry.data.published) {
+  return Astro.redirect('/stories');
+}
+
+const { Content } = await entry.render();
+
+// ─── Server-side auth check ──────────────────────────────────
+// Clerk provides auth() on the locals object via middleware
+const userId = Astro.locals.auth?.()?.userId ?? null;
+
+const level = entry.data.level;
+const isPublic   = level === 'public';
+const isRestricted = level === 'restricted';
+const isTopSecret  = level === 'top-secret';
+const isPaid       = level === 'paid';
+
+// Redirect unauthenticated users for protected content
+if ((isRestricted || isTopSecret) && !userId) {
+  const redirect = encodeURIComponent(Astro.url.pathname);
+  return Astro.redirect(`/sign-in?redirect=${redirect}`);
+}
+
+// Paid content: authenticated but not subscribed → show PaymentGateway
+// (subscription check would query your DB; stubbed here)
+const isSubscribed = false; // TODO: check DB/Stripe subscription
+
+const showPaywall = isPaid && (!userId || !isSubscribed);
+
+// Adjacent stories for prev/next navigation
+const allStories = await getCollection('stories', ({ data }) => data.published);
+const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date));
+const currentIndex = sorted.findIndex(s => s.slug === slug);
+const prevStory = currentIndex < sorted.length - 1 ? sorted[currentIndex + 1] : null;
+const nextStory = currentIndex > 0 ? sorted[currentIndex - 1] : null;
+
+const levelLabel: Record<string, string> = {
+  'public': '公開', 'restricted': '限制', 'top-secret': '極密', 'paid': '付費',
+};
+---
+
+<Layout
+  title={`${entry.data.title} — 弦音異象`}
+  description={entry.data.excerpt}
+>
+  <!-- ─── Reader Header ─── -->
+  <header>
+    <a href="/" class="btn-back">[ 返回大廳 ]</a>
+    <div class="rdr-ttl">{entry.data.title}</div>
+    <ThemeSwitcher client:load />
+    <button
+      id="widthToggle"
+      class="ctrl-btn"
+      aria-label="切換閱讀寬度"
+      title="切換滿版/窄版"
+    >
+      ⊡<span class="ctrl-lbl" id="widthLbl">窄版</span>
+    </button>
+  </header>
+
+  <!-- ─── Reading Progress Bar ─── -->
+  <div id="progress" aria-hidden="true"></div>
+
+  <!-- ─── Article Body ─── -->
+  <main style="padding-top: 56px; min-height: 100vh; background: var(--bg);">
+    <div class="art-wrap" id="artWrap">
+      <!-- Tags -->
+      <div class="art-tags">
+        {entry.data.tags.map(tag => (
+          <span class="tag">{tag}</span>
+        ))}
+        <span class={`tag ${level === 'top-secret' || level === 'paid' ? 'w' : ''}`}>
+          {levelLabel[level]}
+        </span>
+      </div>
+
+      <!-- Title -->
+      <h1>{entry.data.title}</h1>
+
+      <!-- Byline -->
+      <div class="art-byline">
+        <div class="byl-item">案件編號 <em>{entry.data.fileNum}</em></div>
+        <div class="byl-item">案發時間 <em>{entry.data.date}</em></div>
+        <div class="byl-item">預估閱讀 <em>{entry.data.readTime}</em></div>
+        <div class="byl-item">撰寫者 <em>{entry.data.author}</em></div>
+      </div>
+
+      <!-- Content or Paywall -->
+      {showPaywall ? (
+        <ErrorBoundary client:load>
+          <PaymentGateway
+            client:load
+            storyTitle={entry.data.title}
+            storySlug={slug}
+            previewContent={entry.data.excerpt}
+          />
+        </ErrorBoundary>
+      ) : (
+        <div class="art-body prose">
+          <Content />
+        </div>
+      )}
+
+      <!-- Prev / Next Navigation -->
+      <nav class="reader-nav" aria-label="文章導覽">
+        {prevStory ? (
+          <a href={`/stories/${prevStory.slug}`} class="reader-nav-link prev">
+            <div class="reader-nav-dir">← 上一卷宗</div>
+            <div class="reader-nav-title">{prevStory.data.title}</div>
+          </a>
+        ) : (
+          <div></div>
+        )}
+        {nextStory ? (
+          <a href={`/stories/${nextStory.slug}`} class="reader-nav-link next">
+            <div class="reader-nav-dir">下一卷宗 →</div>
+            <div class="reader-nav-title">{nextStory.data.title}</div>
+          </a>
+        ) : (
+          <div></div>
+        )}
+      </nav>
+    </div>
+  </main>
+
+  <footer>
+    <div class="ft-logo">弦音<em>異象</em></div>
+    <div class="ft-txt">ANOMALY ARCHIVES · CLASSIFIED<br>一切皆為虛構，除非你相信。</div>
+  </footer>
+</Layout>
+
+<script>
+  // ─── Reading progress bar ─────────────────────────────────
+  const progressBar = document.getElementById('progress');
+  window.addEventListener('scroll', () => {
+    if (!progressBar) return;
+    const docH = document.documentElement.scrollHeight - window.innerHeight;
+    const pct  = docH > 0 ? (window.scrollY / docH) * 100 : 0;
+    progressBar.style.width = pct + '%';
+  }, { passive: true });
+
+  // ─── Wide / Narrow toggle ─────────────────────────────────
+  const artWrap  = document.getElementById('artWrap');
+  const widthBtn = document.getElementById('widthToggle');
+  const widthLbl = document.getElementById('widthLbl');
+  let wide = false;
+
+  widthBtn?.addEventListener('click', () => {
+    wide = !wide;
+    artWrap?.classList.toggle('wide', wide);
+    if (widthLbl) widthLbl.textContent = wide ? '滿版' : '窄版';
+    if (widthBtn) {
+      widthBtn.firstChild!.nodeValue = wide ? '⊞' : '⊡';
+      widthBtn.classList.toggle('on', wide);
+    }
+  });
+</script>

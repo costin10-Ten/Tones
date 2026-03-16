@@ -1,0 +1,107 @@
+---
+interface Props {
+  currentPath?: string;
+  storyCounts?: {
+    all: number;
+    public: number;
+    restricted: number;
+    topSecret: number;
+    paid: number;
+  };
+}
+
+const {
+  currentPath = '/',
+  storyCounts = { all: 5, public: 1, restricted: 1, topSecret: 2, paid: 1 },
+} = Astro.props;
+---
+
+<aside class="sidebar left-sidebar" aria-label="側邊導覽">
+  <div class="sidebar-widget">
+    <div class="sidebar-title">系統導覽</div>
+    <ul class="nav-list" role="list">
+      <li>
+        <a href="/" class={currentPath === '/' ? 'active' : ''}>
+          <span>◈</span> 總部儀表板
+          <span class="badge">HOME</span>
+        </a>
+      </li>
+      <li>
+        <a href="/stories" class={currentPath.startsWith('/stories') ? 'active' : ''}>
+          <span>◫</span> 異象檔案庫
+          <span class="badge">{storyCounts.all}</span>
+        </a>
+      </li>
+      <li>
+        <a href="/about" class={currentPath === '/about' ? 'active' : ''}>
+          <span>◬</span> 關於本計畫
+        </a>
+      </li>
+    </ul>
+  </div>
+
+  <div class="sidebar-widget">
+    <div class="sidebar-title">機密等級</div>
+    <ul class="nav-list" role="list">
+      <li>
+        <a href="/stories?level=public">
+          <span style="color: #15803d;">●</span> 公開檔案
+          <span class="badge">{storyCounts.public}</span>
+        </a>
+      </li>
+      <li>
+        <a href="/stories?level=restricted">
+          <span style="color: #d97706;">●</span> 限制存取
+          <span class="badge">{storyCounts.restricted}</span>
+        </a>
+      </li>
+      <li>
+        <a href="/stories?level=top-secret">
+          <span style="color: var(--accent);">●</span> 極密
+          <span class="badge">{storyCounts.topSecret}</span>
+        </a>
+      </li>
+      <li>
+        <a href="/stories?level=paid">
+          <span style="color: #7c3aed;">●</span> 付費解鎖
+          <span class="badge">{storyCounts.paid}</span>
+        </a>
+      </li>
+    </ul>
+  </div>
+
+  <div class="sidebar-widget">
+    <div class="sidebar-title">系統狀態</div>
+    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+      <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
+        <span style="color: var(--text-muted); font-family: 'Share Tech Mono', monospace;">伺服器</span>
+        <span style="color: #15803d; font-family: 'Share Tech Mono', monospace;">ONLINE</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
+        <span style="color: var(--text-muted); font-family: 'Share Tech Mono', monospace;">加密層</span>
+        <span style="color: var(--accent); font-family: 'Share Tech Mono', monospace;">ACTIVE</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 0.75rem;">
+        <span style="color: var(--text-muted); font-family: 'Share Tech Mono', monospace;">監控</span>
+        <span style="color: var(--warm); font-family: 'Share Tech Mono', monospace;">WARNING</span>
+      </div>
+      <div
+        style="
+          margin-top: 0.5rem;
+          padding: 0.5rem;
+          background: var(--accent-dim);
+          border: 1px solid var(--border);
+          border-radius: 4px;
+          font-family: 'Share Tech Mono', monospace;
+          font-size: 0.65rem;
+          color: var(--text-muted);
+          line-height: 1.5;
+        "
+      >
+        SYS: 2045.03.15<br />
+        CYCLE: 17 / RESET: PENDING<br />
+        OBSERVER: ACTIVE
+      </div>
+    </div>
+  </div>
+</aside>

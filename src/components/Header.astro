@@ -1,0 +1,56 @@
+---
+import ThemeSwitcher from './ThemeSwitcher.astro';
+import { SignedIn, SignedOut, UserButton, SignInButton } from '@clerk/astro/components';
+
+interface Props {
+  currentPath?: string;
+}
+
+const { currentPath = '/' } = Astro.props;
+
+const navLinks = [
+  { href: '/', label: '首頁' },
+  { href: '/stories', label: '異象檔案' },
+  { href: '/about', label: '關於計畫' },
+];
+---
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="/" class="logo" aria-label="弦音異象首頁">
+      <div class="logo-icon" aria-hidden="true">弦</div>
+      <div class="logo-text">
+        <span class="logo-main">弦音異象</span>
+        <span class="logo-sub">HARMONIC GAZING</span>
+      </div>
+    </a>
+
+    <nav class="nav" aria-label="主要導覽">
+      {navLinks.map(({ href, label }) => (
+        <a
+          href={href}
+          class={`nav-link${currentPath === href ? ' active' : ''}`}
+          aria-current={currentPath === href ? 'page' : undefined}
+        >
+          {label}
+        </a>
+      ))}
+    </nav>
+
+    <div class="header-actions">
+      <ThemeSwitcher />
+
+      <SignedOut>
+        <SignInButton mode="modal">
+          <button class="btn btn-secondary" style="padding: 0.35rem 0.9rem; font-size: 0.8rem;">
+            登入
+          </button>
+        </SignInButton>
+      </SignedOut>
+
+      <SignedIn>
+        <UserButton afterSignOutUrl="/" />
+      </SignedIn>
+    </div>
+  </div>
+</header>

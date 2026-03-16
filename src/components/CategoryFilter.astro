@@ -1,0 +1,126 @@
+---
+interface Props {
+  tags?: string[];
+  levels?: string[];
+}
+
+const { tags = [], levels = [] } = Astro.props;
+
+const allTags = [...new Set(tags)];
+const levelOptions = [
+  { value: 'public', label: '公開', color: '#15803d' },
+  { value: 'restricted', label: '限制', color: '#d97706' },
+  { value: 'top-secret', label: '極密', color: 'var(--accent)' },
+  { value: 'paid', label: '付費', color: '#7c3aed' },
+];
+---
+
+<div class="filter-bar" id="filter-bar">
+  <div class="tag-filters" id="tag-filters" aria-label="標籤篩選">
+    <button
+      class="tag-btn active"
+      data-filter="all"
+      data-filter-type="tag"
+      aria-pressed="true"
+    >
+      全部
+    </button>
+    {allTags.map((tag) => (
+      <button
+        class="tag-btn"
+        data-filter={tag}
+        data-filter-type="tag"
+        aria-pressed="false"
+      >
+        {tag}
+      </button>
+    ))}
+  </div>
+
+  <div class="tag-filters" id="level-filters" style="margin-top: -0.5rem;" aria-label="等級篩選">
+    {levelOptions.map(({ value, label, color }) => (
+      <button
+        class="tag-btn"
+        data-filter={value}
+        data-filter-type="level"
+        style={`--btn-color: ${color};`}
+        aria-pressed="false"
+      >
+        <span style={`color: ${color}; font-size: 0.7rem;`}>●</span>
+        {label}
+      </button>
+    ))}
+  </div>
+</div>
+
+<script>
+  function initFilters() {
+    const tagBtns = document.querySelectorAll<HTMLButtonElement>(
+      '#tag-filters .tag-btn, #level-filters .tag-btn'
+    );
+    const cards = document.querySelectorAll<HTMLElement>('.story-card');
+
+    let activeTag = 'all';
+    let activeLevel = 'all';
+
+    tagBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const type = btn.dataset.filterType;
+        const filter = btn.dataset.filter || 'all';
+
+        if (type === 'tag') {
+          // Deactivate other tag buttons
+          document
+            .querySelectorAll<HTMLButtonElement>('#tag-filters .tag-btn')
+            .forEach((b) => {
+              b.classList.remove('active');
+              b.setAttribute('aria-pressed', 'false');
+            });
+          btn.classList.add('active');
+          btn.setAttribute('aria-pressed', 'true');
+          activeTag = filter;
+        } else if (type === 'level') {
+          // Toggle level button
+          const wasActive = btn.classList.contains('active');
+          document
+            .querySelectorAll<HTMLButtonElement>('#level-filters .tag-btn')
+            .forEach((b) => {
+              b.classList.remove('active');
+              b.setAttribute('aria-pressed', 'false');
+            });
+          if (!wasActive) {
+            btn.classList.add('active');
+            btn.setAttribute('aria-pressed', 'true');
+            activeLevel = filter;
+          } else {
+            activeLevel = 'all';
+          }
+        }
+
+        applyFilters();
+      });
+    });
+
+    function applyFilters() {
+      cards.forEach((card) => {
+        const cardTags = (card.dataset.tags || '').split(',');
+        const cardLevel = card.dataset.level || '';
+
+        const tagMatch =
+          activeTag === 'all' || cardTags.includes(activeTag);
+        const levelMatch =
+          activeLevel === 'all' || cardLevel === activeLevel;
+
+        if (tagMatch && levelMatch) {
+          card.style.display = 'block';
+          card.style.animation = 'fadeUp 0.3s ease forwards';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+  }
+
+  initFilters();
+  document.addEventListener('astro:after-swap', initFilters);
+</script>

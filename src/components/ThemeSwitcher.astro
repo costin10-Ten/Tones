@@ -1,0 +1,110 @@
+---
+// ThemeSwitcher — renders as static HTML; JS activates via client script
+---
+
+<div class="theme-switcher" id="theme-switcher">
+  <button class="theme-toggle-btn" id="theme-toggle" aria-label="切換主題" aria-expanded="false">
+    <span id="theme-icon">◐</span>
+    <span id="theme-label" class="mono" style="font-size:0.75rem;">DARK</span>
+    <span style="font-size:0.6rem; opacity:0.5;">▾</span>
+  </button>
+
+  <div class="theme-dropdown" id="theme-dropdown" role="menu">
+    <button class="theme-option" data-theme="dark" role="menuitem">
+      <span class="theme-swatch" style="background:#d90429;"></span>
+      深淵紅 DARK
+    </button>
+    <button class="theme-option" data-theme="clinical" role="menuitem">
+      <span class="theme-swatch" style="background:#008c72;"></span>
+      手術室 CLINICAL
+    </button>
+    <button class="theme-option" data-theme="biohazard" role="menuitem">
+      <span class="theme-swatch" style="background:#15803d;"></span>
+      生化 BIOHAZARD
+    </button>
+    <button class="theme-option" data-theme="fog" role="menuitem">
+      <span class="theme-swatch" style="background:#5b9ea6;"></span>
+      迷霧 FOG
+    </button>
+    <button class="theme-option" data-theme="dossier" role="menuitem">
+      <span class="theme-swatch" style="background:#9c1414;"></span>
+      機密 DOSSIER
+    </button>
+    <button class="theme-option" data-theme="abyss" role="menuitem">
+      <span class="theme-swatch" style="background:#00b4d8;"></span>
+      深海 ABYSS
+    </button>
+    <button class="theme-option" data-theme="cctv" role="menuitem">
+      <span class="theme-swatch" style="background:#00ff41;"></span>
+      監控 CCTV
+    </button>
+    <button class="theme-option" data-theme="noir" role="menuitem">
+      <span class="theme-swatch" style="background:#ffea00;"></span>
+      黑色 NOIR
+    </button>
+  </div>
+</div>
+
+<script>
+  const THEME_LABELS: Record<string, string> = {
+    dark: 'DARK',
+    clinical: 'CLIN',
+    biohazard: 'BIO',
+    fog: 'FOG',
+    dossier: 'DOS',
+    abyss: 'ABYSS',
+    cctv: 'CCTV',
+    noir: 'NOIR',
+  };
+
+  function initThemeSwitcher() {
+    const switcher = document.getElementById('theme-switcher');
+    const toggle = document.getElementById('theme-toggle');
+    const dropdown = document.getElementById('theme-dropdown');
+    const labelEl = document.getElementById('theme-label');
+
+    if (!switcher || !toggle || !dropdown || !labelEl) return;
+
+    const currentTheme = localStorage.getItem('hz-theme') || 'dark';
+    applyTheme(currentTheme);
+
+    toggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = dropdown.classList.contains('open');
+      dropdown.classList.toggle('open', !isOpen);
+      toggle.setAttribute('aria-expanded', String(!isOpen));
+    });
+
+    dropdown.querySelectorAll('.theme-option').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const theme = (btn as HTMLElement).dataset.theme;
+        if (theme) {
+          applyTheme(theme);
+          dropdown.classList.remove('open');
+          toggle.setAttribute('aria-expanded', 'false');
+        }
+      });
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!switcher.contains(e.target as Node)) {
+        dropdown.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    function applyTheme(theme: string) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('hz-theme', theme);
+      if (labelEl) labelEl.textContent = THEME_LABELS[theme] || theme.toUpperCase();
+
+      dropdown.querySelectorAll('.theme-option').forEach((btn) => {
+        btn.classList.toggle('active', (btn as HTMLElement).dataset.theme === theme);
+      });
+    }
+  }
+
+  // Run on initial load and after view transitions
+  initThemeSwitcher();
+  document.addEventListener('astro:after-swap', initThemeSwitcher);
+</script>

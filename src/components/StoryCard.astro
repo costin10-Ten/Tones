@@ -1,0 +1,71 @@
+---
+interface Props {
+  title: string;
+  fileNum: string;
+  date: string;
+  readTime: string;
+  tags: string[];
+  level: 'public' | 'restricted' | 'top-secret' | 'paid';
+  excerpt: string;
+  vis?: string;
+  icon?: string;
+  slug: string;
+  views?: number;
+  tokens?: number;
+}
+
+const {
+  title,
+  fileNum,
+  date,
+  readTime,
+  tags,
+  level,
+  excerpt,
+  icon = '✖',
+  slug,
+  views = 0,
+  tokens = 0,
+} = Astro.props;
+
+const levelLabel: Record<string, string> = {
+  'public': '公開',
+  'restricted': '限制',
+  'top-secret': '極密',
+  'paid': '付費',
+};
+
+const levelClass: Record<string, string> = {
+  'public': 'level-public',
+  'restricted': 'level-restricted',
+  'top-secret': 'level-top-secret',
+  'paid': 'level-paid',
+};
+---
+
+<a href={`/stories/${slug}`} class="story-card" aria-label={`閱讀：${title}`}>
+  <div class="card-header">
+    <div class="card-meta-left">
+      <span class="file-num">{fileNum}</span>
+      <span class="card-date">{date}</span>
+      <span class={`level-badge ${levelClass[level] ?? 'level-public'}`}>
+        {levelLabel[level] ?? level}
+      </span>
+    </div>
+    <span class="card-icon" aria-hidden="true">{icon}</span>
+  </div>
+
+  <h2 class="card-title">{title}</h2>
+  <p class="card-excerpt">{excerpt}</p>
+
+  <div class="card-footer">
+    <div class="card-tags">
+      {tags.map(tag => <span class="tag">{tag}</span>)}
+    </div>
+    <div class="card-stats">
+      <span title="閱讀時間">{readTime}</span>
+      <span aria-hidden="true">·</span>
+      <span title="瀏覽數">👁 {views}</span>
+    </div>
+  </div>
+</a>

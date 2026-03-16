@@ -1,0 +1,73 @@
+---
+interface Props {
+  recentStories?: Array<{
+    slug: string;
+    title: string;
+    fileNum: string;
+    level: string;
+  }>;
+}
+
+const { recentStories = [] } = Astro.props;
+---
+
+<aside class="sidebar right-sidebar" aria-label="相關資訊">
+  <div class="sidebar-widget">
+    <div class="sidebar-title">最新異象</div>
+    {recentStories.length > 0 ? (
+      <ul class="nav-list" role="list">
+        {recentStories.map((story) => (
+          <li>
+            <a href={`/stories/${story.slug}`}>
+              <span style="font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; color: var(--accent);">
+                {story.fileNum}
+              </span>
+              <span style="font-size: 0.8rem; line-height: 1.3; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                {story.title}
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <p style="font-size: 0.8rem; color: var(--text-muted); font-family: 'Share Tech Mono', monospace;">
+        // 載入中...
+      </p>
+    )}
+  </div>
+
+  <div class="sidebar-widget">
+    <div class="sidebar-title">觀察員須知</div>
+    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+      <p style="font-size: 0.75rem; color: var(--text-dim); line-height: 1.6;">
+        本站所有檔案均為模擬宇宙的觀測紀錄。閱讀前請確認您的神經介面已更新至 v2.3。
+      </p>
+      <p
+        style="
+          font-family: 'Share Tech Mono', monospace;
+          font-size: 0.65rem;
+          color: var(--text-muted);
+          padding: 0.5rem;
+          background: var(--accent-dim);
+          border-left: 2px solid var(--accent);
+          line-height: 1.5;
+        "
+      >
+        // 警告：閱讀極密檔案<br />
+        // 可能引起記憶波動<br />
+        // 請自行承擔後果
+      </p>
+    </div>
+  </div>
+
+  <div class="sidebar-widget">
+    <div class="sidebar-title">分類標籤</div>
+    <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+      <a href="/stories?tag=記憶科技" class="tag" style="text-decoration:none;">記憶科技</a>
+      <a href="/stories?tag=地下城市" class="tag" style="text-decoration:none;">地下城市</a>
+      <a href="/stories?tag=生態復育" class="tag" style="text-decoration:none;">生態復育</a>
+      <a href="/stories?tag=AI社會" class="tag" style="text-decoration:none;">AI社會</a>
+      <a href="/stories?tag=🔍 彩蛋" class="tag" style="text-decoration:none;">🔍 彩蛋</a>
+    </div>
+  </div>
+</aside>

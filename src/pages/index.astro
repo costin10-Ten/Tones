@@ -1,0 +1,300 @@
+---
+import Layout from '../layouts/Layout.astro';
+import StoryCard from '../components/StoryCard.astro';
+import ThemeSwitcher from '../components/ThemeSwitcher.astro';
+import { getCollection } from 'astro:content';
+
+const allStories = await getCollection('stories', ({ data }) => data.published);
+const stories = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date));
+
+const categories = ['全部', '記憶科技', '地下城市', 'AI社會', '生態復育', '情感科技', '🔍 彩蛋'];
+---
+
+<Layout>
+  <!-- ─── Header ─── -->
+  <header>
+    <button class="logo-icon" id="leftSidebarBtn" aria-label="開啟導覽側欄">
+      <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"
+        stroke="var(--text)" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round">
+        <polygon points="14,2.5 20,6.5 20,13.5 14,17.5 8,13.5 8,6.5" fill="none"/>
+        <polygon points="14,10.5 17.5,12.5 17.5,17 14,19 10.5,17 10.5,12.5" fill="none"/>
+        <line x1="14" y1="2.5" x2="14" y2="10.5"/>
+        <line x1="20" y1="6.5" x2="17.5" y2="12.5"/>
+        <line x1="20" y1="13.5" x2="17.5" y2="17"/>
+        <line x1="14" y1="17.5" x2="14" y2="19"/>
+        <line x1="8" y1="13.5" x2="10.5" y2="17"/>
+        <line x1="8" y1="6.5" x2="10.5" y2="12.5"/>
+        <line x1="14" y1="19" x2="14" y2="25.5"/>
+        <line x1="17.5" y1="17" x2="20.5" y2="21.5"/>
+        <line x1="10.5" y1="17" x2="7.5" y2="21.5"/>
+        <line x1="14" y1="25.5" x2="20.5" y2="21.5"/>
+        <line x1="14" y1="25.5" x2="7.5" y2="21.5"/>
+      </svg>
+    </button>
+
+    <a href="/" class="logo-text-btn">弦音<em>異象</em></a>
+
+    <nav class="top-nav">
+      <a class="nav-a" data-cat="記憶科技" href="#world">精神汙染</a>
+      <a class="nav-a" data-cat="地下城市" href="#world">深淵建築</a>
+      <a class="nav-a" data-cat="AI社會" href="#world">人工意識</a>
+      <a class="nav-a" data-cat="生態復育" href="#world">異變生態</a>
+    </nav>
+
+    <ThemeSwitcher client:load />
+
+    <button class="burger" id="rightSidebarBtn" aria-label="開啟通訊側欄">
+      <span></span><span></span><span></span>
+    </button>
+  </header>
+
+  <!-- ─── Sidebar Overlay ─── -->
+  <div class="sidebar-overlay" id="sbOverlay"></div>
+
+  <!-- ─── Left Sidebar ─── -->
+  <div class="sidebar left" id="leftSidebar" role="dialog" aria-label="檔案庫導覽">
+    <div class="sb-drag" id="leftSidebarClose"></div>
+    <div class="sb-head">
+      <span class="sb-logo-text">檔案庫<em>導覽</em></span>
+      <button class="sb-close" id="leftSidebarCloseBtn">[X]</button>
+    </div>
+    <div class="sb-body">
+      <div class="sb-section">主目錄</div>
+      <a href="#stories" class="sb-link">> 最新文章</a>
+      <a href="#world" class="sb-link">> 犯罪類別篩選</a>
+      <a href="/about" class="sb-link">> 關於作者</a>
+
+      <div class="sb-section" style="margin-top:32px">系統數據</div>
+      <div class="sb-stat-box">
+        <span class="sb-stat-lbl">已歸檔案件</span>
+        <span class="sb-stat-val">{stories.length}</span>
+      </div>
+      <div class="sb-stat-box">
+        <span class="sb-stat-lbl">最新更新</span>
+        <span class="sb-stat-val" style="font-size:.8rem">{stories[0]?.data.date ?? '—'}</span>
+      </div>
+
+      <div class="sb-section" style="margin-top:32px">視覺覆寫濾鏡</div>
+      <div class="sb-theme-grid">
+        {[
+          ['dark','闇夜'], ['clinical','臨床'], ['biohazard','生化'], ['fog','迷霧'],
+          ['dossier','卷宗'], ['abyss','窒息'], ['cctv','監視'], ['noir','漆黑'],
+        ].map(([name, label]) => (
+          <button class="sb-theme-btn" data-sb={name}>
+            <div class={`sb-dot ${name}`}></div>
+            <div class="sb-theme-name">{label}</div>
+          </button>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Right Sidebar ─── -->
+  <div class="sidebar right" id="rightSidebar" role="dialog" aria-label="通訊頻道">
+    <div class="sb-drag" id="rightSidebarClose"></div>
+    <div class="sb-head">
+      <span class="sb-logo-text">通訊<em>頻道</em></span>
+      <button class="sb-close" id="rightSidebarCloseBtn">[X]</button>
+    </div>
+    <div class="sb-body">
+      <div class="sb-section">作者通訊頻道</div>
+      <div class="msg-box">
+        <p style="font-size:0.75rem;color:var(--text-dim);margin-bottom:12px;">
+          // 如果你發現了系統漏洞，或者想對作者說些什麼，請在這裡留言。訊號可能會被攔截，但我會看到的。
+        </p>
+        <textarea id="authorMsg" class="msg-textarea" rows="4" placeholder="請輸入加密訊息..."></textarea>
+        <button class="msg-btn" id="sendMsgBtn">[ 發送訊號 ]</button>
+        <div id="msgStatus" class="msg-status"></div>
+      </div>
+
+      <div class="sb-section" style="margin-top:20px">近期攔截訊息</div>
+      <div class="rsb-list">
+        {stories.slice(0, 5).map(story => (
+          <a href={`/stories/${story.slug}`} class="rsb-item">
+            <div class="rsb-title">{story.data.title}</div>
+            <div class="rsb-tags">{story.data.tags.join(', ')}</div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Hero ─── -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-grid"></div>
+    <div class="hero-content">
+      <div class="hero-tag">CONFIDENTIAL · CASE FILE 2045</div>
+      <h1 class="hero-title">
+        每個通勤的早晨<br>
+        <span class="line2">直視深淵的邊緣</span>
+        <span class="line3">心理驚悚 · 推理短篇 · 車廂文學</span>
+      </h1>
+      <p class="hero-desc">
+        五分鐘，一個細思極恐的故事，一塊拼湊瘋狂的碎片。<br>
+        當你滑到網頁最底端時——你將發現真正的怪物，<span class="redacted">就站在你身後</span>。
+      </p>
+      <div class="hero-actions">
+        <a class="btn-primary" href={`/stories/${stories[0]?.slug ?? ''}`}>[ 解鎖第一份卷宗 ]</a>
+        <button class="btn-ghost" id="contactBtn">[ 聯繫作者 ]</button>
+      </div>
+    </div>
+    <div class="hero-stats">
+      <div class="stat"><span class="stat-num">{stories.length}</span><div class="stat-label">已歸檔案件</div></div>
+      <div class="stat"><span class="stat-num">∞</span><div class="stat-label">目擊者數量</div></div>
+      <div class="stat"><span class="stat-num">0</span><div class="stat-label">沒收證物</div></div>
+      <div class="stat"><span class="stat-num">∞</span><div class="stat-label">未解之謎</div></div>
+    </div>
+  </section>
+
+  <!-- ─── Main Content ─── -->
+  <main>
+    <section class="section" id="stories">
+      <div class="sec-hd">
+        <div class="sec-title">高危險級檔案</div>
+        <a href="/stories" class="see-all">[ 展開全部 ]</a>
+      </div>
+
+      <!-- Category Filter (client island) -->
+      <div class="tags-row" id="filterRow">
+        {categories.map((cat, i) => (
+          <button class={`tag-btn${i === 0 ? ' on' : ''}`} data-cat={cat}>
+            {cat === '全部' ? '全部' :
+             cat === '記憶科技' ? '精神汙染' :
+             cat === '地下城市' ? '深淵建築' :
+             cat === 'AI社會' ? '人工意識' :
+             cat === '生態復育' ? '異變生態' :
+             cat === '情感科技' ? '情緒操縱' :
+             cat === '🔍 彩蛋' ? '[ 最高機密 ]' : cat}
+          </button>
+        ))}
+      </div>
+
+      <div class="cards-grid" id="storiesGrid">
+        {stories.map(story => (
+          <StoryCard
+            title={story.data.title}
+            fileNum={story.data.fileNum}
+            date={story.data.date}
+            readTime={story.data.readTime}
+            tags={story.data.tags}
+            level={story.data.level}
+            excerpt={story.data.excerpt}
+            vis={story.data.vis}
+            icon={story.data.icon}
+            slug={story.slug}
+          />
+        ))}
+      </div>
+
+      <div id="noResults" style="display:none;text-align:center;padding:40px 0;">
+        <p style="color:var(--danger);font-size:.85rem;font-family:'Share Tech Mono',monospace;">
+          [ 查無符合權限的檔案 ]
+        </p>
+      </div>
+    </section>
+
+    <hr class="divider" />
+
+    <section class="section" id="world">
+      <div class="sec-hd"><div class="sec-title">異常類別索引</div></div>
+      <p style="font-size:.8rem;color:var(--text-muted);font-family:'Share Tech Mono',monospace;letter-spacing:.05em;margin-top:16px;">
+        // 警告：交叉比對上述案件可能導致嚴重的認知失調。請謹慎閱讀。
+      </p>
+    </section>
+  </main>
+
+  <!-- ─── Footer ─── -->
+  <footer>
+    <div class="ft-logo">弦音<em>異象</em></div>
+    <div class="ft-txt">
+      ANOMALY ARCHIVES · CLASSIFIED<br>
+      一切皆為虛構，除非你相信。
+    </div>
+  </footer>
+</Layout>
+
+<script>
+  // ─── Sidebar logic ───────────────────────────────────────
+  const overlay   = document.getElementById('sbOverlay')!;
+  const leftSb    = document.getElementById('leftSidebar')!;
+  const rightSb   = document.getElementById('rightSidebar')!;
+
+  function openLeft()  { leftSb.classList.add('open');  overlay.classList.add('open'); document.body.style.overflow = 'hidden'; }
+  function openRight() { rightSb.classList.add('open'); overlay.classList.add('open'); document.body.style.overflow = 'hidden'; }
+  function closeAll()  {
+    leftSb.classList.remove('open'); rightSb.classList.remove('open');
+    overlay.classList.remove('open'); document.body.style.overflow = '';
+  }
+
+  document.getElementById('leftSidebarBtn')?.addEventListener('click', openLeft);
+  document.getElementById('rightSidebarBtn')?.addEventListener('click', openRight);
+  document.getElementById('contactBtn')?.addEventListener('click', openRight);
+  document.getElementById('leftSidebarClose')?.addEventListener('click', closeAll);
+  document.getElementById('leftSidebarCloseBtn')?.addEventListener('click', closeAll);
+  document.getElementById('rightSidebarClose')?.addEventListener('click', closeAll);
+  document.getElementById('rightSidebarCloseBtn')?.addEventListener('click', closeAll);
+  overlay.addEventListener('click', closeAll);
+
+  // Keyboard Escape
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAll(); });
+
+  // ─── Sidebar theme buttons ────────────────────────────────
+  document.querySelectorAll<HTMLButtonElement>('.sb-theme-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const t = btn.dataset.sb ?? 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+      try { localStorage.setItem('tones-theme', t); } catch (_) {}
+      document.querySelectorAll('.sb-theme-btn').forEach(b => b.classList.toggle('on', b === btn));
+    });
+  });
+
+  // Mark current theme on load
+  (() => {
+    try {
+      const saved = localStorage.getItem('tones-theme') ?? 'dark';
+      document.querySelector(`.sb-theme-btn[data-sb="${saved}"]`)?.classList.add('on');
+    } catch (_) {}
+  })();
+
+  // ─── Category filter ──────────────────────────────────────
+  document.querySelectorAll<HTMLButtonElement>('.tag-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cat = btn.dataset.cat ?? '全部';
+      document.querySelectorAll('.tag-btn').forEach(b => b.classList.toggle('on', b === btn));
+
+      let visible = 0;
+      document.querySelectorAll<HTMLAnchorElement>('.story-card').forEach(card => {
+        const tags = card.dataset.tags?.split(',') ?? [];
+        const show = cat === '全部' || tags.includes(cat);
+        (card as HTMLElement).style.display = show ? 'block' : 'none';
+        if (show) visible++;
+      });
+
+      const noRes = document.getElementById('noResults');
+      if (noRes) noRes.style.display = visible === 0 ? 'block' : 'none';
+    });
+  });
+
+  // Stamp data-tags on each card from rendered tag spans
+  document.querySelectorAll<HTMLAnchorElement>('.story-card').forEach(card => {
+    const tags = Array.from(card.querySelectorAll('.tag')).map(t => t.textContent?.trim() ?? '');
+    card.dataset.tags = tags.join(',');
+  });
+
+  // ─── Message send (mock) ──────────────────────────────────
+  document.getElementById('sendMsgBtn')?.addEventListener('click', () => {
+    const ta  = document.getElementById('authorMsg') as HTMLTextAreaElement;
+    const st  = document.getElementById('msgStatus')!;
+    if (!ta.value.trim()) {
+      st.style.color = 'var(--danger)';
+      st.textContent = '[ 錯誤：無法發送空訊號 ]';
+    } else {
+      st.style.color = 'var(--accent)';
+      st.textContent = '[ 訊號已加密傳送。觀測者會收到的。 ]';
+      ta.value = '';
+    }
+    st.style.display = 'block';
+    setTimeout(() => (st.style.display = 'none'), 4000);
+  });
+</script>

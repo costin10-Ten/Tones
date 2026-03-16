@@ -1,0 +1,61 @@
+---
+import { ViewTransitions } from 'astro:transitions';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+  theme?: string;
+}
+
+const {
+  title = '弦音異象 — 心理驚悚與推理短篇',
+  description = '五分鐘，一個細思極恐的故事，一塊拼湊瘋狂的碎片。',
+  theme = 'dark',
+} = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="zh-TW" data-theme={theme}>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content={description} />
+  <title>{title}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700;900&family=Noto+Sans+TC:wght@400;700&family=Share+Tech+Mono&display=swap"
+    rel="stylesheet"
+  />
+  <ViewTransitions />
+</head>
+<body>
+  <div id="progress" aria-hidden="true"></div>
+  <slot />
+
+  <script is:inline>
+    // Restore theme from localStorage on page load
+    (function () {
+      const saved = localStorage.getItem('hz-theme');
+      if (saved) {
+        document.documentElement.setAttribute('data-theme', saved);
+      }
+    })();
+  </script>
+
+  <script is:inline>
+    // Reading progress bar
+    function updateProgress() {
+      const el = document.getElementById('progress');
+      if (!el) return;
+      const scrollTop = window.scrollY;
+      const docHeight = document.body.scrollHeight - window.innerHeight;
+      const pct = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+      el.style.width = pct + '%';
+    }
+    window.addEventListener('scroll', updateProgress, { passive: true });
+    updateProgress();
+  </script>
+</body>
+</html>

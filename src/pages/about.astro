@@ -1,0 +1,51 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ThemeSwitcher from '../components/ThemeSwitcher.astro';
+---
+
+<Layout title="關於作者 — 弦音異象" description="弦音異象的世界觀與創作歷程">
+  <header>
+    <a href="/" class="logo-text-btn">弦音<em>異象</em></a>
+    <nav class="top-nav">
+      <a class="nav-a" href="/">首頁</a>
+      <a class="nav-a" href="/stories">全部卷宗</a>
+      <a class="nav-a on" href="/about">關於</a>
+    </nav>
+    <ThemeSwitcher client:load />
+  </header>
+
+  <main style="padding-top: 56px;">
+    <div class="about-content">
+      <div class="about-intro">
+        <h2>深淵的凝視，<br><em class="hl">從未停止</em></h2>
+        <p>「弦音異象」收集了現代/近未來人心的各種異象。觀測 2040 年生活周遭發生的所有相變、深邃、與科技反噬相關的短篇紀錄。</p>
+        <p>
+          請記住：你在這裡看到的所有文字，都可能帶有
+          <span class="redacted">不寒而慄的既視感</span>。
+          當你自以為在閱讀別人的悲劇時，弦音也正在反向解析你的心理弱點。
+        </p>
+      </div>
+
+      <div class="tl-head">作者日誌</div>
+      <div class="timeline">
+        {[
+          { date: '2026.03.10', text: '網站第一次成功掛上網路，我現在有點搞不清楚自己是小說作者還是程式設計師，都是文字的奴隸不是嗎？' },
+          { date: '2026.02.15', text: '寫了五十篇短篇，丟掉四十九篇，剩下的那一篇只是因為它剛好沒有標題。' },
+          { date: '2025.09.22', text: '編撰關於世界的聖經，一度不知道：是我在編輯它，還是它在編輯我。' },
+          { date: '2025.07.22', text: '本網站成立：於作者腦中。' },
+        ].map((log, i) => (
+          <div class={`tl-item${i === 0 ? ' ms' : ''}`}>
+            <div class="tl-dot"></div>
+            <div class="tl-year">[ LOG: {log.date} ]</div>
+            <div class="tl-desc">{log.text}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="ft-logo">弦音<em>異象</em></div>
+    <div class="ft-txt">ANOMALY ARCHIVES · CLASSIFIED<br>一切皆為虛構，除非你相信。</div>
+  </footer>
+</Layout>

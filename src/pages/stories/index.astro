@@ -1,0 +1,54 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import StoryCard from '../../components/StoryCard.astro';
+import ThemeSwitcher from '../../components/ThemeSwitcher.astro';
+import { getCollection } from 'astro:content';
+
+const allStories = await getCollection('stories', ({ data }) => data.published);
+const stories = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date));
+---
+
+<Layout title="所有卷宗 — 弦音異象">
+  <header>
+    <a href="/" class="logo-text-btn">弦音<em>異象</em></a>
+    <nav class="top-nav">
+      <a class="nav-a on" href="/stories">全部卷宗</a>
+      <a class="nav-a" href="/#world">分類索引</a>
+      <a class="nav-a" href="/about">關於作者</a>
+    </nav>
+    <ThemeSwitcher client:load />
+  </header>
+
+  <main style="padding-top: 56px;">
+    <section class="section">
+      <div class="sec-hd">
+        <div class="sec-title">所有歸檔案件</div>
+        <span style="font-family:'Share Tech Mono',monospace;font-size:.65rem;color:var(--text-muted);">
+          {stories.length} 件
+        </span>
+      </div>
+
+      <div class="cards-grid">
+        {stories.map(story => (
+          <StoryCard
+            title={story.data.title}
+            fileNum={story.data.fileNum}
+            date={story.data.date}
+            readTime={story.data.readTime}
+            tags={story.data.tags}
+            level={story.data.level}
+            excerpt={story.data.excerpt}
+            vis={story.data.vis}
+            icon={story.data.icon}
+            slug={story.slug}
+          />
+        ))}
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="ft-logo">弦音<em>異象</em></div>
+    <div class="ft-txt">ANOMALY ARCHIVES · CLASSIFIED</div>
+  </footer>
+</Layout>
