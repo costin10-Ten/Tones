@@ -1,0 +1,15 @@
+# build output
+dist/
+.astro/
+.vercel/
+
+# dependencies
+node_modules/
+
+# env files
+.env
+.env.*
+!.env.example
+
+# generated
+src/env.d.ts
