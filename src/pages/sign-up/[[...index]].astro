@@ -1,0 +1,111 @@
+---
+import { SignUp } from '@clerk/astro/components';
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="加入 — 弦音異象" description="申請觀測者身份，解鎖限制級異象檔案">
+  <div class="auth-page">
+    <div class="auth-bg"></div>
+    <div class="auth-grid"></div>
+    <div class="auth-container">
+      <div class="auth-header">
+        <a href="/" class="auth-logo">弦音<em>異象</em></a>
+        <div class="auth-tag">OBSERVER REGISTRATION</div>
+        <p class="auth-desc">申請觀測者身份。<br>一旦加入，你將永遠是系統的一部分。</p>
+      </div>
+      <div class="auth-card">
+        <SignUp
+          signInUrl="/sign-in"
+          fallbackRedirectUrl="/"
+          appearance={{
+            variables: {
+              colorPrimary: '#d90429',
+              colorBackground: '#0a0a0a',
+              colorInputBackground: '#0f0f0f',
+              colorInputText: '#e0e0e0',
+              colorText: '#e0e0e0',
+              colorTextSecondary: '#8a8a8a',
+              colorNeutral: '#e0e0e0',
+              borderRadius: '0',
+              fontFamily: "'Share Tech Mono', monospace",
+            },
+          }}
+        />
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .auth-page {
+    min-height: 100svh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    background: var(--bg);
+  }
+  .auth-bg {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 60% 50% at 50% 50%, var(--accent-dim), transparent 70%);
+    opacity: 0.5;
+  }
+  .auth-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .auth-container {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    max-width: 480px;
+    padding: 40px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 32px;
+  }
+  .auth-header {
+    text-align: center;
+  }
+  .auth-logo {
+    display: block;
+    font-family: 'Noto Serif TC', serif;
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: var(--text);
+    text-decoration: none;
+    letter-spacing: 0.1em;
+    margin-bottom: 12px;
+  }
+  .auth-logo em {
+    color: var(--accent);
+    font-style: normal;
+  }
+  .auth-tag {
+    display: inline-block;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: var(--bg);
+    background: var(--accent);
+    padding: 4px 12px;
+    margin-bottom: 16px;
+  }
+  .auth-desc {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    line-height: 1.8;
+    letter-spacing: 0.05em;
+  }
+  .auth-card {
+    width: 100%;
+  }
+</style>

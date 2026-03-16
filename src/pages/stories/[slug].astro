@@ -18,11 +18,9 @@ if (!entry || !entry.data.published) {
 const { Content } = await entry.render();
 
 // ─── Server-side auth check ──────────────────────────────────
-// Clerk provides auth() on the locals object via middleware
 const userId = Astro.locals.auth?.()?.userId ?? null;
 
 const level = entry.data.level;
-const isPublic   = level === 'public';
 const isRestricted = level === 'restricted';
 const isTopSecret  = level === 'top-secret';
 const isPaid       = level === 'paid';
@@ -30,13 +28,11 @@ const isPaid       = level === 'paid';
 // Redirect unauthenticated users for protected content
 if ((isRestricted || isTopSecret) && !userId) {
   const redirect = encodeURIComponent(Astro.url.pathname);
-  return Astro.redirect(`/sign-in?redirect=${redirect}`);
+  return Astro.redirect(`/sign-in?redirect_url=${redirect}`);
 }
 
 // Paid content: authenticated but not subscribed → show PaymentGateway
-// (subscription check would query your DB; stubbed here)
 const isSubscribed = false; // TODO: check DB/Stripe subscription
-
 const showPaywall = isPaid && (!userId || !isSubscribed);
 
 // Adjacent stories for prev/next navigation
@@ -49,6 +45,8 @@ const nextStory = currentIndex > 0 ? sorted[currentIndex - 1] : null;
 const levelLabel: Record<string, string> = {
   'public': '公開', 'restricted': '限制', 'top-secret': '極密', 'paid': '付費',
 };
+
+const storyId = `story:${slug}`;
 ---
 
 <Layout
@@ -60,12 +58,7 @@ const levelLabel: Record<string, string> = {
     <a href="/" class="btn-back">[ 返回大廳 ]</a>
     <div class="rdr-ttl">{entry.data.title}</div>
     <ThemeSwitcher />
-    <button
-      id="widthToggle"
-      class="ctrl-btn"
-      aria-label="切換閱讀寬度"
-      title="切換滿版/窄版"
-    >
+    <button id="widthToggle" class="ctrl-btn" title="切換滿版/窄版">
       ⊡<span class="ctrl-lbl" id="widthLbl">窄版</span>
     </button>
   </header>
@@ -76,6 +69,7 @@ const levelLabel: Record<string, string> = {
   <!-- ─── Article Body ─── -->
   <main style="padding-top: 56px; min-height: 100vh; background: var(--bg);">
     <div class="art-wrap" id="artWrap">
+
       <!-- Tags -->
       <div class="art-tags">
         {entry.data.tags.map(tag => (
@@ -94,7 +88,7 @@ const levelLabel: Record<string, string> = {
         <div class="byl-item">案件編號 <em>{entry.data.fileNum}</em></div>
         <div class="byl-item">案發時間 <em>{entry.data.date}</em></div>
         <div class="byl-item">預估閱讀 <em>{entry.data.readTime}</em></div>
-        <div class="byl-item">撰寫者 <em>{entry.data.author}</em></div>
+        <div class="byl-item">目擊次數 <em><span id="art-views">0</span></em></div>
       </div>
 
       <!-- Content or Paywall -->
@@ -108,28 +102,32 @@ const levelLabel: Record<string, string> = {
           />
         </ErrorBoundary>
       ) : (
-        <div class="art-body prose">
+        <div class="art-body" id="artBody">
           <Content />
         </div>
       )}
 
       <!-- Prev / Next Navigation -->
-      <nav class="reader-nav" aria-label="文章導覽">
+      <nav class="art-nav" aria-label="文章導覽">
         {prevStory ? (
-          <a href={`/stories/${prevStory.slug}`} class="reader-nav-link prev">
-            <div class="reader-nav-dir">← 上一卷宗</div>
-            <div class="reader-nav-title">{prevStory.data.title}</div>
+          <a href={`/stories/${prevStory.slug}`} class="nav-pp" id="btnPrev">
+            ← 上一卷宗
           </a>
         ) : (
-          <div></div>
+          <span class="nav-pp" style="opacity:.25;cursor:not-allowed">← 上一卷宗</span>
         )}
+
+        <!-- Token / Coin button -->
+        <button class="token-btn" id="tokenBtn" title="沒收金幣">
+          <span id="tokenIcon">⎔</span><span id="tokenCnt">0</span>
+        </button>
+
         {nextStory ? (
-          <a href={`/stories/${nextStory.slug}`} class="reader-nav-link next">
-            <div class="reader-nav-dir">下一卷宗 →</div>
-            <div class="reader-nav-title">{nextStory.data.title}</div>
+          <a href={`/stories/${nextStory.slug}`} class="nav-pp" id="btnNext">
+            下一卷宗 →
           </a>
         ) : (
-          <div></div>
+          <span class="nav-pp" style="opacity:.25;cursor:not-allowed">下一卷宗 →</span>
         )}
       </nav>
     </div>
@@ -139,20 +137,80 @@ const levelLabel: Record<string, string> = {
     <div class="ft-logo">弦音<em>異象</em></div>
     <div class="ft-txt">ANOMALY ARCHIVES · CLASSIFIED<br>一切皆為虛構，除非你相信。</div>
   </footer>
+
+  <!-- ─── Font Size FAB (bottom right) ─── -->
+  <div class="font-sz-fab" id="fontSzFab">
+    <div class="fsz-pill">
+      <button class="fsz-btn big" id="fontUp">+A</button>
+      <div class="fsz-lbl" id="fontLabel">1.0×</div>
+      <button class="fsz-btn sml" id="fontDown">-A</button>
+    </div>
+  </div>
+
+  <!-- ─── Font Type FAB (bottom left) ─── -->
+  <div class="font-type-fab" id="fontTypeFab">
+    <div class="ft-pill">
+      <button class="ft-opt on" id="ftSerif">
+        <span class="ft-opt-serif">明</span>
+      </button>
+      <button class="ft-opt" id="ftSans">
+        <span class="ft-opt-sans">黑</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ─── Swipe Hint ─── -->
+  <div class="swipe-hint" id="swipeHint">← 滑動切換卷宗 →</div>
 </Layout>
 
-<script>
+<script define:vars={{ storyId, prevSlug: prevStory?.slug ?? null, nextSlug: nextStory?.slug ?? null }}>
+  // ─── View counter ─────────────────────────────────────────
+  function sGet(k) { try { return localStorage.getItem(k); } catch(e) { return null; } }
+  function sSet(k, v) { try { localStorage.setItem(k, v); } catch(e) {} }
+
+  function loadStoryStats(id) {
+    const raw = sGet(id);
+    if (raw) { try { return JSON.parse(raw); } catch(e) {} }
+    return { views: 0, tokens: 0, liked: false };
+  }
+  function saveStoryStats(id, stats) { sSet(id, JSON.stringify(stats)); }
+  function fmtN(n) { return n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(n); }
+
+  const stats = loadStoryStats(storyId);
+  stats.views++;
+  saveStoryStats(storyId, stats);
+
+  const viewsEl = document.getElementById('art-views');
+  if (viewsEl) viewsEl.textContent = fmtN(stats.views);
+
+  // ─── Token / Coin button ──────────────────────────────────
+  function updateTokenUI() {
+    const btn = document.getElementById('tokenBtn');
+    const icon = document.getElementById('tokenIcon');
+    const cnt = document.getElementById('tokenCnt');
+    if (icon) icon.textContent = stats.liked ? '◈' : '⎔';
+    if (cnt) cnt.textContent = fmtN(stats.tokens);
+    btn?.classList.toggle('on', !!stats.liked);
+  }
+  updateTokenUI();
+
+  document.getElementById('tokenBtn')?.addEventListener('click', () => {
+    stats.liked = !stats.liked;
+    stats.tokens = Math.max(0, stats.tokens + (stats.liked ? 1 : -1));
+    saveStoryStats(storyId, stats);
+    updateTokenUI();
+  });
+
   // ─── Reading progress bar ─────────────────────────────────
   const progressBar = document.getElementById('progress');
   window.addEventListener('scroll', () => {
     if (!progressBar) return;
     const docH = document.documentElement.scrollHeight - window.innerHeight;
-    const pct  = docH > 0 ? (window.scrollY / docH) * 100 : 0;
-    progressBar.style.width = pct + '%';
+    progressBar.style.width = docH > 0 ? (window.scrollY / docH * 100) + '%' : '0%';
   }, { passive: true });
 
   // ─── Wide / Narrow toggle ─────────────────────────────────
-  const artWrap  = document.getElementById('artWrap');
+  const artWrap = document.getElementById('artWrap');
   const widthBtn = document.getElementById('widthToggle');
   const widthLbl = document.getElementById('widthLbl');
   let wide = false;
@@ -162,8 +220,270 @@ const levelLabel: Record<string, string> = {
     artWrap?.classList.toggle('wide', wide);
     if (widthLbl) widthLbl.textContent = wide ? '滿版' : '窄版';
     if (widthBtn) {
-      widthBtn.firstChild!.nodeValue = wide ? '⊞' : '⊡';
+      widthBtn.firstChild.nodeValue = wide ? '⊞' : '⊡';
       widthBtn.classList.toggle('on', wide);
     }
   });
+
+  // ─── Font size ────────────────────────────────────────────
+  let fontSz = parseFloat(sGet('hz-font-sz') || '1.0');
+  let fontType = sGet('hz-font-type') || 'serif';
+
+  function applyFont() {
+    const body = document.getElementById('artBody');
+    if (!body) return;
+    body.style.fontSize = fontSz + 'rem';
+    body.style.fontFamily = fontType === 'serif'
+      ? "'Noto Serif TC', serif"
+      : "'Noto Sans TC', sans-serif";
+    const lh = (fontSz >= 1.0 ? Math.max(1.94, 2.1 - (fontSz - 1.0) * 0.356) : 2.1).toFixed(2);
+    body.style.lineHeight = lh;
+    const lbl = document.getElementById('fontLabel');
+    if (lbl) lbl.textContent = fontSz.toFixed(1) + '×';
+  }
+  applyFont();
+
+  document.getElementById('fontUp')?.addEventListener('click', () => {
+    fontSz = Math.min(1.45, +(fontSz + 0.1).toFixed(1));
+    sSet('hz-font-sz', String(fontSz));
+    applyFont();
+  });
+  document.getElementById('fontDown')?.addEventListener('click', () => {
+    fontSz = Math.max(0.78, +(fontSz - 0.1).toFixed(1));
+    sSet('hz-font-sz', String(fontSz));
+    applyFont();
+  });
+  document.getElementById('fontLabel')?.addEventListener('click', () => {
+    fontSz = 1.0;
+    sSet('hz-font-sz', '1.0');
+    applyFont();
+  });
+
+  // ─── Font type toggle ────────────────────────────────────
+  function setFontType(type) {
+    fontType = type;
+    sSet('hz-font-type', type);
+    applyFont();
+    document.getElementById('ftSerif')?.classList.toggle('on', type === 'serif');
+    document.getElementById('ftSans')?.classList.toggle('on', type === 'sans');
+  }
+  // restore saved font type
+  setFontType(fontType);
+
+  document.getElementById('ftSerif')?.addEventListener('click', () => setFontType('serif'));
+  document.getElementById('ftSans')?.addEventListener('click', () => setFontType('sans'));
+
+  // ─── Swipe gesture (prev / next) ─────────────────────────
+  let touchStartX = null;
+  let touchStartY = null;
+  let touchStartTime = 0;
+
+  document.addEventListener('touchstart', e => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    touchStartTime = Date.now();
+  }, { passive: true });
+
+  document.addEventListener('touchend', e => {
+    if (touchStartX === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = Math.abs(e.changedTouches[0].clientY - touchStartY);
+    const dt = Date.now() - touchStartTime;
+
+    if (dt < 500 && Math.abs(dx) > 60 && Math.abs(dx) > dy * 1.5) {
+      const hint = document.getElementById('swipeHint');
+      hint?.classList.add('show');
+      setTimeout(() => hint?.classList.remove('show'), 1800);
+
+      if (dx < 0 && nextSlug) {
+        window.location.href = '/stories/' + nextSlug;
+      } else if (dx > 0 && prevSlug) {
+        window.location.href = '/stories/' + prevSlug;
+      }
+    }
+    touchStartX = null;
+  }, { passive: true });
 </script>
+
+<style>
+  /* ─── Font FAB ──────────────────────────────────────────── */
+  .font-sz-fab {
+    position: fixed;
+    bottom: 80px;
+    right: 16px;
+    z-index: 560;
+    opacity: 0.5;
+    transition: opacity 0.3s;
+  }
+  .font-sz-fab:hover { opacity: 1; }
+
+  .fsz-pill {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 15px rgba(0,0,0,.6);
+  }
+  .fsz-btn {
+    width: 40px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+  }
+  .fsz-btn.big { font-size: .9rem; font-weight: 700; }
+  .fsz-btn.sml { font-size: .7rem; }
+  .fsz-btn:hover { color: var(--text); background: var(--bg2); }
+
+  .fsz-lbl {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .6rem;
+    color: var(--text-muted);
+    padding: 6px 0;
+    cursor: pointer;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    width: 100%;
+    text-align: center;
+    letter-spacing: .1em;
+  }
+
+  /* ─── Font Type FAB ─────────────────────────────────────── */
+  .font-type-fab {
+    position: fixed;
+    bottom: 80px;
+    left: 16px;
+    z-index: 560;
+    opacity: 0.5;
+    transition: opacity 0.3s;
+  }
+  .font-type-fab:hover { opacity: 1; }
+
+  .ft-pill {
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 15px rgba(0,0,0,.6);
+  }
+  .ft-opt {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 14px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: .8rem;
+    color: var(--text-dim);
+    transition: all .2s;
+  }
+  .ft-opt + .ft-opt { border-top: 1px solid var(--border); }
+  .ft-opt:hover, .ft-opt.on { color: var(--text); background: var(--bg2); }
+  .ft-opt-serif { font-family: 'Noto Serif TC', serif; font-weight: 900; }
+  .ft-opt-sans  { font-family: 'Noto Sans TC', sans-serif; font-weight: 700; }
+
+  /* ─── Art Nav (bottom) ──────────────────────────────────── */
+  .art-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 60px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    flex-wrap: nowrap;
+  }
+  .nav-pp {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .7rem;
+    letter-spacing: .1em;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: all .2s;
+    white-space: nowrap;
+    text-transform: uppercase;
+    text-decoration: none;
+    flex: 1;
+    justify-content: center;
+  }
+  .nav-pp:hover {
+    border-color: var(--text);
+    color: var(--bg);
+    background: var(--text);
+  }
+  .token-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: 1px solid var(--accent);
+    padding: 10px 20px;
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .75rem;
+    color: var(--accent);
+    transition: all .2s;
+    letter-spacing: .1em;
+    flex: 0 0 auto;
+  }
+  .token-btn.on { background: var(--accent); color: var(--bg); }
+  .token-btn:hover { background: var(--accent); color: var(--bg); }
+
+  /* ─── Swipe Hint ────────────────────────────────────────── */
+  .swipe-hint {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .65rem;
+    color: var(--bg);
+    letter-spacing: .15em;
+    opacity: 0;
+    transition: opacity .5s;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 580;
+    background: var(--text);
+    padding: 6px 16px;
+    text-transform: uppercase;
+  }
+  .swipe-hint.show { opacity: .9; }
+
+  /* ─── Reader layout adjustments ────────────────────────── */
+  .art-wrap {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 50px 24px 100px;
+    background: var(--bg);
+    min-height: 100%;
+    transition: max-width .25s ease, padding .25s ease;
+  }
+  .art-wrap.wide {
+    max-width: 100%;
+    padding-left: 40px;
+    padding-right: 40px;
+  }
+
+  @media (max-width: 680px) {
+    .art-wrap { padding: 32px 16px 100px; }
+    .art-nav { gap: 4px; }
+    .nav-pp { padding: 8px 4px; font-size: .6rem; }
+    .token-btn { padding: 8px 12px; font-size: .65rem; }
+    .font-sz-fab { bottom: 72px; }
+    .font-type-fab { bottom: 72px; }
+  }
+</style>

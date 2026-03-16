@@ -2,6 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import StoryCard from '../components/StoryCard.astro';
 import ThemeSwitcher from '../components/ThemeSwitcher.astro';
+import { SignedIn, SignedOut, UserButton, SignInButton } from '@clerk/astro/components';
 import { getCollection } from 'astro:content';
 
 const allStories = await getCollection('stories', ({ data }) => data.published);
@@ -43,6 +44,13 @@ const categories = ['全部', '記憶科技', '地下城市', 'AI社會', '生�
 
     <ThemeSwitcher />
 
+    <SignedOut>
+      <a href="/sign-in" class="nav-a" style="border-color:var(--accent);color:var(--accent)">登入</a>
+    </SignedOut>
+    <SignedIn>
+      <a href="/member" class="nav-a" style="white-space:nowrap">觀測者檔案</a>
+    </SignedIn>
+
     <button class="burger" id="rightSidebarBtn" aria-label="開啟通訊側欄">
       <span></span><span></span><span></span>
     </button>
@@ -63,6 +71,13 @@ const categories = ['全部', '記憶科技', '地下城市', 'AI社會', '生�
       <a href="#stories" class="sb-link">> 最新文章</a>
       <a href="#world" class="sb-link">> 犯罪類別篩選</a>
       <a href="/about" class="sb-link">> 關於作者</a>
+      <SignedIn>
+        <a href="/member" class="sb-link">> <span class="redacted">[觀測者檔案]</span></a>
+      </SignedIn>
+      <SignedOut>
+        <a href="/sign-in" class="sb-link" style="color:var(--accent)">> [ 登入系統 ]</a>
+        <a href="/sign-up" class="sb-link">> [ 申請觀測者身份 ]</a>
+      </SignedOut>
 
       <div class="sb-section" style="margin-top:32px">系統數據</div>
       <div class="sb-stat-box">

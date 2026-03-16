@@ -1,0 +1,389 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { SignedIn, SignedOut, UserButton } from '@clerk/astro/components';
+import { getCollection } from 'astro:content';
+
+export const prerender = false;
+
+const userId = Astro.locals.auth?.()?.userId ?? null;
+if (!userId) {
+  return Astro.redirect('/sign-in?redirect_url=/member');
+}
+
+const allStories = await getCollection('stories', ({ data }) => data.published);
+const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date));
+---
+
+<Layout title="觀測者檔案 — 弦音異象" description="你的觀測者身份資料與閱讀紀錄">
+  <!-- ─── Header ─── -->
+  <header>
+    <a href="/" class="btn-back">[ 返回大廳 ]</a>
+    <div class="rdr-ttl">觀測者身份核實</div>
+    <SignedIn>
+      <UserButton afterSignOutUrl="/" />
+    </SignedIn>
+  </header>
+
+  <div id="progress" aria-hidden="true"></div>
+
+  <main class="member-main">
+    <div class="member-wrap">
+
+      <!-- ─── Identity Card ─── -->
+      <div class="id-card">
+        <div class="id-tag">OBSERVER FILE · CLASSIFIED</div>
+        <div class="id-body">
+          <div class="id-avatar-wrap">
+            <div class="id-avatar" id="avatarPlaceholder">👁</div>
+          </div>
+          <div class="id-info">
+            <div class="id-label">識別代號</div>
+            <div class="id-name" id="memberName">載入中…</div>
+            <div class="id-label" style="margin-top:12px">觀測者狀態</div>
+            <div class="id-status"><span class="status-dot"></span>已授權存取</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── Reading Stats ─── -->
+      <div class="sec-hd"><div class="sec-title">閱讀紀錄</div></div>
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-box-num" id="statViews">0</div>
+          <div class="stat-box-lbl">瀏覽次數</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-box-num" id="statTokens">0</div>
+          <div class="stat-box-lbl">沒收金幣</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-box-num" id="statRead">0</div>
+          <div class="stat-box-lbl">已讀卷宗</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-box-num">{sorted.length}</div>
+          <div class="stat-box-lbl">全部卷宗</div>
+        </div>
+      </div>
+
+      <!-- ─── Story List with read status ─── -->
+      <div class="sec-hd" style="margin-top:40px"><div class="sec-title">卷宗追蹤</div></div>
+      <div class="story-track-list">
+        {sorted.map(story => (
+          <a href={`/stories/${story.slug}`} class="track-item" data-slug={story.slug}>
+            <div class="track-left">
+              <div class="track-read-dot" data-slug={story.slug}></div>
+              <div>
+                <div class="track-title">{story.data.title}</div>
+                <div class="track-meta">{story.data.fileNum} · {story.data.date}</div>
+              </div>
+            </div>
+            <div class="track-right">
+              <span class="track-views" data-slug={story.slug}>👁 0</span>
+              <span class="track-tokens" data-slug={story.slug}>⎔ 0</span>
+            </div>
+          </a>
+        ))}
+      </div>
+
+      <!-- ─── Sign Out ─── -->
+      <div class="signout-section">
+        <a href="/" class="btn-ghost">[ 返回大廳 ]</a>
+        <div id="signOutBtn" class="btn-ghost danger">[ 登出系統 ]</div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer>
+    <div class="ft-logo">弦音<em>異象</em></div>
+    <div class="ft-txt">ANOMALY ARCHIVES · CLASSIFIED<br>一切皆為虛構，除非你相信。</div>
+  </footer>
+</Layout>
+
+<script define:vars={{ storySlugs: sorted.map(s => s.slug) }}>
+  function sGet(k) { try { return localStorage.getItem(k); } catch(e) { return null; } }
+  function fmtN(n) { return n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(n); }
+
+  // Load stats from localStorage for all stories
+  let totalViews = 0, totalTokens = 0, totalRead = 0;
+
+  storySlugs.forEach(slug => {
+    const raw = sGet('story:' + slug);
+    let stats = { views: 0, tokens: 0, liked: false };
+    if (raw) { try { stats = JSON.parse(raw); } catch(e) {} }
+
+    totalViews += stats.views;
+    totalTokens += stats.tokens;
+    if (stats.views > 0) totalRead++;
+
+    // Update per-story display
+    const viewEl = document.querySelector(`.track-views[data-slug="${slug}"]`);
+    const tokenEl = document.querySelector(`.track-tokens[data-slug="${slug}"]`);
+    const dotEl = document.querySelector(`.track-read-dot[data-slug="${slug}"]`);
+
+    if (viewEl) viewEl.textContent = '👁 ' + fmtN(stats.views);
+    if (tokenEl) tokenEl.textContent = '⎔ ' + fmtN(stats.tokens);
+    if (dotEl) dotEl.classList.toggle('read', stats.views > 0);
+  });
+
+  document.getElementById('statViews').textContent = fmtN(totalViews);
+  document.getElementById('statTokens').textContent = fmtN(totalTokens);
+  document.getElementById('statRead').textContent = String(totalRead);
+
+  // Load Clerk user info for display
+  window.addEventListener('load', async () => {
+    try {
+      // @ts-ignore
+      const user = await window.Clerk?.user;
+      if (user) {
+        const name = user.fullName || user.primaryEmailAddress?.emailAddress || '觀測者';
+        const nameEl = document.getElementById('memberName');
+        if (nameEl) nameEl.textContent = name;
+      }
+    } catch(e) {}
+
+    // Try to show user name from Clerk metadata in DOM
+    const clerkUser = document.querySelector('[data-clerk-user-button]');
+    if (clerkUser) {
+      const nameEl = document.getElementById('memberName');
+      if (nameEl && nameEl.textContent === '載入中…') {
+        nameEl.textContent = '已驗證觀測者';
+      }
+    }
+  });
+
+  // Fallback: if name still loading after 1s
+  setTimeout(() => {
+    const nameEl = document.getElementById('memberName');
+    if (nameEl && nameEl.textContent === '載入中…') {
+      nameEl.textContent = '已驗證觀測者';
+    }
+  }, 1500);
+
+  // Sign out via Clerk
+  document.getElementById('signOutBtn')?.addEventListener('click', async () => {
+    try {
+      // @ts-ignore
+      await window.Clerk?.signOut();
+      window.location.href = '/';
+    } catch(e) {
+      window.location.href = '/sign-in';
+    }
+  });
+</script>
+
+<style>
+  .member-main {
+    padding-top: 56px;
+    min-height: 100vh;
+    background: var(--bg);
+  }
+  .member-wrap {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 48px 24px 100px;
+  }
+
+  /* ─── Identity Card ─── */
+  .id-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    margin-bottom: 40px;
+    overflow: hidden;
+  }
+  .id-tag {
+    background: var(--accent);
+    color: var(--bg);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .6rem;
+    letter-spacing: .2em;
+    padding: 6px 16px;
+    font-weight: bold;
+  }
+  .id-body {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 24px;
+  }
+  .id-avatar-wrap { flex-shrink: 0; }
+  .id-avatar {
+    width: 64px;
+    height: 64px;
+    border: 2px solid var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    background: var(--bg2);
+  }
+  .id-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .6rem;
+    color: var(--text-muted);
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .id-name {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 1.1rem;
+    font-weight: 900;
+    color: var(--text);
+    letter-spacing: .05em;
+  }
+  .id-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .7rem;
+    color: var(--accent);
+    letter-spacing: .1em;
+  }
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* ─── Section header ─── */
+  .sec-hd {
+    display: flex;
+    align-items: baseline;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 10px;
+  }
+  .sec-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .85rem;
+    color: var(--text);
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    font-weight: bold;
+  }
+  .sec-title::before { content: '[ '; color: var(--accent); }
+  .sec-title::after  { content: ' ]'; color: var(--accent); }
+
+  /* ─── Stats Grid ─── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+  .stat-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 16px 12px;
+    text-align: center;
+  }
+  .stat-box-num {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.4rem;
+    color: var(--accent);
+    font-weight: bold;
+    margin-bottom: 6px;
+  }
+  .stat-box-lbl {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .6rem;
+    color: var(--text-muted);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+  }
+
+  /* ─── Story Track List ─── */
+  .story-track-list { display: flex; flex-direction: column; gap: 4px; }
+  .track-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid transparent;
+    text-decoration: none;
+    transition: all .2s;
+    gap: 12px;
+  }
+  .track-item:hover {
+    border-left-color: var(--accent);
+    background: var(--bg2);
+    transform: translateX(3px);
+  }
+  .track-left { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+  .track-read-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    flex-shrink: 0;
+    transition: background .2s;
+  }
+  .track-read-dot.read { background: var(--accent); }
+  .track-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: .85rem;
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .track-meta {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .6rem;
+    color: var(--text-muted);
+    letter-spacing: .05em;
+    margin-top: 2px;
+  }
+  .track-right {
+    display: flex;
+    gap: 12px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .65rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  /* ─── Sign out ─── */
+  .signout-section {
+    display: flex;
+    gap: 12px;
+    margin-top: 48px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .8rem;
+    letter-spacing: .1em;
+    padding: 10px 20px;
+    transition: all .2s;
+    background: var(--surface);
+    cursor: pointer;
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+  .btn-ghost:hover { border-color: var(--text); color: var(--bg); background: var(--text); }
+  .btn-ghost.danger:hover { border-color: var(--danger); color: var(--danger); background: transparent; }
+
+  @media (max-width: 500px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .track-right { display: none; }
+    .id-body { flex-direction: column; text-align: center; }
+  }
+</style>

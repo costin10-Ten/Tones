@@ -1,9 +1,20 @@
 import { config, fields, collection } from '@keystatic/core';
 
 export default config({
-  storage: {
-    kind: 'local',
+  storage: process.env.NODE_ENV === 'production'
+    ? {
+        kind: 'github',
+        repo: {
+          owner: process.env.GITHUB_REPO_OWNER!,
+          name: process.env.GITHUB_REPO_NAME!,
+        },
+      }
+    : { kind: 'local' },
+
+  ui: {
+    brand: { name: '弦音異象 後台' },
   },
+
   collections: {
     stories: collection({
       label: '驚悚短篇',
@@ -20,8 +31,8 @@ export default config({
           label: '機密等級',
           options: [
             { label: '公開', value: 'public' },
-            { label: '限制', value: 'restricted' },
-            { label: '極密', value: 'top-secret' },
+            { label: '限制（需登入）', value: 'restricted' },
+            { label: '極密（需登入）', value: 'top-secret' },
             { label: '付費', value: 'paid' },
           ],
           defaultValue: 'public',
@@ -31,11 +42,11 @@ export default config({
         vis: fields.select({
           label: '視覺樣式',
           options: [
-            { label: 'V1', value: 'v1' },
-            { label: 'V2', value: 'v2' },
-            { label: 'V3', value: 'v3' },
-            { label: 'V4', value: 'v4' },
-            { label: 'V5', value: 'v5' },
+            { label: 'V1 — 紅色', value: 'v1' },
+            { label: 'V2 — 暗黑', value: 'v2' },
+            { label: 'V3 — 綠色', value: 'v3' },
+            { label: 'V4 — 藍色', value: 'v4' },
+            { label: 'V5 — 紫色', value: 'v5' },
           ],
           defaultValue: 'v1',
         }),
