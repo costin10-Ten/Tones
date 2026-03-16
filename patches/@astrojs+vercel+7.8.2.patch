@@ -1,0 +1,28 @@
+diff --git a/node_modules/@astrojs/vercel/dist/serverless/adapter.js b/node_modules/@astrojs/vercel/dist/serverless/adapter.js
+index ae8cd14..315fd99 100644
+--- a/node_modules/@astrojs/vercel/dist/serverless/adapter.js
++++ b/node_modules/@astrojs/vercel/dist/serverless/adapter.js
+@@ -36,6 +36,7 @@ const ISR_PATH = `/_isr?${ASTRO_PATH_PARAM}=$0`;
+ const SUPPORTED_NODE_VERSIONS = {
+     18: { status: 'retiring', removal: 'Early 2025', warnDate: new Date('October 1 2024') },
+     20: { status: 'default' },
++    22: { status: 'default' },
+ };
+ function getAdapter({ edgeMiddleware, functionPerRoute, middlewareSecret, skewProtection, }) {
+     return {
+@@ -375,7 +376,7 @@ function getRuntime(process, logger) {
+             `\tYour project will use Node.js 18 as the runtime instead.\n` +
+             // biome-ignore lint/style/noUnusedTemplateLiteral: <explanation>
+             `\tConsider switching your local version to 18.\n`);
+-        return 'nodejs18.x';
++        return 'nodejs20.x';
+     }
+     if (support.status === 'default') {
+         return `nodejs${major}.x`;
+@@ -402,5 +403,5 @@ function getRuntime(process, logger) {
+             `\tConsider upgrading your local version to 18.\n`);
+         return `nodejs${major}.x`;
+     }
+-    return 'nodejs18.x';
++    return 'nodejs20.x';
+ }
