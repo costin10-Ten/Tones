@@ -314,3 +314,211 @@ const categories = ['全部', '記憶科技', '地下城市', 'AI社會', '生�
     setTimeout(() => (st.style.display = 'none'), 4000);
   });
 </script>
+
+<style>
+  /* ─── Header ─────────────────────────────────────── */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    gap: 10px;
+  }
+  button.logo-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  button.logo-icon svg { width: 28px; height: 28px; }
+  button.logo-icon:hover svg { stroke: var(--accent); }
+  a.logo-text-btn {
+    font-family: 'Noto Serif TC', serif;
+    font-weight: 900;
+    font-size: 1.1rem;
+    color: var(--text);
+    text-decoration: none;
+    letter-spacing: 0.1em;
+    flex-shrink: 0;
+  }
+  a.logo-text-btn em { color: var(--accent); font-style: normal; }
+  .top-nav {
+    display: flex;
+    gap: 2px;
+    flex: 1;
+    justify-content: center;
+  }
+  .nav-a {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    text-decoration: none;
+    padding: 5px 8px;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .nav-a:hover { border-color: var(--border); color: var(--text); }
+  .burger {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex-shrink: 0;
+  }
+  .burger span {
+    display: block;
+    width: 22px;
+    height: 1.5px;
+    background: var(--text);
+    transition: all 0.2s;
+  }
+  .burger:hover span { background: var(--accent); }
+
+  /* ─── Sidebar Overlay ─────────────────────────────── */
+  .sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 200;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .sidebar-overlay.open { opacity: 1; pointer-events: all; }
+
+  /* ─── Sidebars ─────────────────────────────────────── */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    width: 300px;
+    max-width: 85vw;
+    z-index: 300;
+    background: var(--bg);
+    overflow-y: auto;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+  }
+  .sidebar.left  { left: 0;  transform: translateX(-100%); border-right: 1px solid var(--accent); }
+  .sidebar.right { right: 0; transform: translateX(100%);  border-left:  1px solid var(--accent); }
+  .sidebar.open  { transform: translateX(0); }
+  .sb-drag { display: none; }
+  .sb-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 10;
+  }
+  .sb-logo-text { font-family: 'Noto Serif TC', serif; font-weight: 900; font-size: 1rem; color: var(--text); letter-spacing: 0.1em; }
+  .sb-logo-text em { color: var(--accent); font-style: normal; }
+  .sb-close { background: none; border: none; cursor: pointer; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; color: var(--text-muted); padding: 4px 8px; transition: color 0.2s; }
+  .sb-close:hover { color: var(--danger); }
+  .sb-body { padding: 20px; flex: 1; }
+  .sb-section { font-family: 'Share Tech Mono', monospace; font-size: 0.58rem; letter-spacing: 0.2em; color: var(--text-muted); text-transform: uppercase; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  .sb-link { display: block; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; color: var(--text-dim); text-decoration: none; padding: 9px 0; letter-spacing: 0.05em; transition: color 0.2s; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .sb-link:hover { color: var(--accent); }
+  .sb-stat-box { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; }
+  .sb-stat-lbl { color: var(--text-muted); }
+  .sb-stat-val { color: var(--accent); font-weight: bold; }
+  .sb-theme-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+  .sb-theme-btn { background: var(--surface); border: 1px solid var(--border); padding: 8px 4px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 5px; transition: border-color 0.2s; }
+  .sb-theme-btn:hover, .sb-theme-btn.on { border-color: var(--accent); }
+  .sb-dot { width: 14px; height: 14px; border-radius: 50%; }
+  .sb-dot.dark      { background: #0a0a0a; border: 1px solid #444; }
+  .sb-dot.clinical  { background: #f0f0f5; border: 1px solid #aaa; }
+  .sb-dot.biohazard { background: #d1fae5; border: 1px solid #15803d; }
+  .sb-dot.fog       { background: #1e2426; border: 1px solid #5b9ea6; }
+  .sb-dot.dossier   { background: #e3dac9; border: 1px solid #9c1414; }
+  .sb-dot.abyss     { background: #030b14; border: 1px solid #00b4d8; }
+  .sb-dot.cctv      { background: #020a04; border: 1px solid #00ff41; }
+  .sb-dot.noir      { background: #000;    border: 1px solid #ffea00; }
+  .sb-theme-name { font-family: 'Share Tech Mono', monospace; font-size: 0.52rem; color: var(--text-muted); letter-spacing: 0.05em; }
+
+  /* ─── Right sidebar message ───────────────────────── */
+  .msg-box { margin-top: 10px; }
+  .msg-textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; padding: 12px; resize: none; box-sizing: border-box; transition: border-color 0.2s; }
+  .msg-textarea:focus { outline: none; border-color: var(--accent); }
+  .msg-btn { margin-top: 8px; width: 100%; background: none; border: 1px solid var(--accent); color: var(--accent); font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; padding: 10px; cursor: pointer; letter-spacing: 0.1em; transition: all 0.2s; }
+  .msg-btn:hover { background: var(--accent); color: var(--bg); }
+  .msg-status { display: none; margin-top: 8px; font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; padding: 6px 0; }
+  .rsb-item { display: block; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.04); text-decoration: none; transition: all 0.2s; }
+  .rsb-item:hover .rsb-title { color: var(--accent); }
+  .rsb-title { font-family: 'Noto Serif TC', serif; font-size: 0.8rem; color: var(--text); margin-bottom: 3px; letter-spacing: 0.05em; transition: color 0.2s; }
+  .rsb-tags { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; color: var(--text-muted); letter-spacing: 0.05em; }
+
+  /* ─── Hero ────────────────────────────────────────── */
+  .hero { min-height: calc(100svh - 56px); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden; text-align: center; }
+  .hero-bg { position: absolute; inset: 0; background: radial-gradient(ellipse 80% 60% at 50% 50%, var(--accent-dim), transparent 70%); opacity: 0.5; }
+  .hero-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px); background-size: 40px 40px; }
+  .hero-content { position: relative; z-index: 10; max-width: 760px; padding: 60px 24px 40px; }
+  .hero-tag { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; letter-spacing: 0.3em; color: var(--text-muted); margin-bottom: 24px; }
+  .hero-title { font-family: 'Noto Serif TC', serif; font-size: clamp(2rem, 6vw, 3.8rem); font-weight: 900; line-height: 1.2; color: var(--text); letter-spacing: 0.05em; margin-bottom: 24px; }
+  .hero-title .line2 { display: block; color: var(--accent); font-size: 0.65em; margin-top: 8px; }
+  .hero-title .line3 { display: block; font-size: 0.32em; color: var(--text-muted); letter-spacing: 0.2em; font-family: 'Share Tech Mono', monospace; font-weight: 400; margin-top: 16px; }
+  .hero-desc { font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; color: var(--text-dim); line-height: 1.9; letter-spacing: 0.05em; margin-bottom: 40px; }
+  .hero-actions { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+  .btn-primary { display: inline-flex; align-items: center; background: var(--accent); color: var(--bg); font-family: 'Share Tech Mono', monospace; font-size: 0.78rem; letter-spacing: 0.12em; padding: 13px 28px; text-decoration: none; transition: all 0.2s; border: 1px solid var(--accent); font-weight: bold; }
+  .btn-primary:hover { background: transparent; color: var(--accent); }
+  .btn-ghost { display: inline-flex; align-items: center; background: none; color: var(--text-dim); font-family: 'Share Tech Mono', monospace; font-size: 0.78rem; letter-spacing: 0.12em; padding: 13px 28px; cursor: pointer; transition: all 0.2s; border: 1px solid var(--border); }
+  .btn-ghost:hover { border-color: var(--text); color: var(--text); }
+  .hero-stats { position: relative; z-index: 10; display: flex; gap: 48px; justify-content: center; padding: 32px 24px 56px; flex-wrap: wrap; }
+  .stat { text-align: center; }
+  .stat-num { display: block; font-family: 'Share Tech Mono', monospace; font-size: 1.8rem; color: var(--accent); font-weight: bold; }
+  .stat-label { font-family: 'Share Tech Mono', monospace; font-size: 0.58rem; color: var(--text-muted); letter-spacing: 0.15em; text-transform: uppercase; margin-top: 4px; }
+
+  /* ─── Main content ────────────────────────────────── */
+  main { max-width: 1100px; margin: 0 auto; padding: 60px 24px; }
+  .section { margin-bottom: 60px; }
+  .sec-hd { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 24px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+  .sec-title { font-family: 'Share Tech Mono', monospace; font-size: 0.85rem; color: var(--text); letter-spacing: 0.2em; text-transform: uppercase; font-weight: bold; }
+  .sec-title::before { content: '[ '; color: var(--accent); }
+  .sec-title::after  { content: ' ]'; color: var(--accent); }
+  .see-all { font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; color: var(--text-muted); text-decoration: none; letter-spacing: 0.1em; transition: color 0.2s; }
+  .see-all:hover { color: var(--accent); }
+  .tags-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+  .tag-btn { background: var(--surface); border: 1px solid var(--border); color: var(--text-muted); font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; letter-spacing: 0.1em; padding: 6px 14px; cursor: pointer; transition: all 0.2s; }
+  .tag-btn:hover, .tag-btn.on { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  /* ─── Footer ──────────────────────────────────────── */
+  footer { text-align: center; padding: 60px 24px; border-top: 1px solid var(--border); }
+  .ft-logo { font-family: 'Noto Serif TC', serif; font-size: 1.4rem; font-weight: 900; color: var(--text); letter-spacing: 0.1em; margin-bottom: 12px; }
+  .ft-logo em { color: var(--accent); font-style: normal; }
+  .ft-txt { font-family: 'Share Tech Mono', monospace; font-size: 0.68rem; color: var(--text-muted); letter-spacing: 0.1em; line-height: 1.8; }
+
+  /* ─── Redacted text ───────────────────────────────── */
+  .redacted { background: var(--text); color: transparent; user-select: none; transition: all 0.3s; cursor: pointer; border-radius: 2px; }
+  .redacted:hover { background: transparent; color: var(--text); }
+
+  /* ─── Responsive ──────────────────────────────────── */
+  @media (max-width: 768px) {
+    .top-nav { display: none; }
+    .hero-stats { gap: 24px; }
+    .cards-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 480px) {
+    .stat-num { font-size: 1.4rem; }
+    header { padding: 0 10px; }
+  }
+</style>
