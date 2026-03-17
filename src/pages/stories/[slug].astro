@@ -315,6 +315,11 @@ const storyId = `story:${slug}`;
   document.getElementById('ftSans')?.addEventListener('click', () => setFontType('sans'));
 
   // ─── Swipe gesture (prev / next, category-aware) ─────────
+  // Use AbortController so listeners are removed when leaving the page via ViewTransitions
+  var _swipeCtrl = new AbortController();
+  var swipeSig = _swipeCtrl.signal;
+  document.addEventListener('astro:before-swap', function() { _swipeCtrl.abort(); }, { once: true });
+
   var touchStartX = null;
   var touchStartY = null;
   var touchStartTime = 0;
@@ -323,7 +328,7 @@ const storyId = `story:${slug}`;
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
     touchStartTime = Date.now();
-  }, { passive: true });
+  }, { passive: true, signal: swipeSig });
 
   document.addEventListener('touchend', function(e) {
     if (touchStartX === null) return;
@@ -343,7 +348,7 @@ const storyId = `story:${slug}`;
       }
     }
     touchStartX = null;
-  }, { passive: true });
+  }, { passive: true, signal: swipeSig });
 </script>
 
 <style>

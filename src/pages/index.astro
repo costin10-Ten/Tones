@@ -48,7 +48,7 @@ const categories = ['全部', '記憶科技', '地下城市', 'AI社會', '生�
       <a href="/sign-in" class="nav-a" style="border-color:var(--accent);color:var(--accent)">登入</a>
     </SignedOut>
     <SignedIn>
-      <a href="/member" class="nav-a" style="white-space:nowrap">觀測者檔案</a>
+      <a href="/member" class="nav-a" style="white-space:nowrap">會員登入</a>
       <UserButton afterSignOutUrl="/" />
     </SignedIn>
 
@@ -74,7 +74,7 @@ const categories = ['全部', '記憶科技', '地下城市', 'AI社會', '生�
       <a href="/about" class="sb-link">> 關於作者</a>
       <a href="/history" class="sb-link">> 網站發展史</a>
       <SignedIn>
-        <a href="/member" class="sb-link sb-link-bold">> 觀測者檔案</a>
+        <a href="/member" class="sb-link sb-link-bold">> 會員登入</a>
       </SignedIn>
       <SignedOut>
         <a href="/sign-in" class="sb-link sb-link-bold" style="color:var(--accent)">> 登入系統</a>
@@ -344,6 +344,8 @@ const categories = ['全部', '記憶科技', '地下城市', 'AI社會', '生�
     plainBtn?.addEventListener('click', () => {
       plainMode = !plainMode;
       sSet('hz-plain', plainMode ? '1' : '0');
+      if (plainMode) document.documentElement.setAttribute('data-plain', '1');
+      else document.documentElement.removeAttribute('data-plain');
       updatePlainBtn();
     }, { signal: sig });
 
@@ -380,6 +382,11 @@ const categories = ['全部', '記憶科技', '地下城市', 'AI社會', '生�
       }
     }, { signal: sig });
     unlockModal?.addEventListener('click', (e) => { if (e.target === unlockModal) closeModal(); }, { signal: sig });
+
+    // ─── Close sidebar when clicking in-page anchor links ───
+    document.querySelectorAll<HTMLAnchorElement>('.sb-link[href^="#"]').forEach(link => {
+      link.addEventListener('click', closeAll, { signal: sig });
+    });
 
     // ─── Category filter ────────────────────────────────────
     // Tag data is stored on cards so filtering works after re-init
@@ -699,6 +706,12 @@ const categories = ['全部', '記憶科技', '地下城市', 'AI社會', '生�
   /* ─── Redacted text ───────────────────────────────── */
   .redacted { background: var(--text); color: transparent; user-select: none; transition: all 0.3s; cursor: pointer; border-radius: 2px; }
   .redacted:hover { background: transparent; color: var(--text); }
+
+  /* ─── Plain text mode overrides ─────────────────────────── */
+  :global([data-plain="1"]) .hero-bg,
+  :global([data-plain="1"]) .hero-grid { display: none; }
+  :global([data-plain="1"]) .hero { background: none; min-height: auto; padding: 40px 24px; }
+  :global([data-plain="1"]) .sidebar { background: #fff; border-color: #ccc; }
 
   /* ─── Responsive ──────────────────────────────────── */
   @media (max-width: 768px) {

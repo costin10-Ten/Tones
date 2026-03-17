@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import ThemeSwitcher from '../components/ThemeSwitcher.astro';
 import { SignedIn, SignedOut, UserButton } from '@clerk/astro/components';
 import { getCollection } from 'astro:content';
 
@@ -14,17 +15,16 @@ const allStories = await getCollection('stories', ({ data }) => data.published);
 const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date));
 ---
 
-<Layout title="觀測者檔案 — 弦音異象" description="你的觀測者身份資料與閱讀紀錄">
+<Layout title="會員登入 — 弦音異象" description="你的觀測者身份資料與閱讀紀錄">
   <!-- ─── Header ─── -->
   <header>
-    <a href="/" class="btn-back">[ 返回大廳 ]</a>
+    <a href="/" class="rdr-logo">弦音<em>異象</em></a>
     <div class="rdr-ttl">觀測者身份核實</div>
+    <ThemeSwitcher />
     <SignedIn>
       <UserButton afterSignOutUrl="/" />
     </SignedIn>
   </header>
-
-  <div id="progress" aria-hidden="true"></div>
 
   <main class="member-main">
     <div class="member-wrap">
@@ -174,8 +174,45 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
 </script>
 
 <style>
+  /* ─── Header ────────────────────────────────────── */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 16px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+  .rdr-logo {
+    font-family: 'Noto Serif TC', serif;
+    font-weight: 900;
+    font-size: 1rem;
+    color: var(--text);
+    text-decoration: none;
+    letter-spacing: 0.08em;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .rdr-logo em { color: var(--accent); font-style: normal; }
+  .rdr-ttl {
+    flex: 1;
+    font-family: 'Noto Serif TC', serif;
+    font-size: .85rem;
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+    letter-spacing: .04em;
+  }
+
+  /* ─── Member main ────────────────────────────────── */
   .member-main {
-    padding-top: 56px;
     min-height: 100vh;
     background: var(--bg);
   }

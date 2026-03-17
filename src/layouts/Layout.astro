@@ -29,19 +29,34 @@ const {
     rel="stylesheet"
   />
   <ViewTransitions />
+  <!-- Apply theme + plain mode before first paint to avoid flash -->
+  <script is:inline>
+    (function () {
+      try {
+        var t = localStorage.getItem('hz-theme');
+        if (t) document.documentElement.setAttribute('data-theme', t);
+        var p = localStorage.getItem('hz-plain');
+        if (p === '1') document.documentElement.setAttribute('data-plain', '1');
+        else document.documentElement.removeAttribute('data-plain');
+      } catch (_) {}
+    })();
+  </script>
 </head>
 <body>
   <div id="progress" aria-hidden="true"></div>
   <slot />
 
   <script is:inline>
-    // Restore theme from localStorage on page load
-    (function () {
-      const saved = localStorage.getItem('hz-theme');
-      if (saved) {
-        document.documentElement.setAttribute('data-theme', saved);
-      }
-    })();
+    // Re-apply theme + plain mode after each ViewTransitions page swap
+    document.addEventListener('astro:after-swap', function () {
+      try {
+        var t = localStorage.getItem('hz-theme');
+        if (t) document.documentElement.setAttribute('data-theme', t);
+        var p = localStorage.getItem('hz-plain');
+        if (p === '1') document.documentElement.setAttribute('data-plain', '1');
+        else document.documentElement.removeAttribute('data-plain');
+      } catch (_) {}
+    });
   </script>
 
   <script is:inline>

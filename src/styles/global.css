@@ -197,6 +197,15 @@ body::before {
   );
 }
 
+/* Plain text mode — remove decorative elements globally */
+[data-plain="1"] body::before { display: none; }
+[data-plain="1"] body {
+  font-family: Georgia, 'Noto Serif TC', serif;
+  background: #fff;
+  color: #111;
+}
+[data-plain="1"] #progress { display: none; }
+
 /* Respect reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
