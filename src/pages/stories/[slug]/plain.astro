@@ -131,13 +131,19 @@ const next = idx > 0 ? sorted[idx - 1] : null;
 </head>
 <body>
   <div class="hd">
-    <span class="site">弦音異象</span>
+    <span class="site">弦音異象 [純文字]</span>
     <span>
       <a href="/">首頁</a> ·
       <a href="/stories">所有卷宗</a> ·
-      <a href={`/stories/${slug}`}>完整版 ↗</a>
+      <a href={`/stories/${slug}`} id="exitPlainBtn">切回完整版 ↗</a>
     </span>
   </div>
+  <script>
+    // When user exits plain mode from this reader, clear the global flag
+    document.getElementById('exitPlainBtn')?.addEventListener('click', function(e) {
+      try { localStorage.setItem('hz-plain', '0'); } catch(_) {}
+    });
+  </script>
 
   <h1>{entry.data.title}</h1>
   <div class="meta">

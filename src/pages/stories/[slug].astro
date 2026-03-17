@@ -341,9 +341,9 @@ const storyId = `story:${slug}`;
       if (hint) { hint.classList.add('show'); setTimeout(function() { hint.classList.remove('show'); }, 1800); }
 
       var adj = getAdjacent();
-      if (dx > 0 && adj.nextSlug) {
+      if (dx < 0 && adj.nextSlug) {
         window.location.href = '/stories/' + adj.nextSlug;
-      } else if (dx < 0 && adj.prevSlug) {
+      } else if (dx > 0 && adj.prevSlug) {
         window.location.href = '/stories/' + adj.prevSlug;
       }
     }
