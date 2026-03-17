@@ -96,25 +96,12 @@ const storyId = `story:${slug}`;
         <Content />
       </div>
 
-      <!-- Prev / Next Navigation (hrefs updated client-side for category-aware swipe) -->
-      <nav class="art-nav" aria-label="文章導覽">
-        <a href={prevStory ? `/stories/${prevStory.slug}` : undefined}
-           class="nav-pp" id="btnPrev"
-           style={prevStory ? '' : 'opacity:.25;pointer-events:none'}>
-          ← 上一卷宗
-        </a>
-
-        <!-- Token / Coin button -->
+      <!-- Token / Coin button -->
+      <div class="art-nav" aria-label="文章導覽">
         <button class="token-btn" id="tokenBtn" title="沒收金幣">
           <span id="tokenIcon">⎔</span><span id="tokenCnt">0</span>
         </button>
-
-        <a href={nextStory ? `/stories/${nextStory.slug}` : undefined}
-           class="nav-pp" id="btnNext"
-           style={nextStory ? '' : 'opacity:.25;pointer-events:none'}>
-          下一卷宗 →
-        </a>
-      </nav>
+      </div>
     </div>
   </main>
 
@@ -144,8 +131,15 @@ const storyId = `story:${slug}`;
     </div>
   </div>
 
-  <!-- ─── Swipe Hint ─── -->
-  <div class="swipe-hint" id="swipeHint">← 滑動切換卷宗 →</div>
+  <!-- ─── Side Nav Buttons ─── -->
+  <a class="side-nav side-nav-prev" id="btnPrev"
+     href={prevStory ? `/stories/${prevStory.slug}` : undefined}
+     style={prevStory ? '' : 'opacity:0;pointer-events:none'}
+     aria-label="上一卷宗">‹</a>
+  <a class="side-nav side-nav-next" id="btnNext"
+     href={nextStory ? `/stories/${nextStory.slug}` : undefined}
+     style={nextStory ? '' : 'opacity:0;pointer-events:none'}
+     aria-label="下一卷宗">›</a>
 </Layout>
 
 <script is:inline>
@@ -310,41 +304,6 @@ const storyId = `story:${slug}`;
   document.getElementById('ftSerif')?.addEventListener('click', () => setFontType('serif'));
   document.getElementById('ftSans')?.addEventListener('click', () => setFontType('sans'));
 
-  // ─── Swipe gesture (prev / next, category-aware) ─────────
-  // Use AbortController so listeners are removed when leaving the page via ViewTransitions
-  var _swipeCtrl = new AbortController();
-  var swipeSig = _swipeCtrl.signal;
-  document.addEventListener('astro:before-swap', function() { _swipeCtrl.abort(); }, { once: true });
-
-  var touchStartX = null;
-  var touchStartY = null;
-  var touchStartTime = 0;
-
-  document.addEventListener('touchstart', function(e) {
-    touchStartX = e.touches[0].clientX;
-    touchStartY = e.touches[0].clientY;
-    touchStartTime = Date.now();
-  }, { passive: true, signal: swipeSig });
-
-  document.addEventListener('touchend', function(e) {
-    if (touchStartX === null) return;
-    var dx = e.changedTouches[0].clientX - touchStartX;
-    var dy = Math.abs(e.changedTouches[0].clientY - touchStartY);
-    var dt = Date.now() - touchStartTime;
-
-    if (dt < 500 && Math.abs(dx) > 60 && Math.abs(dx) > dy * 1.5) {
-      var hint = document.getElementById('swipeHint');
-      if (hint) { hint.classList.add('show'); setTimeout(function() { hint.classList.remove('show'); }, 1800); }
-
-      var adj = getAdjacent();
-      if (dx < 0 && adj.nextSlug) {
-        window.location.href = '/stories/' + adj.nextSlug;
-      } else if (dx > 0 && adj.prevSlug) {
-        window.location.href = '/stories/' + adj.prevSlug;
-      }
-    }
-    touchStartX = null;
-  }, { passive: true, signal: swipeSig });
 </script>
 
 <style>
@@ -574,40 +533,50 @@ const storyId = `story:${slug}`;
   .ft-opt-serif { font-family: 'Noto Serif TC', serif; font-weight: 900; }
   .ft-opt-sans  { font-family: 'Noto Sans TC', sans-serif; font-weight: 700; }
 
-  /* ─── Art Nav (bottom) ──────────────────────────────────── */
+  /* ─── Art Nav (bottom, token only) ─────────────────────── */
   .art-nav {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+    justify-content: center;
     margin-top: 60px;
     padding-top: 24px;
     border-top: 1px solid var(--border);
-    flex-wrap: nowrap;
   }
-  .nav-pp {
+
+  /* ─── Side Nav Buttons ───────────────────────────────────── */
+  .side-nav {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 200;
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-family: 'Share Tech Mono', monospace;
-    font-size: .7rem;
-    letter-spacing: .1em;
-    background: transparent;
+    justify-content: center;
+    width: 32px;
+    height: 160px;
+    background: var(--bg);
     border: 1px solid var(--border);
     color: var(--text-dim);
-    padding: 10px 16px;
-    cursor: pointer;
-    transition: all .2s;
-    white-space: nowrap;
-    text-transform: uppercase;
+    font-size: 1.6rem;
+    line-height: 1;
     text-decoration: none;
-    flex: 1;
-    justify-content: center;
+    transition: background .2s, color .2s, border-color .2s, opacity .3s;
+    user-select: none;
   }
-  .nav-pp:hover {
-    border-color: var(--text);
-    color: var(--bg);
+  .side-nav-prev {
+    left: 0;
+    border-left: none;
+    border-radius: 0 4px 4px 0;
+  }
+  .side-nav-next {
+    right: 0;
+    border-right: none;
+    border-radius: 4px 0 0 4px;
+  }
+  .side-nav:hover {
     background: var(--text);
+    color: var(--bg);
+    border-color: var(--text);
   }
   .token-btn {
     display: flex;
@@ -627,28 +596,8 @@ const storyId = `story:${slug}`;
   .token-btn.on { background: var(--accent); color: var(--bg); }
   .token-btn:hover { background: var(--accent); color: var(--bg); }
 
-  /* ─── Swipe Hint ────────────────────────────────────────── */
-  .swipe-hint {
-    position: fixed;
-    bottom: 90px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-family: 'Share Tech Mono', monospace;
-    font-size: .65rem;
-    color: var(--bg);
-    letter-spacing: .15em;
-    opacity: 0;
-    transition: opacity .5s;
-    pointer-events: none;
-    white-space: nowrap;
-    z-index: 580;
-    background: var(--text);
-    padding: 6px 16px;
-    text-transform: uppercase;
-  }
-  .swipe-hint.show { opacity: .9; }
 
-  /* ─── Reader layout adjustments ────────────────────────── */
+/* ─── Reader layout adjustments ────────────────────────── */
   .art-wrap {
     max-width: 720px;
     margin: 0 auto;
@@ -665,8 +614,6 @@ const storyId = `story:${slug}`;
 
   @media (max-width: 680px) {
     .art-wrap { padding: 32px 16px 100px; }
-    .art-nav { gap: 4px; }
-    .nav-pp { padding: 8px 4px; font-size: .6rem; }
     .token-btn { padding: 8px 12px; font-size: .65rem; }
     .font-sz-fab { bottom: 72px; }
     .font-type-fab { bottom: 72px; }

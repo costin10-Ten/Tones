@@ -5,7 +5,7 @@ import ThemeSwitcher from '../../components/ThemeSwitcher.astro';
 import { getCollection } from 'astro:content';
 
 const allStories = await getCollection('stories', ({ data }) => data.published);
-const stories = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date));
+const stories = allStories.sort((a, b) => a.data.fileNum.localeCompare(b.data.fileNum));
 
 const categories = [
   { key: '記憶科技', label: '精神汙染',      code: 'PSY-CONT'   },
