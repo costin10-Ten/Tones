@@ -220,6 +220,8 @@ const storyId = `story:${slug}`;
   const stats = loadStoryStats(storyId);
   stats.views++;
   saveStoryStats(storyId, stats);
+  // Track last visited story for homepage CTA
+  sSet('hz-last-story', currentSlug);
 
   const viewsEl = document.getElementById('art-views');
   if (viewsEl) viewsEl.textContent = fmtN(stats.views);
@@ -467,6 +469,25 @@ const storyId = `story:${slug}`;
   .art-body :global(strong)     { color: var(--text); font-weight: 700; text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
   .art-body :global(em)         { color: var(--warm); font-style: italic; }
   .art-body :global(a)          { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+  .art-body :global(img)        {
+    display: block;
+    width: 100%;
+    max-width: 700px;
+    margin: 2rem auto;
+    border: 1px solid var(--border);
+    filter: saturate(0.85) brightness(0.9);
+    opacity: 0.92;
+  }
+  .art-body :global(img:hover)  { opacity: 1; filter: saturate(1) brightness(1); transition: all 0.3s; }
+  .art-body :global(figure)     { margin: 2.5rem 0; }
+  .art-body :global(figcaption) {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .62rem;
+    color: var(--text-muted);
+    text-align: center;
+    letter-spacing: .08em;
+    margin-top: .5rem;
+  }
 
   /* ─── Footer ─────────────────────────────────────────────── */
   footer { text-align: center; padding: 48px 24px; border-top: 1px solid var(--border); }

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 320" width="800" height="320">
+  <rect width="800" height="320" fill="#050505"/>
+  <rect x="1" y="1" width="798" height="318" fill="none" stroke="#260000" stroke-width="1"/>
+  <!-- EEG / emotion waveform -->
+  <polyline points="20,160 60,160 80,90 100,230 120,140 140,170 200,160 240,160 260,50 280,270 300,160 320,160 380,160 420,160 440,100 460,220 480,155 500,165 560,160 600,160 620,120 640,200 660,160 780,160" fill="none" stroke="#d90429" stroke-width="2"/>
+  <!-- Baseline -->
+  <line x1="0" y1="160" x2="800" y2="160" stroke="#260000" stroke-width="0.5" stroke-dasharray="4,8"/>
+  <!-- Emotion labels at peaks -->
+  <text x="74" y="80" font-family="monospace" font-size="7" fill="#d90429">快樂</text>
+  <text x="96" y="248" font-family="monospace" font-size="7" fill="#8d0801">恐懼</text>
+  <text x="254" y="40" font-family="monospace" font-size="7" fill="#d90429">狂喜</text>
+  <text x="276" y="288" font-family="monospace" font-size="7" fill="#8d0801">絕望</text>
+  <text x="434" y="92" font-family="monospace" font-size="7" fill="#d90429">滿足</text>
+  <text x="454" y="240" font-family="monospace" font-size="7" fill="#8d0801">空洞</text>
+  <!-- Markers -->
+  <circle cx="80" cy="90" r="3" fill="#d90429"/>
+  <circle cx="100" cy="230" r="3" fill="#8d0801"/>
+  <circle cx="260" cy="50" r="4" fill="#d90429"/>
+  <circle cx="280" cy="270" r="4" fill="#8d0801"/>
+  <!-- Patch installation label -->
+  <rect x="560" y="40" width="220" height="100" fill="#080808" stroke="#d90429" stroke-width="1"/>
+  <text x="570" y="58" font-family="monospace" font-size="8" fill="#d90429">PATCH INSTALLED:</text>
+  <text x="570" y="73" font-family="monospace" font-size="7" fill="#909090">失戀補丁 v2.3</text>
+  <text x="570" y="87" font-family="monospace" font-size="7" fill="#909090">狀態: 抑制悲傷 73%</text>
+  <text x="570" y="101" font-family="monospace" font-size="7" fill="#909090">副作用: 同理心 -41%</text>
+  <text x="570" y="115" font-family="monospace" font-size="7" fill="#d90429">警告: 已覆蓋原生情感</text>
+  <text x="570" y="130" font-family="monospace" font-size="7" fill="#909090">授權期限: 30天</text>
+  <!-- Header/footer -->
+  <text x="12" y="20" font-family="monospace" font-size="9" fill="#d90429" letter-spacing="2">EMOTION WAVEFORM MONITOR · 情感科技研究所</text>
+  <text x="12" y="312" font-family="monospace" font-size="8" fill="#8d0801" letter-spacing="1">[ 情感波動超出正常範圍 · 建議立即更新補丁 · 若要卸載請洽客服 ]</text>
+</svg>

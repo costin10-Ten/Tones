@@ -6,13 +6,19 @@ interface Props {
   title?: string;
   description?: string;
   theme?: string;
+  ogImage?: string;
 }
 
 const {
   title = '弦音異象 — 心理驚悚與推理短篇',
   description = '五分鐘，一個細思極恐的故事，一塊拼湊瘋狂的碎片。',
   theme = 'dark',
+  ogImage,
 } = Astro.props;
+
+const canonical = Astro.url.href;
+const siteName = '弦音異象';
+const defaultOgImage = new URL('/og-default.png', Astro.url).href;
 ---
 
 <!DOCTYPE html>
@@ -21,7 +27,25 @@ const {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content={description} />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href={canonical} />
   <title>{title}</title>
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content={canonical} />
+  <meta property="og:site_name" content={siteName} />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:locale" content="zh_TW" />
+  {ogImage && <meta property="og:image" content={ogImage} />}
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content={title} />
+  <meta name="twitter:description" content={description} />
+  {ogImage && <meta name="twitter:image" content={ogImage} />}
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link

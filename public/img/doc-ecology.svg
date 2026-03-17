@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 320" width="800" height="320">
+  <rect width="800" height="320" fill="#050505"/>
+  <rect x="1" y="1" width="798" height="318" fill="none" stroke="#260000" stroke-width="1"/>
+  <!-- Ground layer -->
+  <line x1="0" y1="230" x2="800" y2="230" stroke="#1a0000" stroke-width="2"/>
+  <!-- Root system -->
+  <line x1="400" y1="230" x2="400" y2="300" stroke="#8d0801" stroke-width="2"/>
+  <line x1="400" y1="280" x2="340" y2="310" stroke="#8d0801" stroke-width="1.5"/>
+  <line x1="400" y1="280" x2="460" y2="310" stroke="#8d0801" stroke-width="1.5"/>
+  <line x1="400" y1="265" x2="310" y2="295" stroke="#260000" stroke-width="1"/>
+  <line x1="400" y1="265" x2="490" y2="295" stroke="#260000" stroke-width="1"/>
+  <line x1="400" y1="300" x2="380" y2="318" stroke="#260000" stroke-width="0.8"/>
+  <line x1="400" y1="300" x2="420" y2="318" stroke="#260000" stroke-width="0.8"/>
+  <!-- Stem -->
+  <line x1="400" y1="230" x2="400" y2="80" stroke="#d90429" stroke-width="2"/>
+  <!-- Branches -->
+  <line x1="400" y1="120" x2="300" y2="80" stroke="#d90429" stroke-width="1.5"/>
+  <line x1="400" y1="120" x2="500" y2="80" stroke="#d90429" stroke-width="1.5"/>
+  <line x1="400" y1="160" x2="260" y2="130" stroke="#8d0801" stroke-width="1"/>
+  <line x1="400" y1="160" x2="540" y2="130" stroke="#8d0801" stroke-width="1"/>
+  <line x1="300" y1="80" x2="250" y2="55" stroke="#8d0801" stroke-width="1"/>
+  <line x1="500" y1="80" x2="550" y2="55" stroke="#8d0801" stroke-width="1"/>
+  <!-- Sensor nodes on roots -->
+  <circle cx="340" cy="310" r="5" fill="none" stroke="#d90429" stroke-width="1"/>
+  <circle cx="460" cy="310" r="5" fill="none" stroke="#d90429" stroke-width="1"/>
+  <circle cx="310" cy="295" r="4" fill="none" stroke="#8d0801" stroke-width="0.8"/>
+  <circle cx="490" cy="295" r="4" fill="none" stroke="#8d0801" stroke-width="0.8"/>
+  <!-- Leaves (geometric) -->
+  <polygon points="300,80 280,60 320,55" fill="none" stroke="#d90429" stroke-width="1"/>
+  <polygon points="500,80 480,55 520,60" fill="none" stroke="#d90429" stroke-width="1"/>
+  <polygon points="400,80 378,55 422,55" fill="none" stroke="#d90429" stroke-width="1.5"/>
+  <!-- Data readout on left -->
+  <text x="20" y="100" font-family="monospace" font-size="7" fill="#d90429">BIOSENSOR #447</text>
+  <text x="20" y="115" font-family="monospace" font-size="7" fill="#909090">碳吸收率: 2.4×正常</text>
+  <text x="20" y="128" font-family="monospace" font-size="7" fill="#909090">根系深度: 18.7m</text>
+  <text x="20" y="141" font-family="monospace" font-size="7" fill="#d90429">異常訊號: ██ 偵測中</text>
+  <text x="20" y="154" font-family="monospace" font-size="7" fill="#909090">土壤溫度: +3.2°C</text>
+  <!-- Labels -->
+  <text x="12" y="20" font-family="monospace" font-size="9" fill="#d90429" letter-spacing="2">BIOMETRIC SCAN · 仿生植物 SPECIMEN-07</text>
+  <text x="12" y="312" font-family="monospace" font-size="8" fill="#8d0801" letter-spacing="1">[ 警告: 根系已突破隔離區邊界 · 生長速率超出預測模型 3.7σ ]</text>
+</svg>

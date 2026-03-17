@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 320" width="800" height="320">
+  <rect width="800" height="320" fill="#050505"/>
+  <rect x="1" y="1" width="798" height="318" fill="none" stroke="#260000" stroke-width="1"/>
+  <!-- Level markers -->
+  <line x1="0" y1="53" x2="800" y2="53" stroke="#1a0000" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="0" y1="106" x2="800" y2="106" stroke="#1a0000" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="0" y1="159" x2="800" y2="159" stroke="#1a0000" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="0" y1="212" x2="800" y2="212" stroke="#1a0000" stroke-width="1" stroke-dasharray="4,4"/>
+  <line x1="0" y1="265" x2="800" y2="265" stroke="#1a0000" stroke-width="1" stroke-dasharray="4,4"/>
+  <!-- Level labels -->
+  <text x="12" y="78" font-family="monospace" font-size="8" fill="#909090">B05F</text>
+  <text x="12" y="131" font-family="monospace" font-size="8" fill="#909090">B10F</text>
+  <text x="12" y="184" font-family="monospace" font-size="8" fill="#d90429">B17F ◄ CURRENT</text>
+  <text x="12" y="237" font-family="monospace" font-size="8" fill="#909090">B24F</text>
+  <text x="12" y="288" font-family="monospace" font-size="8" fill="#909090">B31F</text>
+  <!-- Vertical elevator shafts -->
+  <rect x="120" y="10" width="8" height="300" fill="none" stroke="#260000" stroke-width="1"/>
+  <rect x="240" y="10" width="8" height="300" fill="none" stroke="#260000" stroke-width="1"/>
+  <rect x="360" y="10" width="8" height="300" fill="none" stroke="#260000" stroke-width="1"/>
+  <!-- Elevator cars -->
+  <rect x="118" y="140" width="12" height="18" fill="#8d0801" stroke="#d90429" stroke-width="0.5"/>
+  <rect x="238" y="60" width="12" height="18" fill="#1a0000" stroke="#260000" stroke-width="0.5"/>
+  <!-- Tunnel cross-sections -->
+  <rect x="150" y="168" width="80" height="14" rx="7" fill="none" stroke="#8d0801" stroke-width="1"/>
+  <rect x="280" y="168" width="60" height="14" rx="7" fill="none" stroke="#260000" stroke-width="0.8"/>
+  <!-- Blinking maintenance indicator -->
+  <circle cx="157" cy="175" r="3" fill="#d90429"/>
+  <text x="168" y="178" font-family="monospace" font-size="7" fill="#d90429">MAINTENANCE IN PROGRESS</text>
+  <!-- Header/footer -->
+  <text x="12" y="20" font-family="monospace" font-size="9" fill="#d90429" letter-spacing="2">SUBLEVEL CROSS-SECTION · 地下城市 SECTOR 7</text>
+  <text x="12" y="312" font-family="monospace" font-size="8" fill="#8d0801" letter-spacing="1">[ ACCESS LEVEL: B17 AND BELOW REQUIRES CLEARANCE · ELEVATOR 3 OUT OF SERVICE ]</text>
+</svg>
