@@ -35,12 +35,12 @@ const showPaywall = isPaid && (!userId || !isSubscribed);
 
 // Adjacent stories for prev/next navigation
 const allStories = await getCollection('stories', ({ data }) => data.published);
-const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date));
+const sorted = allStories.sort((a, b) => a.data.fileNum.localeCompare(b.data.fileNum));
 const currentIndex = sorted.findIndex(s => s.slug === slug);
 const prevStory = currentIndex < sorted.length - 1 ? sorted[currentIndex + 1] : null;
 const nextStory = currentIndex > 0 ? sorted[currentIndex - 1] : null;
-// All stories data for client-side category-aware swipe navigation
-const allStoriesData = sorted.map(s => ({ slug: s.slug, tags: s.data.tags }));
+// All stories data for client-side category-aware navigation
+const allStoriesData = sorted.map(s => ({ slug: s.slug, tags: s.data.tags, title: s.data.title }));
 
 const levelLabel: Record<string, string> = {
   'public': '公開', 'restricted': '限制', 'top-secret': '極密', 'paid': '付費',
@@ -96,12 +96,28 @@ const storyId = `story:${slug}`;
         <Content />
       </div>
 
-      <!-- Token / Coin button -->
-      <div class="art-nav" aria-label="文章導覽">
-        <button class="token-btn" id="tokenBtn" title="沒收金幣">
-          <span id="tokenIcon">⎔</span><span id="tokenCnt">0</span>
+      <!-- Bottom Nav -->
+      <nav class="art-nav" aria-label="文章導覽">
+        <a id="navPrev"
+           href={prevStory ? `/stories/${prevStory.slug}` : undefined}
+           class="nav-pp nav-pp-prev"
+           style={prevStory ? '' : 'opacity:.25;pointer-events:none'}>
+          <span class="nav-arrow">←</span>
+          <span class="nav-title" id="navPrevTitle">{prevStory?.data.title ?? ''}</span>
+        </a>
+        <button class="token-btn" id="tokenBtn" title="給顆金幣">
+          <span id="tokenIcon">⎔</span>
+          <span id="tokenCnt">0</span>
+          <span class="token-label">給顆金幣</span>
         </button>
-      </div>
+        <a id="navNext"
+           href={nextStory ? `/stories/${nextStory.slug}` : undefined}
+           class="nav-pp nav-pp-next"
+           style={nextStory ? '' : 'opacity:.25;pointer-events:none'}>
+          <span class="nav-title" id="navNextTitle">{nextStory?.data.title ?? ''}</span>
+          <span class="nav-arrow">→</span>
+        </a>
+      </nav>
     </div>
   </main>
 
@@ -172,8 +188,15 @@ const storyId = `story:${slug}`;
     };
   }
 
+  function getStoryTitle(slug) {
+    var s = allStoriesData.find(function(s) { return s.slug === slug; });
+    return s ? s.title : '';
+  }
+
   function updateNavLinks() {
     var adj = getAdjacent();
+
+    // ── Side buttons ──
     var btnPrev = document.getElementById('btnPrev');
     var btnNext = document.getElementById('btnNext');
     if (btnPrev) {
@@ -182,7 +205,7 @@ const storyId = `story:${slug}`;
         btnPrev.style.opacity = ''; btnPrev.style.pointerEvents = '';
       } else {
         btnPrev.removeAttribute('href');
-        btnPrev.style.opacity = '0.25'; btnPrev.style.pointerEvents = 'none';
+        btnPrev.style.opacity = '0'; btnPrev.style.pointerEvents = 'none';
       }
     }
     if (btnNext) {
@@ -191,7 +214,35 @@ const storyId = `story:${slug}`;
         btnNext.style.opacity = ''; btnNext.style.pointerEvents = '';
       } else {
         btnNext.removeAttribute('href');
-        btnNext.style.opacity = '0.25'; btnNext.style.pointerEvents = 'none';
+        btnNext.style.opacity = '0'; btnNext.style.pointerEvents = 'none';
+      }
+    }
+
+    // ── Bottom nav ──
+    var navPrev = document.getElementById('navPrev');
+    var navNext = document.getElementById('navNext');
+    var navPrevTitle = document.getElementById('navPrevTitle');
+    var navNextTitle = document.getElementById('navNextTitle');
+    if (navPrev) {
+      if (adj.prevSlug) {
+        navPrev.setAttribute('href', '/stories/' + adj.prevSlug);
+        navPrev.style.opacity = ''; navPrev.style.pointerEvents = '';
+        if (navPrevTitle) navPrevTitle.textContent = getStoryTitle(adj.prevSlug);
+      } else {
+        navPrev.removeAttribute('href');
+        navPrev.style.opacity = '0.25'; navPrev.style.pointerEvents = 'none';
+        if (navPrevTitle) navPrevTitle.textContent = '';
+      }
+    }
+    if (navNext) {
+      if (adj.nextSlug) {
+        navNext.setAttribute('href', '/stories/' + adj.nextSlug);
+        navNext.style.opacity = ''; navNext.style.pointerEvents = '';
+        if (navNextTitle) navNextTitle.textContent = getStoryTitle(adj.nextSlug);
+      } else {
+        navNext.removeAttribute('href');
+        navNext.style.opacity = '0.25'; navNext.style.pointerEvents = 'none';
+        if (navNextTitle) navNextTitle.textContent = '';
       }
     }
   }
@@ -533,14 +584,45 @@ const storyId = `story:${slug}`;
   .ft-opt-serif { font-family: 'Noto Serif TC', serif; font-weight: 900; }
   .ft-opt-sans  { font-family: 'Noto Sans TC', sans-serif; font-weight: 700; }
 
-  /* ─── Art Nav (bottom, token only) ─────────────────────── */
+  /* ─── Art Nav (bottom) ───────────────────────────────────── */
   .art-nav {
     display: flex;
-    align-items: center;
-    justify-content: center;
+    align-items: stretch;
+    justify-content: space-between;
+    gap: 12px;
     margin-top: 60px;
     padding-top: 24px;
     border-top: 1px solid var(--border);
+  }
+  .nav-pp {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .7rem;
+    letter-spacing: .06em;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: all .2s;
+    text-decoration: none;
+    flex: 1;
+    min-width: 0;
+  }
+  .nav-pp-prev { justify-content: flex-start; }
+  .nav-pp-next { justify-content: flex-end; }
+  .nav-arrow { flex-shrink: 0; font-size: .85rem; }
+  .nav-title {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .nav-pp:hover {
+    border-color: var(--text);
+    color: var(--bg);
+    background: var(--text);
   }
 
   /* ─── Side Nav Buttons ───────────────────────────────────── */
@@ -552,12 +634,12 @@ const storyId = `story:${slug}`;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 160px;
+    width: 20px;
+    height: 240px;
     background: var(--bg);
     border: 1px solid var(--border);
     color: var(--text-dim);
-    font-size: 1.6rem;
+    font-size: 1.1rem;
     line-height: 1;
     text-decoration: none;
     transition: background .2s, color .2s, border-color .2s, opacity .3s;
@@ -566,12 +648,12 @@ const storyId = `story:${slug}`;
   .side-nav-prev {
     left: 0;
     border-left: none;
-    border-radius: 0 4px 4px 0;
+    border-radius: 0 3px 3px 0;
   }
   .side-nav-next {
     right: 0;
     border-right: none;
-    border-radius: 4px 0 0 4px;
+    border-radius: 3px 0 0 3px;
   }
   .side-nav:hover {
     background: var(--text);
@@ -593,6 +675,7 @@ const storyId = `story:${slug}`;
     letter-spacing: .1em;
     flex: 0 0 auto;
   }
+  .token-label { font-size: .65rem; letter-spacing: .08em; }
   .token-btn.on { background: var(--accent); color: var(--bg); }
   .token-btn:hover { background: var(--accent); color: var(--bg); }
 
