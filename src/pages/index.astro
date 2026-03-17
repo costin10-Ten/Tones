@@ -368,14 +368,12 @@ const isLoggedIn = !!userId;
   }
   updateHeroStats();
 
-  // AbortController used to clean up all listeners when initHomepage re-runs
-  let _hpCleanup: AbortController | null = null;
-
+  // AbortController stored on window so all closures (define:vars re-evals) share it
   function initHomepage() {
-    // Abort previous listeners so re-runs don't stack up
-    if (_hpCleanup) _hpCleanup.abort();
-    _hpCleanup = new AbortController();
-    const sig = _hpCleanup.signal;
+    // Abort previous listeners so re-runs don't stack up across script re-evaluations
+    if ((window as any)._hpAC) (window as any)._hpAC.abort();
+    (window as any)._hpAC = new AbortController();
+    const sig = ((window as any)._hpAC as AbortController).signal;
 
     // ─── Sidebar open/close ─────────────────────────────────
     const overlay = document.getElementById('sbOverlay');
