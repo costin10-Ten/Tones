@@ -89,6 +89,7 @@ const storyId = `story:${slug}`;
         <div class="byl-item">案發時間 <em>{entry.data.date}</em></div>
         <div class="byl-item">預估閱讀 <em>{entry.data.readTime}</em></div>
         <div class="byl-item">目擊次數 <em><span id="art-views">0</span></em></div>
+        <div class="byl-item">累積金幣 <em><span id="art-tokens">0</span></em></div>
       </div>
 
       <!-- Content -->
@@ -270,8 +271,12 @@ const storyId = `story:${slug}`;
     const btn = document.getElementById('tokenBtn');
     const icon = document.getElementById('tokenIcon');
     const cnt = document.getElementById('tokenCnt');
+    const label = btn?.querySelector('.token-label');
+    const artTokens = document.getElementById('art-tokens');
     if (icon) icon.textContent = stats.liked ? '◈' : '⎔';
     if (cnt) cnt.textContent = fmtN(stats.tokens);
+    if (label) label.textContent = stats.liked ? '收回金幣' : '給顆金幣';
+    if (artTokens) artTokens.textContent = fmtN(stats.tokens);
     btn?.classList.toggle('on', !!stats.liked);
   }
   updateTokenUI();
@@ -300,6 +305,7 @@ const storyId = `story:${slug}`;
   widthBtn?.addEventListener('click', () => {
     wide = !wide;
     artWrap?.classList.toggle('wide', wide);
+    document.body.classList.toggle('wide', wide);
     if (widthLbl) widthLbl.textContent = wide ? '滿版' : '窄版';
     if (widthBtn) {
       widthBtn.firstChild.nodeValue = wide ? '⊞' : '⊡';
@@ -660,6 +666,10 @@ const storyId = `story:${slug}`;
     color: var(--bg);
     border-color: var(--text);
   }
+  :global(body.wide) .side-nav {
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
   .token-btn {
     display: flex;
     align-items: center;
@@ -682,9 +692,9 @@ const storyId = `story:${slug}`;
 
 /* ─── Reader layout adjustments ────────────────────────── */
   .art-wrap {
-    max-width: 720px;
+    max-width: 680px;
     margin: 0 auto;
-    padding: 50px 24px 100px;
+    padding: 50px 32px 100px;
     background: var(--bg);
     min-height: 100%;
     transition: max-width .25s ease, padding .25s ease;
@@ -696,7 +706,7 @@ const storyId = `story:${slug}`;
   }
 
   @media (max-width: 680px) {
-    .art-wrap { padding: 32px 16px 100px; }
+    .art-wrap { padding: 32px 28px 100px; }
     .token-btn { padding: 8px 12px; font-size: .65rem; }
     .font-sz-fab { bottom: 72px; }
     .font-type-fab { bottom: 72px; }
