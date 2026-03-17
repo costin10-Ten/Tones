@@ -1,0 +1,167 @@
+---
+import { getCollection, getEntry } from 'astro:content';
+
+export const prerender = false;
+
+const { slug } = Astro.params;
+if (!slug) return Astro.redirect('/stories');
+
+const entry = await getEntry('stories', slug);
+if (!entry || !entry.data.published) {
+  return Astro.redirect('/stories');
+}
+
+// Same auth rules as the main reader
+const userId = Astro.locals.auth?.()?.userId ?? null;
+const level = entry.data.level;
+
+if ((level === 'restricted' || level === 'top-secret') && !userId) {
+  const redirect = encodeURIComponent(`/stories/${slug}`);
+  return Astro.redirect(`/sign-in?redirect_url=${redirect}`);
+}
+
+if (level === 'paid' && !userId) {
+  return Astro.redirect(`/stories/${slug}`);
+}
+
+const { Content } = await entry.render();
+
+const allStories = await getCollection('stories', ({ data }) => data.published);
+const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date));
+const idx = sorted.findIndex(s => s.slug === slug);
+const prev = idx < sorted.length - 1 ? sorted[idx + 1] : null;
+const next = idx > 0 ? sorted[idx - 1] : null;
+---
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>{entry.data.title} — 弦音異象 [純文字]</title>
+  <style>
+    *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #080808;
+      color: #c8c8c8;
+      font-family: Georgia, 'Noto Serif TC', serif;
+      font-size: 1.05rem;
+      line-height: 1.95;
+      padding: 20px 16px 60px;
+      max-width: 660px;
+      margin: 0 auto;
+    }
+    a { color: #c0392b; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* Header */
+    .hd {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #2a2a2a;
+      margin-bottom: 28px;
+      font-size: 0.78rem;
+      color: #666;
+    }
+    .hd a { color: #888; }
+    .hd .site { font-weight: 700; color: #bbb; }
+
+    /* Article */
+    h1 {
+      font-size: clamp(1.4rem, 5vw, 2rem);
+      font-weight: 700;
+      line-height: 1.3;
+      color: #e0e0e0;
+      margin-bottom: 14px;
+      letter-spacing: 0.03em;
+    }
+    .meta {
+      font-size: 0.72rem;
+      color: #555;
+      margin-bottom: 36px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #1e1e1e;
+      letter-spacing: 0.05em;
+    }
+    .meta span + span::before { content: ' · '; color: #333; }
+
+    .content p          { margin-bottom: 1.5rem; }
+    .content h2         { font-size: 1.15rem; font-weight: 700; color: #ddd; margin: 2.5rem 0 0.8rem; border-left: 2px solid #c0392b; padding-left: 10px; }
+    .content h3         { font-size: 1rem; color: #ccc; margin: 1.8rem 0 0.6rem; }
+    .content blockquote { border-left: 2px solid #333; padding: 8px 14px; color: #999; margin: 1.5rem 0; font-style: italic; }
+    .content hr         { border: none; border-top: 1px solid #1e1e1e; margin: 2.5rem 0; }
+    .content strong     { color: #e0e0e0; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+    .content em         { color: #d97706; font-style: italic; }
+
+    /* Nav */
+    .art-nav {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 48px;
+      padding-top: 16px;
+      border-top: 1px solid #1e1e1e;
+    }
+    .art-nav a {
+      font-size: 0.78rem;
+      color: #777;
+      padding: 8px 12px;
+      border: 1px solid #2a2a2a;
+    }
+    .art-nav a:hover { border-color: #c0392b; color: #c0392b; text-decoration: none; }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      margin-top: 48px;
+      padding-top: 16px;
+      border-top: 1px solid #1a1a1a;
+      font-size: 0.68rem;
+      color: #3a3a3a;
+      letter-spacing: 0.1em;
+    }
+  </style>
+</head>
+<body>
+  <div class="hd">
+    <span class="site">弦音異象</span>
+    <span>
+      <a href="/">首頁</a> ·
+      <a href="/stories">所有卷宗</a> ·
+      <a href={`/stories/${slug}`}>完整版 ↗</a>
+    </span>
+  </div>
+
+  <h1>{entry.data.title}</h1>
+  <div class="meta">
+    <span>案件 {entry.data.fileNum}</span>
+    <span>{entry.data.date}</span>
+    <span>{entry.data.readTime}</span>
+    <span>{entry.data.tags.join(' · ')}</span>
+  </div>
+
+  <div class="content">
+    <Content />
+  </div>
+
+  <nav class="art-nav">
+    {prev
+      ? <a href={`/stories/${prev.slug}/plain`}>← {prev.data.title}</a>
+      : <span></span>
+    }
+    {next
+      ? <a href={`/stories/${next.slug}/plain`}>{next.data.title} →</a>
+      : <span></span>
+    }
+  </nav>
+
+  <footer>
+    弦音異象 · ANOMALY ARCHIVES · 純文字版<br>
+    一切皆為虛構，除非你相信。
+  </footer>
+</body>
+</html>

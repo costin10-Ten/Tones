@@ -58,6 +58,9 @@ const storyId = `story:${slug}`;
     <a href="/" class="btn-back">[ 返回大廳 ]</a>
     <div class="rdr-ttl">{entry.data.title}</div>
     <ThemeSwitcher />
+    <a href={`/stories/${slug}/plain`} class="ctrl-btn" title="純文字版（低耗能）">
+      ≡<span class="ctrl-lbl">純文字</span>
+    </a>
     <button id="widthToggle" class="ctrl-btn" title="切換滿版/窄版">
       ⊡<span class="ctrl-lbl" id="widthLbl">窄版</span>
     </button>
@@ -417,7 +420,7 @@ const storyId = `story:${slug}`;
   .art-body :global(blockquote) { border-left: 2px solid var(--accent); padding: 12px 16px; background: var(--accent-dim); margin: 1.5rem 0; }
   .art-body :global(blockquote p) { margin: 0; color: var(--text); font-style: italic; }
   .art-body :global(hr)         { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
-  .art-body :global(strong)     { color: var(--text); font-weight: 700; }
+  .art-body :global(strong)     { color: var(--text); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
   .art-body :global(em)         { color: var(--warm); font-style: italic; }
   .art-body :global(a)          { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
 
@@ -596,9 +599,9 @@ const storyId = `story:${slug}`;
     transition: max-width .25s ease, padding .25s ease;
   }
   .art-wrap.wide {
-    max-width: min(1400px, 100%);
-    padding-left: 24px;
-    padding-right: 24px;
+    max-width: 100%;
+    padding-left: 5px;
+    padding-right: 5px;
   }
 
   @media (max-width: 680px) {
