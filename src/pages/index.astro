@@ -268,116 +268,130 @@ const categories = ['全部', '記憶科技', '地下城市', 'AI社會', '生�
   function sGet(k: string) { try { return localStorage.getItem(k); } catch(e) { return null; } }
   function sSet(k: string, v: string) { try { localStorage.setItem(k, v); } catch(e) {} }
 
-  // ─── Sidebar open/close ───────────────────────────────────
-  const overlay = document.getElementById('sbOverlay')!;
-  const leftSb  = document.getElementById('leftSidebar')!;
-  const rightSb = document.getElementById('rightSidebar')!;
+  // AbortController used to clean up all listeners when initHomepage re-runs
+  let _hpCleanup: AbortController | null = null;
 
-  function openLeft()  { leftSb.classList.add('open');  overlay.classList.add('open'); document.body.style.overflow = 'hidden'; }
-  function openRight() { rightSb.classList.add('open'); overlay.classList.add('open'); document.body.style.overflow = 'hidden'; }
-  function closeAll()  {
-    leftSb.classList.remove('open'); rightSb.classList.remove('open');
-    overlay.classList.remove('open'); document.body.style.overflow = '';
-  }
+  function initHomepage() {
+    // Abort previous listeners so re-runs don't stack up
+    if (_hpCleanup) _hpCleanup.abort();
+    _hpCleanup = new AbortController();
+    const sig = _hpCleanup.signal;
 
-  document.getElementById('leftSidebarBtn')?.addEventListener('click', openLeft);
-  document.getElementById('rightSidebarBtn')?.addEventListener('click', openRight);
-  document.getElementById('contactBtn')?.addEventListener('click', openRight);
-  document.getElementById('leftSidebarCloseBtn')?.addEventListener('click', closeAll);
-  document.getElementById('rightSidebarCloseBtn')?.addEventListener('click', closeAll);
-  overlay.addEventListener('click', closeAll);
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAll(); });
+    // ─── Sidebar open/close ─────────────────────────────────
+    const overlay = document.getElementById('sbOverlay');
+    const leftSb  = document.getElementById('leftSidebar');
+    const rightSb = document.getElementById('rightSidebar');
+    if (!overlay || !leftSb || !rightSb) return;
 
-  // ─── Swipe to dismiss sidebars ────────────────────────────
-  let sbTouchX = 0;
-  function addSwipeDismiss(el: HTMLElement, dir: 'left' | 'right') {
-    el.addEventListener('touchstart', e => { sbTouchX = e.touches[0].clientX; }, { passive: true });
-    el.addEventListener('touchend', e => {
-      const dx = e.changedTouches[0].clientX - sbTouchX;
-      if (dir === 'left'  && dx < -50) closeAll();   // swipe left → close left sidebar
-      if (dir === 'right' && dx >  50) closeAll();   // swipe right → close right sidebar
-    }, { passive: true });
-  }
-  addSwipeDismiss(leftSb,  'left');
-  addSwipeDismiss(rightSb, 'right');
-
-  // ─── Sidebar stats from localStorage ─────────────────────
-  (() => {
-    let totalViews = 0, totalTokens = 0;
-    try {
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (!k?.startsWith('story:')) continue;
-        const d = JSON.parse(localStorage.getItem(k) || '{}');
-        totalViews  += d.views  || 0;
-        totalTokens += d.tokens || 0;
-      }
-    } catch(_) {}
-    const vEl = document.getElementById('sbTotalViews');
-    const tEl = document.getElementById('sbTotalTokens');
-    if (vEl) vEl.textContent = fmtN(totalViews);
-    if (tEl) tEl.textContent = fmtN(totalTokens);
-  })();
-
-  // ─── Pure text mode toggle ────────────────────────────────
-  const plainBtn    = document.getElementById('sbPlainBtn');
-  const plainStatus = document.getElementById('sbPlainStatus');
-  let plainMode = sGet('hz-plain') === '1';
-
-  function updatePlainBtn() {
-    if (!plainStatus) return;
-    plainStatus.textContent = plainMode ? '開' : '關';
-    plainBtn?.classList.toggle('on', plainMode);
-  }
-  updatePlainBtn();
-
-  plainBtn?.addEventListener('click', () => {
-    plainMode = !plainMode;
-    sSet('hz-plain', plainMode ? '1' : '0');
-    updatePlainBtn();
-  });
-
-  // ─── Sidebar theme buttons ────────────────────────────────
-  document.querySelectorAll<HTMLButtonElement>('.sb-theme-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const t = btn.dataset.sb ?? 'dark';
-      document.documentElement.setAttribute('data-theme', t);
-      sSet('hz-theme', t);
-      document.querySelectorAll('.sb-theme-btn').forEach(b => b.classList.toggle('on', b === btn));
-    });
-  });
-  (() => {
-    const saved = sGet('hz-theme') ?? 'dark';
-    document.querySelector(`.sb-theme-btn[data-sb="${saved}"]`)?.classList.add('on');
-  })();
-
-  // ─── Unlock modal ─────────────────────────────────────────
-  const unlockModal = document.getElementById('unlockModal')!;
-  const unlockBtn   = document.getElementById('unlockBtn') as HTMLButtonElement;
-  const storyHref   = unlockBtn?.dataset.href ?? '/stories';
-
-  function openModal()  { unlockModal.classList.add('open'); document.body.style.overflow = 'hidden'; }
-  function closeModal() { unlockModal.classList.remove('open'); document.body.style.overflow = ''; }
-
-  unlockBtn?.addEventListener('click', openModal);
-  document.getElementById('closeModalBtn')?.addEventListener('click', closeModal);
-  document.getElementById('skipLoginBtn')?.addEventListener('click', () => {
-    closeModal();
-    const dest = plainMode ? storyHref.replace('/stories/', '/stories/') + '/plain' : storyHref;
-    // For plain mode, redirect to plain version of first story
-    if (plainMode && storyHref.match(/^\/stories\/[^/]+$/)) {
-      window.location.href = storyHref + '/plain';
-    } else {
-      window.location.href = storyHref;
+    function openLeft()  { leftSb!.classList.add('open');  overlay!.classList.add('open'); document.body.style.overflow = 'hidden'; }
+    function openRight() { rightSb!.classList.add('open'); overlay!.classList.add('open'); document.body.style.overflow = 'hidden'; }
+    function closeAll()  {
+      leftSb!.classList.remove('open'); rightSb!.classList.remove('open');
+      overlay!.classList.remove('open'); document.body.style.overflow = '';
     }
-  });
-  unlockModal.addEventListener('click', e => { if (e.target === unlockModal) closeModal(); });
 
-  // ─── Category filter ──────────────────────────────────────
-  document.querySelectorAll<HTMLButtonElement>('.tag-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const cat = btn.dataset.cat ?? '全部';
-      document.querySelectorAll('.tag-btn').forEach(b => b.classList.toggle('on', b === btn));
+    document.getElementById('leftSidebarBtn')?.addEventListener('click', openLeft, { signal: sig });
+    document.getElementById('rightSidebarBtn')?.addEventListener('click', openRight, { signal: sig });
+    document.getElementById('contactBtn')?.addEventListener('click', openRight, { signal: sig });
+    document.getElementById('leftSidebarCloseBtn')?.addEventListener('click', closeAll, { signal: sig });
+    document.getElementById('rightSidebarCloseBtn')?.addEventListener('click', closeAll, { signal: sig });
+    overlay.addEventListener('click', closeAll, { signal: sig });
+    document.addEventListener('keydown', (e: KeyboardEvent) => { if (e.key === 'Escape') closeAll(); }, { signal: sig });
+
+    // ─── Swipe to dismiss sidebars ──────────────────────────
+    let sbTouchX = 0;
+    function addSwipeDismiss(el: HTMLElement, dir: 'left' | 'right') {
+      el.addEventListener('touchstart', (e: TouchEvent) => { sbTouchX = e.touches[0].clientX; }, { passive: true, signal: sig } as AddEventListenerOptions);
+      el.addEventListener('touchend', (e: TouchEvent) => {
+        const dx = e.changedTouches[0].clientX - sbTouchX;
+        if (dir === 'left'  && dx < -50) closeAll();
+        if (dir === 'right' && dx >  50) closeAll();
+      }, { passive: true, signal: sig } as AddEventListenerOptions);
+    }
+    addSwipeDismiss(leftSb as HTMLElement,  'left');
+    addSwipeDismiss(rightSb as HTMLElement, 'right');
+
+    // ─── Sidebar stats from localStorage ───────────────────
+    {
+      let totalViews = 0, totalTokens = 0;
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (!k?.startsWith('story:')) continue;
+          const d = JSON.parse(localStorage.getItem(k) || '{}');
+          totalViews  += d.views  || 0;
+          totalTokens += d.tokens || 0;
+        }
+      } catch(_) {}
+      const vEl = document.getElementById('sbTotalViews');
+      const tEl = document.getElementById('sbTotalTokens');
+      if (vEl) vEl.textContent = fmtN(totalViews);
+      if (tEl) tEl.textContent = fmtN(totalTokens);
+    }
+
+    // ─── Pure text mode toggle ──────────────────────────────
+    const plainBtn    = document.getElementById('sbPlainBtn');
+    const plainStatus = document.getElementById('sbPlainStatus');
+    let plainMode = sGet('hz-plain') === '1';
+
+    function updatePlainBtn() {
+      if (!plainStatus) return;
+      plainStatus.textContent = plainMode ? '開' : '關';
+      plainBtn?.classList.toggle('on', plainMode);
+    }
+    updatePlainBtn();
+
+    plainBtn?.addEventListener('click', () => {
+      plainMode = !plainMode;
+      sSet('hz-plain', plainMode ? '1' : '0');
+      updatePlainBtn();
+    }, { signal: sig });
+
+    // ─── Sidebar theme buttons ──────────────────────────────
+    document.querySelectorAll<HTMLButtonElement>('.sb-theme-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const t = btn.dataset.sb ?? 'dark';
+        document.documentElement.setAttribute('data-theme', t);
+        sSet('hz-theme', t);
+        document.querySelectorAll('.sb-theme-btn').forEach(b => b.classList.toggle('on', b === btn));
+      }, { signal: sig });
+    });
+    {
+      const saved = sGet('hz-theme') ?? 'dark';
+      document.querySelector(`.sb-theme-btn[data-sb="${saved}"]`)?.classList.add('on');
+    }
+
+    // ─── Unlock modal ───────────────────────────────────────
+    const unlockModal = document.getElementById('unlockModal');
+    const unlockBtn   = document.getElementById('unlockBtn') as HTMLButtonElement | null;
+    const storyHref   = unlockBtn?.dataset.href ?? '/stories';
+
+    function openModal()  { unlockModal?.classList.add('open'); document.body.style.overflow = 'hidden'; }
+    function closeModal() { unlockModal?.classList.remove('open'); document.body.style.overflow = ''; }
+
+    unlockBtn?.addEventListener('click', openModal, { signal: sig });
+    document.getElementById('closeModalBtn')?.addEventListener('click', closeModal, { signal: sig });
+    document.getElementById('skipLoginBtn')?.addEventListener('click', () => {
+      closeModal();
+      if (plainMode && storyHref.match(/^\/stories\/[^/]+$/)) {
+        window.location.href = storyHref + '/plain';
+      } else {
+        window.location.href = storyHref;
+      }
+    }, { signal: sig });
+    unlockModal?.addEventListener('click', (e) => { if (e.target === unlockModal) closeModal(); }, { signal: sig });
+
+    // ─── Category filter ────────────────────────────────────
+    // Tag data is stored on cards so filtering works after re-init
+    document.querySelectorAll<HTMLElement>('.story-card').forEach(card => {
+      if (!card.dataset.tags) {
+        card.dataset.tags = Array.from(card.querySelectorAll('.tag')).map(t => t.textContent?.trim() ?? '').join(',');
+      }
+    });
+
+    function applyFilter(cat: string) {
+      sSet('hz-cat', cat);
+      document.querySelectorAll<HTMLElement>('.tag-btn').forEach(b => b.classList.toggle('on', b.dataset.cat === cat));
       let visible = 0;
       document.querySelectorAll<HTMLElement>('.story-card').forEach(card => {
         const tags = card.dataset.tags?.split(',') ?? [];
@@ -387,27 +401,38 @@ const categories = ['全部', '記憶科技', '地下城市', 'AI社會', '生�
       });
       const noRes = document.getElementById('noResults');
       if (noRes) noRes.style.display = visible === 0 ? 'block' : 'none';
-    });
-  });
-  document.querySelectorAll<HTMLElement>('.story-card').forEach(card => {
-    card.dataset.tags = Array.from(card.querySelectorAll('.tag')).map(t => t.textContent?.trim() ?? '').join(',');
-  });
-
-  // ─── Message send (mock) ──────────────────────────────────
-  document.getElementById('sendMsgBtn')?.addEventListener('click', () => {
-    const ta = document.getElementById('authorMsg') as HTMLTextAreaElement;
-    const st = document.getElementById('msgStatus')!;
-    if (!ta.value.trim()) {
-      st.style.color = 'var(--danger)';
-      st.textContent = '[ 錯誤：無法發送空訊號 ]';
-    } else {
-      st.style.color = 'var(--accent)';
-      st.textContent = '[ 訊號已加密傳送。觀測者會收到的。 ]';
-      ta.value = '';
     }
-    st.style.display = 'block';
-    setTimeout(() => (st.style.display = 'none'), 4000);
-  });
+
+    document.querySelectorAll<HTMLButtonElement>('.tag-btn').forEach(btn => {
+      btn.addEventListener('click', () => applyFilter(btn.dataset.cat ?? '全部'), { signal: sig });
+    });
+
+    // Restore saved category selection
+    {
+      const savedCat = sGet('hz-cat') ?? '全部';
+      if (savedCat !== '全部') applyFilter(savedCat);
+    }
+
+    // ─── Message send (mock) ────────────────────────────────
+    document.getElementById('sendMsgBtn')?.addEventListener('click', () => {
+      const ta = document.getElementById('authorMsg') as HTMLTextAreaElement | null;
+      const st = document.getElementById('msgStatus');
+      if (!ta || !st) return;
+      if (!ta.value.trim()) {
+        st.style.color = 'var(--danger)';
+        st.textContent = '[ 錯誤：無法發送空訊號 ]';
+      } else {
+        st.style.color = 'var(--accent)';
+        st.textContent = '[ 訊號已加密傳送。觀測者會收到的。 ]';
+        ta.value = '';
+      }
+      st.style.display = 'block';
+      setTimeout(() => { if (st) st.style.display = 'none'; }, 4000);
+    }, { signal: sig });
+  }
+
+  initHomepage();
+  document.addEventListener('astro:after-swap', initHomepage);
 </script>
 
 <style>

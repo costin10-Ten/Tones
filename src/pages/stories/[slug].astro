@@ -41,6 +41,8 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
 const currentIndex = sorted.findIndex(s => s.slug === slug);
 const prevStory = currentIndex < sorted.length - 1 ? sorted[currentIndex + 1] : null;
 const nextStory = currentIndex > 0 ? sorted[currentIndex - 1] : null;
+// All stories data for client-side category-aware swipe navigation
+const allStoriesData = sorted.map(s => ({ slug: s.slug, tags: s.data.tags }));
 
 const levelLabel: Record<string, string> = {
   'public': '公開', 'restricted': '限制', 'top-secret': '極密', 'paid': '付費',
@@ -107,28 +109,24 @@ const storyId = `story:${slug}`;
         </div>
       )}
 
-      <!-- Prev / Next Navigation -->
+      <!-- Prev / Next Navigation (hrefs updated client-side for category-aware swipe) -->
       <nav class="art-nav" aria-label="文章導覽">
-        {prevStory ? (
-          <a href={`/stories/${prevStory.slug}`} class="nav-pp" id="btnPrev">
-            ← 上一卷宗
-          </a>
-        ) : (
-          <span class="nav-pp" style="opacity:.25;cursor:not-allowed">← 上一卷宗</span>
-        )}
+        <a href={prevStory ? `/stories/${prevStory.slug}` : undefined}
+           class="nav-pp" id="btnPrev"
+           style={prevStory ? '' : 'opacity:.25;pointer-events:none'}>
+          ← 上一卷宗
+        </a>
 
         <!-- Token / Coin button -->
         <button class="token-btn" id="tokenBtn" title="沒收金幣">
           <span id="tokenIcon">⎔</span><span id="tokenCnt">0</span>
         </button>
 
-        {nextStory ? (
-          <a href={`/stories/${nextStory.slug}`} class="nav-pp" id="btnNext">
-            下一卷宗 →
-          </a>
-        ) : (
-          <span class="nav-pp" style="opacity:.25;cursor:not-allowed">下一卷宗 →</span>
-        )}
+        <a href={nextStory ? `/stories/${nextStory.slug}` : undefined}
+           class="nav-pp" id="btnNext"
+           style={nextStory ? '' : 'opacity:.25;pointer-events:none'}>
+          下一卷宗 →
+        </a>
       </nav>
     </div>
   </main>
@@ -163,10 +161,53 @@ const storyId = `story:${slug}`;
   <div class="swipe-hint" id="swipeHint">← 滑動切換卷宗 →</div>
 </Layout>
 
-<script define:vars={{ storyId, prevSlug: prevStory?.slug ?? null, nextSlug: nextStory?.slug ?? null }}>
+<script define:vars={{ storyId, currentSlug: slug, allStoriesData }}>
   // ─── View counter ─────────────────────────────────────────
   function sGet(k) { try { return localStorage.getItem(k); } catch(e) { return null; } }
   function sSet(k, v) { try { localStorage.setItem(k, v); } catch(e) {} }
+
+  // ─── Category-aware prev/next ─────────────────────────────
+  function getAdjacent() {
+    var cat = sGet('hz-cat') || '全部';
+    var pool = cat !== '全部'
+      ? allStoriesData.filter(function(s) { return s.tags.includes(cat); })
+      : allStoriesData;
+    var idx = pool.findIndex(function(s) { return s.slug === currentSlug; });
+    if (idx === -1) {
+      // current story not in filtered pool (e.g. category changed) → use all
+      pool = allStoriesData;
+      idx = pool.findIndex(function(s) { return s.slug === currentSlug; });
+    }
+    return {
+      prevSlug: idx < pool.length - 1 ? pool[idx + 1].slug : null,
+      nextSlug: idx > 0 ? pool[idx - 1].slug : null,
+    };
+  }
+
+  function updateNavLinks() {
+    var adj = getAdjacent();
+    var btnPrev = document.getElementById('btnPrev');
+    var btnNext = document.getElementById('btnNext');
+    if (btnPrev) {
+      if (adj.prevSlug) {
+        btnPrev.setAttribute('href', '/stories/' + adj.prevSlug);
+        btnPrev.style.opacity = ''; btnPrev.style.pointerEvents = '';
+      } else {
+        btnPrev.removeAttribute('href');
+        btnPrev.style.opacity = '0.25'; btnPrev.style.pointerEvents = 'none';
+      }
+    }
+    if (btnNext) {
+      if (adj.nextSlug) {
+        btnNext.setAttribute('href', '/stories/' + adj.nextSlug);
+        btnNext.style.opacity = ''; btnNext.style.pointerEvents = '';
+      } else {
+        btnNext.removeAttribute('href');
+        btnNext.style.opacity = '0.25'; btnNext.style.pointerEvents = 'none';
+      }
+    }
+  }
+  updateNavLinks();
 
   function loadStoryStats(id) {
     const raw = sGet(id);
@@ -273,32 +314,32 @@ const storyId = `story:${slug}`;
   document.getElementById('ftSerif')?.addEventListener('click', () => setFontType('serif'));
   document.getElementById('ftSans')?.addEventListener('click', () => setFontType('sans'));
 
-  // ─── Swipe gesture (prev / next) ─────────────────────────
-  let touchStartX = null;
-  let touchStartY = null;
-  let touchStartTime = 0;
+  // ─── Swipe gesture (prev / next, category-aware) ─────────
+  var touchStartX = null;
+  var touchStartY = null;
+  var touchStartTime = 0;
 
-  document.addEventListener('touchstart', e => {
+  document.addEventListener('touchstart', function(e) {
     touchStartX = e.touches[0].clientX;
     touchStartY = e.touches[0].clientY;
     touchStartTime = Date.now();
   }, { passive: true });
 
-  document.addEventListener('touchend', e => {
+  document.addEventListener('touchend', function(e) {
     if (touchStartX === null) return;
-    const dx = e.changedTouches[0].clientX - touchStartX;
-    const dy = Math.abs(e.changedTouches[0].clientY - touchStartY);
-    const dt = Date.now() - touchStartTime;
+    var dx = e.changedTouches[0].clientX - touchStartX;
+    var dy = Math.abs(e.changedTouches[0].clientY - touchStartY);
+    var dt = Date.now() - touchStartTime;
 
     if (dt < 500 && Math.abs(dx) > 60 && Math.abs(dx) > dy * 1.5) {
-      const hint = document.getElementById('swipeHint');
-      hint?.classList.add('show');
-      setTimeout(() => hint?.classList.remove('show'), 1800);
+      var hint = document.getElementById('swipeHint');
+      if (hint) { hint.classList.add('show'); setTimeout(function() { hint.classList.remove('show'); }, 1800); }
 
-      if (dx < 0 && nextSlug) {
-        window.location.href = '/stories/' + nextSlug;
-      } else if (dx > 0 && prevSlug) {
-        window.location.href = '/stories/' + prevSlug;
+      var adj = getAdjacent();
+      if (dx < 0 && adj.nextSlug) {
+        window.location.href = '/stories/' + adj.nextSlug;
+      } else if (dx > 0 && adj.prevSlug) {
+        window.location.href = '/stories/' + adj.prevSlug;
       }
     }
     touchStartX = null;
