@@ -114,9 +114,6 @@ const catCounts = Object.fromEntries(
 </Layout>
 
 <script>
-  function sGet(k: string) { try { return localStorage.getItem(k); } catch(_) { return null; } }
-  function sSet(k: string, v: string) { try { localStorage.setItem(k, v); } catch(_) {} }
-
   function initExplorer() {
     const dirAll  = document.getElementById('dirAll') as HTMLButtonElement | null;
     const catBtns = document.querySelectorAll<HTMLButtonElement>('.dir-cat');
@@ -137,10 +134,10 @@ const catCounts = Object.fromEntries(
       }
     });
 
-    const total = cards.length;
-
     function selectCat(cat: string, label: string, code: string) {
-      sSet('hz-archive-cat', cat);
+      // Update URL so the category is shareable
+      const url = cat === '全部' ? '/stories' : `/stories?cat=${encodeURIComponent(cat)}`;
+      history.replaceState(null, '', url);
 
       // Update active state
       dirAll!.classList.toggle('on', cat === '全部');
@@ -153,13 +150,20 @@ const catCounts = Object.fromEntries(
           b.dataset.cat === cat ? '▣' : '▷';
       });
 
-      // Filter cards
+      // Filter cards and update links to carry cat param
       let visible = 0;
       cards.forEach(card => {
         const tags = card.dataset.tags?.split(',') ?? [];
         const show = cat === '全部' || tags.includes(cat);
         card.style.display = show ? '' : 'none';
         if (show) visible++;
+
+        // Update card href to carry cat param into story page
+        const base = card.dataset.baseHref ?? (card as HTMLAnchorElement).href;
+        card.dataset.baseHref = base.split('?')[0];
+        (card as HTMLAnchorElement).href = cat === '全部'
+          ? card.dataset.baseHref
+          : `${card.dataset.baseHref}?cat=${encodeURIComponent(cat)}`;
       });
 
       // Update address bar + divider
@@ -178,11 +182,11 @@ const catCounts = Object.fromEntries(
       );
     });
 
-    // Restore last selection
-    const saved = sGet('hz-archive-cat') ?? '全部';
-    const savedBtn = document.querySelector<HTMLButtonElement>(`.dir-cat[data-cat="${saved}"]`);
-    if (saved !== '全部' && savedBtn) {
-      selectCat(saved, savedBtn.dataset.label ?? '', savedBtn.dataset.code ?? '');
+    // Restore from URL param
+    const urlCat = new URLSearchParams(location.search).get('cat') ?? '全部';
+    const savedBtn = document.querySelector<HTMLButtonElement>(`.dir-cat[data-cat="${urlCat}"]`);
+    if (urlCat !== '全部' && savedBtn) {
+      selectCat(urlCat, savedBtn.dataset.label ?? '', savedBtn.dataset.code ?? '');
     }
   }
 

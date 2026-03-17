@@ -173,7 +173,7 @@ const storyId = `story:${slug}`;
 
   // ─── Category-aware prev/next ─────────────────────────────
   function getAdjacent() {
-    var cat = sGet('hz-cat') || '全部';
+    var cat = new URLSearchParams(location.search).get('cat') || '全部';
     var pool = cat !== '全部'
       ? allStoriesData.filter(function(s) { return s.tags.includes(cat); })
       : allStoriesData;
@@ -182,8 +182,10 @@ const storyId = `story:${slug}`;
       // current story not in filtered pool (e.g. category changed) → use all
       pool = allStoriesData;
       idx = pool.findIndex(function(s) { return s.slug === currentSlug; });
+      cat = '全部';
     }
     return {
+      cat: cat,
       prevSlug: idx < pool.length - 1 ? pool[idx + 1].slug : null,
       nextSlug: idx > 0 ? pool[idx - 1].slug : null,
     };
@@ -196,13 +198,14 @@ const storyId = `story:${slug}`;
 
   function updateNavLinks() {
     var adj = getAdjacent();
+    var catSuffix = adj.cat !== '全部' ? '?cat=' + encodeURIComponent(adj.cat) : '';
 
     // ── Side buttons ──
     var btnPrev = document.getElementById('btnPrev');
     var btnNext = document.getElementById('btnNext');
     if (btnPrev) {
       if (adj.prevSlug) {
-        btnPrev.setAttribute('href', '/stories/' + adj.prevSlug);
+        btnPrev.setAttribute('href', '/stories/' + adj.prevSlug + catSuffix);
         btnPrev.style.opacity = ''; btnPrev.style.pointerEvents = '';
       } else {
         btnPrev.removeAttribute('href');
@@ -211,7 +214,7 @@ const storyId = `story:${slug}`;
     }
     if (btnNext) {
       if (adj.nextSlug) {
-        btnNext.setAttribute('href', '/stories/' + adj.nextSlug);
+        btnNext.setAttribute('href', '/stories/' + adj.nextSlug + catSuffix);
         btnNext.style.opacity = ''; btnNext.style.pointerEvents = '';
       } else {
         btnNext.removeAttribute('href');
@@ -226,7 +229,7 @@ const storyId = `story:${slug}`;
     var navNextTitle = document.getElementById('navNextTitle');
     if (navPrev) {
       if (adj.prevSlug) {
-        navPrev.setAttribute('href', '/stories/' + adj.prevSlug);
+        navPrev.setAttribute('href', '/stories/' + adj.prevSlug + catSuffix);
         navPrev.style.opacity = ''; navPrev.style.pointerEvents = '';
         if (navPrevTitle) navPrevTitle.textContent = getStoryTitle(adj.prevSlug);
       } else {
@@ -237,7 +240,7 @@ const storyId = `story:${slug}`;
     }
     if (navNext) {
       if (adj.nextSlug) {
-        navNext.setAttribute('href', '/stories/' + adj.nextSlug);
+        navNext.setAttribute('href', '/stories/' + adj.nextSlug + catSuffix);
         navNext.style.opacity = ''; navNext.style.pointerEvents = '';
         if (navNextTitle) navNextTitle.textContent = getStoryTitle(adj.nextSlug);
       } else {
