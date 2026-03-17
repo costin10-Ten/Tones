@@ -57,5 +57,33 @@ const {
     window.addEventListener('scroll', updateProgress, { passive: true });
     updateProgress();
   </script>
+
+  <script is:inline>
+    // Global plain text mode intercept
+    // Intercepts story links and redirects to /plain when mode is enabled
+    (function interceptPlainMode() {
+      function isPlain() {
+        try { return localStorage.getItem('hz-plain') === '1'; } catch(_) { return false; }
+      }
+      function attachLinks() {
+        document.querySelectorAll('a[href]').forEach(function(link) {
+          var href = link.getAttribute('href') || '';
+          var match = href.match(/^\/stories\/([^\/]+)$/);
+          if (!match) return;
+          // avoid double-binding
+          if (link.dataset.plainBound) return;
+          link.dataset.plainBound = '1';
+          link.addEventListener('click', function(e) {
+            if (isPlain()) {
+              e.preventDefault();
+              window.location.href = '/stories/' + match[1] + '/plain';
+            }
+          });
+        });
+      }
+      attachLinks();
+      document.addEventListener('astro:after-swap', attachLinks);
+    })();
+  </script>
 </body>
 </html>

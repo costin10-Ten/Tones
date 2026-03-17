@@ -1,0 +1,149 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ThemeSwitcher from '../components/ThemeSwitcher.astro';
+---
+
+<Layout title="網站發展史 — 弦音異象" description="弦音異象的建立歷程與版本更新紀錄">
+  <header>
+    <a href="/" class="logo-text-btn">弦音<em>異象</em></a>
+    <nav class="top-nav">
+      <a class="nav-a" href="/">首頁</a>
+      <a class="nav-a" href="/stories">全部卷宗</a>
+      <a class="nav-a" href="/about">關於</a>
+      <a class="nav-a on" href="/history">發展史</a>
+    </nav>
+    <ThemeSwitcher />
+  </header>
+
+  <main>
+    <div class="hist-wrap">
+      <div class="hist-eyebrow">SYSTEM LOG · DEVELOPMENT HISTORY</div>
+      <h1>網站<em>發展史</em></h1>
+      <p class="hist-sub">弦音異象從無到有的紀錄，每一個版本都是一次對深淵的更深凝視。</p>
+
+      <div class="tl">
+
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-date">2045.03</div>
+          <div class="tl-content">
+            <div class="tl-ver">v2.0 — 全面重建</div>
+            <p>以 Astro + Clerk 重建整個站台。引入會員系統、主題切換、側邊欄設計、
+               純文字閱讀模式。閱讀器新增字型大小調整、明/黑體切換、滑動切換卷宗。</p>
+            <div class="tl-tags">
+              <span class="tl-tag">Astro 4</span>
+              <span class="tl-tag">Clerk Auth</span>
+              <span class="tl-tag">Keystatic CMS</span>
+              <span class="tl-tag">Vercel</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-date">2045.01</div>
+          <div class="tl-content">
+            <div class="tl-ver">v1.5 — 閱讀器優化</div>
+            <p>加入金幣系統（localStorage 紀錄），新增閱讀進度條，改善手機閱讀體驗，
+               卷宗分類篩選功能上線。</p>
+            <div class="tl-tags">
+              <span class="tl-tag">金幣系統</span>
+              <span class="tl-tag">行動優化</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-date">2044.11</div>
+          <div class="tl-content">
+            <div class="tl-ver">v1.2 — 主題系統</div>
+            <p>加入八種視覺主題（深淵紅、手術室、生化、迷霧、機密、深海、監控、黑色）。
+               掃描線覆蓋效果啟用。</p>
+            <div class="tl-tags">
+              <span class="tl-tag">8 種主題</span>
+              <span class="tl-tag">掃描線特效</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-date">2044.09</div>
+          <div class="tl-content">
+            <div class="tl-ver">v1.0 — 正式上線</div>
+            <p>弦音異象首次公開。第一批五篇卷宗上線，建立異象檔案庫的基本框架。
+               讀者回響超出預期——或許深淵本來就在等待被凝視。</p>
+            <div class="tl-tags">
+              <span class="tl-tag">初始發布</span>
+              <span class="tl-tag">5 篇卷宗</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tl-item tl-item-future">
+          <div class="tl-dot tl-dot-future"></div>
+          <div class="tl-date">????.??</div>
+          <div class="tl-content">
+            <div class="tl-ver">v3.0 — 下一個深淵</div>
+            <p class="redacted">訊號被攔截。內容尚未解密。觀測者身份驗證中……</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="ft-logo">弦音<em>異象</em></div>
+    <div class="ft-txt">ANOMALY ARCHIVES · CLASSIFIED<br>一切皆為虛構，除非你相信。</div>
+  </footer>
+</Layout>
+
+<style>
+  header {
+    position: sticky; top: 0; z-index: 100; height: 56px;
+    display: flex; align-items: center; gap: 16px; padding: 0 20px;
+    background: var(--bg); border-bottom: 1px solid var(--border);
+  }
+  a.logo-text-btn { font-family: 'Noto Serif TC', serif; font-weight: 900; font-size: 1.05rem; color: var(--text); text-decoration: none; letter-spacing: 0.1em; flex-shrink: 0; }
+  a.logo-text-btn em { color: var(--accent); font-style: normal; }
+  .top-nav { display: flex; gap: 4px; flex: 1; justify-content: center; }
+  .nav-a { font-family: 'Share Tech Mono', monospace; font-size: 0.72rem; letter-spacing: 0.08em; color: var(--text-dim); text-decoration: none; padding: 5px 8px; border: 1px solid transparent; transition: all 0.2s; }
+  .nav-a:hover, .nav-a.on { border-color: var(--accent); color: var(--accent); }
+
+  main { max-width: 760px; margin: 0 auto; padding: 60px 24px 80px; }
+  .hist-wrap {}
+  .hist-eyebrow { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; letter-spacing: 0.3em; color: var(--text-muted); margin-bottom: 16px; }
+  h1 { font-family: 'Noto Serif TC', serif; font-size: clamp(1.8rem, 5vw, 2.8rem); font-weight: 900; color: var(--text); letter-spacing: 0.05em; margin-bottom: 12px; }
+  h1 em { color: var(--accent); font-style: normal; }
+  .hist-sub { font-family: 'Share Tech Mono', monospace; font-size: 0.78rem; color: var(--text-dim); letter-spacing: 0.05em; line-height: 1.7; margin-bottom: 56px; }
+
+  /* Timeline */
+  .tl { position: relative; padding-left: 28px; }
+  .tl::before { content: ''; position: absolute; left: 6px; top: 0; bottom: 0; width: 1px; background: var(--border); }
+
+  .tl-item { position: relative; margin-bottom: 48px; }
+  .tl-dot { position: absolute; left: -26px; top: 4px; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); border: 2px solid var(--bg); box-shadow: 0 0 0 1px var(--accent); }
+  .tl-item-future { opacity: 0.5; }
+  .tl-dot-future { background: var(--border); box-shadow: 0 0 0 1px var(--border); }
+
+  .tl-date { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; letter-spacing: 0.15em; color: var(--text-muted); margin-bottom: 6px; }
+  .tl-ver { font-family: 'Share Tech Mono', monospace; font-size: 0.9rem; font-weight: 700; color: var(--accent); letter-spacing: 0.1em; margin-bottom: 10px; }
+  .tl-content p { font-family: 'Noto Serif TC', serif; font-size: 0.88rem; color: var(--text-dim); line-height: 1.85; margin-bottom: 14px; }
+  .tl-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tl-tag { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; padding: 2px 8px; background: var(--accent-dim); color: var(--accent); border: 1px solid var(--border); letter-spacing: 0.08em; }
+
+  .redacted { background: var(--text-dim); color: transparent; cursor: pointer; border-radius: 2px; transition: all 0.3s; user-select: none; }
+  .redacted:hover { background: transparent; color: var(--text-dim); }
+
+  footer { text-align: center; padding: 48px 24px; border-top: 1px solid var(--border); }
+  .ft-logo { font-family: 'Noto Serif TC', serif; font-size: 1.2rem; font-weight: 900; color: var(--text); letter-spacing: 0.1em; margin-bottom: 10px; }
+  .ft-logo em { color: var(--accent); font-style: normal; }
+  .ft-txt { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; color: var(--text-muted); letter-spacing: 0.1em; line-height: 1.8; }
+
+  @media (max-width: 480px) {
+    .top-nav { display: none; }
+    header { padding: 0 12px; }
+  }
+</style>

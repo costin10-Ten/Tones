@@ -1,48 +1,18 @@
 ---
-// ThemeSwitcher — renders as static HTML; JS activates via client script
+// ThemeSwitcher — single-click cycles through themes
 ---
 
 <div class="theme-switcher" id="theme-switcher">
-  <button class="theme-toggle-btn" id="theme-toggle" aria-label="切換主題" aria-expanded="false">
+  <button
+    class="theme-toggle-btn"
+    id="theme-toggle"
+    aria-label="切換主題"
+    title="點擊切換主題"
+    style="touch-action:manipulation"
+  >
     <span id="theme-icon">◐</span>
     <span id="theme-label" class="mono" style="font-size:0.75rem;">DARK</span>
-    <span style="font-size:0.6rem; opacity:0.5;">▾</span>
   </button>
-
-  <div class="theme-dropdown" id="theme-dropdown" role="menu">
-    <button class="theme-option" data-theme="dark" role="menuitem">
-      <span class="theme-swatch" style="background:#d90429;"></span>
-      深淵紅 DARK
-    </button>
-    <button class="theme-option" data-theme="clinical" role="menuitem">
-      <span class="theme-swatch" style="background:#008c72;"></span>
-      手術室 CLINICAL
-    </button>
-    <button class="theme-option" data-theme="biohazard" role="menuitem">
-      <span class="theme-swatch" style="background:#15803d;"></span>
-      生化 BIOHAZARD
-    </button>
-    <button class="theme-option" data-theme="fog" role="menuitem">
-      <span class="theme-swatch" style="background:#5b9ea6;"></span>
-      迷霧 FOG
-    </button>
-    <button class="theme-option" data-theme="dossier" role="menuitem">
-      <span class="theme-swatch" style="background:#9c1414;"></span>
-      機密 DOSSIER
-    </button>
-    <button class="theme-option" data-theme="abyss" role="menuitem">
-      <span class="theme-swatch" style="background:#00b4d8;"></span>
-      深海 ABYSS
-    </button>
-    <button class="theme-option" data-theme="cctv" role="menuitem">
-      <span class="theme-swatch" style="background:#00ff41;"></span>
-      監控 CCTV
-    </button>
-    <button class="theme-option" data-theme="noir" role="menuitem">
-      <span class="theme-swatch" style="background:#ffea00;"></span>
-      黑色 NOIR
-    </button>
-  </div>
 </div>
 
 <script>

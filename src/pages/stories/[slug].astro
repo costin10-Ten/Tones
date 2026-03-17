@@ -55,12 +55,9 @@ const storyId = `story:${slug}`;
 >
   <!-- ─── Reader Header ─── -->
   <header>
-    <a href="/" class="btn-back">[ 返回大廳 ]</a>
+    <a href="/" class="rdr-logo">弦音<em>異象</em></a>
     <div class="rdr-ttl">{entry.data.title}</div>
     <ThemeSwitcher />
-    <a href={`/stories/${slug}/plain`} class="ctrl-btn" title="純文字版（低耗能）">
-      ≡<span class="ctrl-lbl">純文字</span>
-    </a>
     <button id="widthToggle" class="ctrl-btn" title="切換滿版/窄版">
       ⊡<span class="ctrl-lbl" id="widthLbl">窄版</span>
     </button>
@@ -322,17 +319,18 @@ const storyId = `story:${slug}`;
     background: var(--bg);
     border-bottom: 1px solid var(--border);
   }
-  .btn-back {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: .7rem;
-    letter-spacing: .1em;
-    color: var(--text-muted);
+  .rdr-logo {
+    font-family: 'Noto Serif TC', serif;
+    font-weight: 900;
+    font-size: 1rem;
+    color: var(--text);
     text-decoration: none;
-    white-space: nowrap;
+    letter-spacing: 0.08em;
     flex-shrink: 0;
-    transition: color .2s;
+    white-space: nowrap;
   }
-  .btn-back:hover { color: var(--accent); }
+  .rdr-logo em { color: var(--accent); font-style: normal; }
+  .rdr-logo:hover { color: var(--text); }
   .rdr-ttl {
     flex: 1;
     font-family: 'Noto Serif TC', serif;
