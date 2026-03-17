@@ -323,12 +323,29 @@ const isLoggedIn = !!userId;
       一切皆為虛構，除非你相信。
     </div>
   </footer>
+
+  <!-- Server-side variables for client script (avoids define:vars inline-script re-evaluation) -->
+  <div id="hp-meta"
+       data-logged-in={String(isLoggedIn)}
+       data-total={String(totalStories)}
+       data-inaccessible={String(inaccessibleCount)}
+       hidden></div>
 </Layout>
 
-<script define:vars={{ isLoggedIn, totalStories, inaccessibleCount }}>
+<script>
   function fmtN(n: number) { return n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(n); }
   function sGet(k: string) { try { return localStorage.getItem(k); } catch(e) { return null; } }
   function sSet(k: string, v: string) { try { localStorage.setItem(k, v); } catch(e) {} }
+
+  // Read server-side values from DOM (updated by each SPA page swap)
+  function getHpMeta() {
+    const el = document.getElementById('hp-meta');
+    return {
+      isLoggedIn:       el?.dataset.loggedIn === 'true',
+      totalStories:     parseInt(el?.dataset.total      ?? '0', 10),
+      inaccessibleCount: parseInt(el?.dataset.inaccessible ?? '0', 10),
+    };
+  }
 
   // ─── Resume button: update href to last visited story ──────
   {
@@ -341,6 +358,7 @@ const isLoggedIn = !!userId;
 
   // ─── Update hero stats ─────────────────────────────────────
   function updateHeroStats() {
+    const { isLoggedIn, totalStories, inaccessibleCount } = getHpMeta();
     let totalViews = 0, totalTokens = 0, viewedCount = 0;
     try {
       for (let i = 0; i < localStorage.length; i++) {
@@ -368,12 +386,14 @@ const isLoggedIn = !!userId;
   }
   updateHeroStats();
 
-  // AbortController stored on window so all closures (define:vars re-evals) share it
+  // AbortController as module-level variable — safe now that this is a proper module
+  // (modules run once per session; astro:after-swap calls initHomepage on each navigation)
+  let _hpCleanup: AbortController | null = null;
+
   function initHomepage() {
-    // Abort previous listeners so re-runs don't stack up across script re-evaluations
-    if ((window as any)._hpAC) (window as any)._hpAC.abort();
-    (window as any)._hpAC = new AbortController();
-    const sig = ((window as any)._hpAC as AbortController).signal;
+    if (_hpCleanup) _hpCleanup.abort();
+    _hpCleanup = new AbortController();
+    const sig = _hpCleanup.signal;
 
     // ─── Sidebar open/close ─────────────────────────────────
     const overlay = document.getElementById('sbOverlay');
@@ -411,6 +431,7 @@ const isLoggedIn = !!userId;
 
     // ─── Sidebar stats from localStorage ───────────────────
     {
+      const { isLoggedIn } = getHpMeta();
       let totalViews = 0, totalTokens = 0;
       try {
         for (let i = 0; i < localStorage.length; i++) {
@@ -761,10 +782,11 @@ const isLoggedIn = !!userId;
     waitForClerk();
   }
 
-  if (!(window as any).__hpListenerAdded) {
-    (window as any).__hpListenerAdded = true;
-    document.addEventListener('astro:after-swap', initHomepage);
-  }
+  // Module scripts run once per session — no deduplication flag needed
+  document.addEventListener('astro:after-swap', () => {
+    updateHeroStats();
+    initHomepage();
+  });
   initHomepage();
 </script>
 
