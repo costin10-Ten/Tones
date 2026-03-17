@@ -719,12 +719,13 @@ const storyId = `story:${slug}`;
   }
   .ag-excerpt {
     max-width: 480px;
+    max-height: 72px;
+    overflow: hidden;
     font-family: 'Share Tech Mono', monospace;
     font-size: .78rem;
     color: var(--text-dim);
     line-height: 1.8;
     letter-spacing: .04em;
-    position: relative;
     /* Fade out bottom to imply truncation */
     -webkit-mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
     mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
