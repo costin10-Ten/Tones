@@ -551,6 +551,10 @@ const isLoggedIn = !!userId;
     const tip   = document.getElementById('mmTooltip') as HTMLElement | null;
     if (!svg || !eG || !nG || !lock || !tip) return;
 
+    // Clear previous elements to prevent accumulation on repeated calls
+    eG.innerHTML = '';
+    nG.innerHTML = '';
+
     // Category colors
     const CAT_COLOR: Record<string, string> = {
       '記憶科技': '#d90429',
@@ -759,8 +763,11 @@ const isLoggedIn = !!userId;
     waitForClerk();
   }
 
+  if (!(window as any).__hpListenerAdded) {
+    (window as any).__hpListenerAdded = true;
+    document.addEventListener('astro:after-swap', initHomepage);
+  }
   initHomepage();
-  document.addEventListener('astro:after-swap', initHomepage);
 </script>
 
 <style>
