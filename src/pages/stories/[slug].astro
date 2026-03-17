@@ -91,37 +91,10 @@ const storyId = `story:${slug}`;
         <div class="byl-item">目擊次數 <em><span id="art-views">0</span></em></div>
       </div>
 
-      <!-- Content, Access Gate, or Paywall -->
-      {showAccessGate ? (
-        <!-- ─── Access Gate ─── -->
-        <div class="access-gate">
-          <div class="ag-badge">{isTopSecret ? 'TOP SECRET' : 'RESTRICTED'} · ACCESS DENIED</div>
-          <div class="ag-excerpt">{entry.data.excerpt}</div>
-          <div class="ag-divider"></div>
-          <p class="ag-msg">
-            此卷宗屬於<strong>{isTopSecret ? '極密' : '限制'}</strong>級別。<br/>
-            需要觀測者身份驗證後方可存取。
-          </p>
-          <div class="ag-actions">
-            <a href={signInUrl} class="ag-btn ag-btn-primary">[ 登入以解鎖 ]</a>
-            <button class="ag-btn ag-btn-ghost" id="agBack">[ 返回上一頁 ]</button>
-            <a href="/" class="ag-btn ag-btn-ghost">[ 返回首頁 ]</a>
-          </div>
-        </div>
-      ) : showPaywall ? (
-        <ErrorBoundary client:load>
-          <PaymentGateway
-            client:load
-            storyTitle={entry.data.title}
-            storySlug={slug}
-            previewContent={entry.data.excerpt}
-          />
-        </ErrorBoundary>
-      ) : (
-        <div class="art-body" id="artBody">
-          <Content />
-        </div>
-      )}
+      <!-- Content -->
+      <div class="art-body" id="artBody">
+        <Content />
+      </div>
 
       <!-- Prev / Next Navigation (hrefs updated client-side for category-aware swipe) -->
       <nav class="art-nav" aria-label="文章導覽">
