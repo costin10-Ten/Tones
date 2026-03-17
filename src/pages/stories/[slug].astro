@@ -300,10 +300,9 @@ const storyId = `story:${slug}`;
   const artWrap = document.getElementById('artWrap');
   const widthBtn = document.getElementById('widthToggle');
   const widthLbl = document.getElementById('widthLbl');
-  let wide = false;
+  let wide = sGet('hz-wide') === '1';
 
-  widthBtn?.addEventListener('click', () => {
-    wide = !wide;
+  function applyWide() {
     artWrap?.classList.toggle('wide', wide);
     document.body.classList.toggle('wide', wide);
     if (widthLbl) widthLbl.textContent = wide ? '滿版' : '窄版';
@@ -311,6 +310,13 @@ const storyId = `story:${slug}`;
       widthBtn.firstChild.nodeValue = wide ? '⊞' : '⊡';
       widthBtn.classList.toggle('on', wide);
     }
+  }
+  applyWide();
+
+  widthBtn?.addEventListener('click', () => {
+    wide = !wide;
+    sSet('hz-wide', wide ? '1' : '0');
+    applyWide();
   });
 
   // ─── Font size ────────────────────────────────────────────
