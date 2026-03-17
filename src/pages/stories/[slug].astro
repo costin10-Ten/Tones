@@ -25,11 +25,9 @@ const isRestricted = level === 'restricted';
 const isTopSecret  = level === 'top-secret';
 const isPaid       = level === 'paid';
 
-// Redirect unauthenticated users for protected content
-if ((isRestricted || isTopSecret) && !userId) {
-  const redirect = encodeURIComponent(Astro.url.pathname);
-  return Astro.redirect(`/sign-in?redirect_url=${redirect}`);
-}
+// Access gate: unauthenticated users see an in-page gate (no redirect, no content leak)
+const showAccessGate = (isRestricted || isTopSecret) && !userId;
+const signInUrl = `/sign-in?redirect_url=${encodeURIComponent(Astro.url.pathname)}`;
 
 // Paid content: authenticated but not subscribed → show PaymentGateway
 const isSubscribed = false; // TODO: check DB/Stripe subscription
@@ -93,8 +91,24 @@ const storyId = `story:${slug}`;
         <div class="byl-item">目擊次數 <em><span id="art-views">0</span></em></div>
       </div>
 
-      <!-- Content or Paywall -->
-      {showPaywall ? (
+      <!-- Content, Access Gate, or Paywall -->
+      {showAccessGate ? (
+        <!-- ─── Access Gate ─── -->
+        <div class="access-gate">
+          <div class="ag-badge">{isTopSecret ? 'TOP SECRET' : 'RESTRICTED'} · ACCESS DENIED</div>
+          <div class="ag-excerpt">{entry.data.excerpt}</div>
+          <div class="ag-divider"></div>
+          <p class="ag-msg">
+            此卷宗屬於<strong>{isTopSecret ? '極密' : '限制'}</strong>級別。<br/>
+            需要觀測者身份驗證後方可存取。
+          </p>
+          <div class="ag-actions">
+            <a href={signInUrl} class="ag-btn ag-btn-primary">[ 登入以解鎖 ]</a>
+            <button class="ag-btn ag-btn-ghost" id="agBack">[ 返回上一頁 ]</button>
+            <a href="/" class="ag-btn ag-btn-ghost">[ 返回首頁 ]</a>
+          </div>
+        </div>
+      ) : showPaywall ? (
         <ErrorBoundary client:load>
           <PaymentGateway
             client:load
@@ -160,6 +174,13 @@ const storyId = `story:${slug}`;
   <!-- ─── Swipe Hint ─── -->
   <div class="swipe-hint" id="swipeHint">← 滑動切換卷宗 →</div>
 </Layout>
+
+<script is:inline>
+  document.getElementById('agBack')?.addEventListener('click', function() {
+    if (history.length > 1) { history.back(); }
+    else { window.location.href = '/'; }
+  });
+</script>
 
 <script define:vars={{ storyId, currentSlug: slug, allStoriesData }}>
   // ─── View counter ─────────────────────────────────────────
@@ -676,5 +697,89 @@ const storyId = `story:${slug}`;
     .token-btn { padding: 8px 12px; font-size: .65rem; }
     .font-sz-fab { bottom: 72px; }
     .font-type-fab { bottom: 72px; }
+  }
+
+  /* ─── Access Gate ───────────────────────────────────────── */
+  .access-gate {
+    padding: 48px 0 32px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+  .ag-badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .6rem;
+    letter-spacing: .25em;
+    color: var(--bg);
+    background: var(--danger);
+    padding: 4px 16px;
+    display: inline-block;
+  }
+  .ag-excerpt {
+    max-width: 480px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .78rem;
+    color: var(--text-dim);
+    line-height: 1.8;
+    letter-spacing: .04em;
+    position: relative;
+    /* Fade out bottom to imply truncation */
+    -webkit-mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
+    mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
+  }
+  .ag-divider {
+    width: 60px;
+    height: 1px;
+    background: var(--accent);
+    opacity: .4;
+  }
+  .ag-msg {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .75rem;
+    color: var(--text-muted);
+    line-height: 1.9;
+    letter-spacing: .04em;
+  }
+  .ag-msg strong {
+    color: var(--accent);
+    font-weight: bold;
+    text-decoration: none;
+  }
+  .ag-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    padding-top: 8px;
+  }
+  .ag-btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .75rem;
+    letter-spacing: .12em;
+    padding: 12px 24px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all .2s;
+    display: inline-flex;
+    align-items: center;
+  }
+  .ag-btn-primary {
+    background: var(--accent);
+    color: var(--bg);
+    border: 1px solid var(--accent);
+    font-weight: bold;
+  }
+  .ag-btn-primary:hover { opacity: .85; }
+  .ag-btn-ghost {
+    background: none;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+  .ag-btn-ghost:hover { border-color: var(--text); color: var(--text); }
+  @media (max-width: 500px) {
+    .ag-actions { flex-direction: column; align-items: stretch; }
+    .ag-btn { justify-content: center; }
   }
 </style>
