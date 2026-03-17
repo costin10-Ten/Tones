@@ -14,9 +14,9 @@
   --accent: #d90429;
   --accent2: #8d0801;
   --accent-dim: rgba(217, 4, 41, 0.1);
-  --text: #e0e0e0;
-  --text-dim: #b0b0b0;
-  --text-muted: #737373;
+  --text: #f2f2f2;
+  --text-dim: #c8c8c8;
+  --text-muted: #909090;
   --danger: #ff0000;
   --warm: #ff5400;
   --header-bg: rgba(5, 5, 5, 0.98);
@@ -30,9 +30,9 @@
   --accent: #d90429;
   --accent2: #8d0801;
   --accent-dim: rgba(217, 4, 41, 0.1);
-  --text: #e0e0e0;
-  --text-dim: #b0b0b0;
-  --text-muted: #737373;
+  --text: #f2f2f2;
+  --text-dim: #c8c8c8;
+  --text-muted: #909090;
   --danger: #ff0000;
   --warm: #ff5400;
   --header-bg: rgba(5, 5, 5, 0.98);
@@ -78,9 +78,9 @@
   --accent: #5b9ea6;
   --accent2: #3c6e75;
   --accent-dim: rgba(91, 158, 166, 0.1);
-  --text: #cfd8d9;
-  --text-dim: #88999b;
-  --text-muted: #5c6b6d;
+  --text: #e4eced;
+  --text-dim: #aabcbe;
+  --text-muted: #7a8f91;
   --danger: #e74c3c;
   --warm: #e67e22;
   --header-bg: rgba(30, 36, 38, 0.98);
@@ -110,9 +110,9 @@
   --accent: #00b4d8;
   --accent2: #0077b6;
   --accent-dim: rgba(0, 180, 216, 0.1);
-  --text: #bce4ec;
-  --text-dim: #6d939e;
-  --text-muted: #3b5c66;
+  --text: #d8f0f6;
+  --text-dim: #95bfc9;
+  --text-muted: #5c8895;
   --danger: #e63946;
   --warm: #f4a261;
   --header-bg: rgba(3, 11, 20, 0.98);
@@ -126,9 +126,9 @@
   --accent: #00ff41;
   --accent2: #00b32d;
   --accent-dim: rgba(0, 255, 65, 0.1);
-  --text: #ccffcc;
-  --text-dim: #66b366;
-  --text-muted: #2d662d;
+  --text: #e0ffe0;
+  --text-dim: #88dd88;
+  --text-muted: #4a8a4a;
   --danger: #ff1a1a;
   --warm: #ffcc00;
   --header-bg: rgba(2, 10, 4, 0.98);
@@ -143,8 +143,8 @@
   --accent2: #cca700;
   --accent-dim: rgba(255, 234, 0, 0.15);
   --text: #ffffff;
-  --text-dim: #999999;
-  --text-muted: #555555;
+  --text-dim: #cccccc;
+  --text-muted: #888888;
   --danger: #ffffff;
   --warm: #ffea00;
   --header-bg: rgba(0, 0, 0, 0.98);
@@ -197,13 +197,24 @@ body::before {
   );
 }
 
-/* Plain text mode — remove decorative elements globally */
-[data-plain="1"] body::before { display: none; }
-[data-plain="1"] body {
-  font-family: Georgia, 'Noto Serif TC', serif;
-  background: #fff;
-  color: #111;
+/* Plain text mode — override CSS variables so ALL components adapt automatically */
+html[data-plain="1"] {
+  --bg: #ffffff;
+  --bg2: #f5f5f5;
+  --surface: #eeeeee;
+  --border: #cccccc;
+  --text: #111111;
+  --text-dim: #333333;
+  --text-muted: #777777;
+  --accent: #444444;
+  --accent2: #666666;
+  --accent-dim: rgba(0,0,0,0.06);
+  --danger: #cc0000;
+  --warm: #995500;
+  --header-bg: rgba(255,255,255,0.98);
 }
+[data-plain="1"] body { font-family: Georgia, 'Noto Serif TC', serif; }
+[data-plain="1"] body::before { display: none; }
 [data-plain="1"] #progress { display: none; }
 
 /* Respect reduced motion preference */

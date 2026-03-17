@@ -41,6 +41,7 @@ const next = idx > 0 ? sorted[idx - 1] : null;
   <title>{entry.data.title} — 弦音異象 [純文字]</title>
   <style>
     *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { overflow-x: hidden; }
     body {
       background: #080808;
       color: #c8c8c8;
@@ -50,6 +51,8 @@ const next = idx > 0 ? sorted[idx - 1] : null;
       padding: 20px 16px 60px;
       max-width: 660px;
       margin: 0 auto;
+      overflow-x: hidden;
+      word-break: break-word;
     }
     a { color: #c0392b; text-decoration: none; }
     a:hover { text-decoration: underline; }
