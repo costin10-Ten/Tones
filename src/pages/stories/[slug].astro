@@ -721,21 +721,15 @@ const storyId = `story:${slug}`;
     max-width: 480px;
     max-height: 90px;
     overflow: hidden;
-    position: relative;
     font-family: 'Share Tech Mono', monospace;
     font-size: .78rem;
     color: var(--text-dim);
     line-height: 1.8;
     letter-spacing: .04em;
-  }
-  /* Fade overlay via pseudo-element — avoids iOS Safari mask-image paint layer bugs */
-  .ag-excerpt::after {
-    content: '';
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
-    height: 40px;
-    background: linear-gradient(to bottom, transparent, var(--bg));
+    filter: blur(4px);
     pointer-events: none;
+    user-select: none;
+    opacity: 0.5;
   }
   .ag-divider {
     width: 60px;
