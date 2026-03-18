@@ -5,8 +5,8 @@ export default config({
     ? {
         kind: 'github',
         repo: {
-          owner: import.meta.env.PUBLIC_GITHUB_REPO_OWNER,
-          name: import.meta.env.PUBLIC_GITHUB_REPO_NAME,
+          owner: 'costin10-Ten',
+          name: 'Tones',
         },
       }
     : { kind: 'local' },
