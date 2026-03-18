@@ -26,7 +26,10 @@ export default config({
         fileNum: fields.text({ label: '檔案編號' }),
         date: fields.text({ label: '案發日期' }),
         readTime: fields.text({ label: '預估閱讀時間' }),
-        tags: fields.array(fields.text({ label: '標籤' }), { label: '分類標籤' }),
+        tags: fields.array(fields.text({ label: '標籤' }), {
+          label: '分類標籤',
+          itemLabel: (props) => props.value,
+        }),
         level: fields.select({
           label: '機密等級',
           options: [
@@ -55,6 +58,12 @@ export default config({
         content: fields.markdoc({
           label: '內容',
           extension: 'md',
+          options: {
+            image: {
+              directory: 'public/img',
+              publicPath: '/img/',
+            },
+          },
         }),
       },
     }),
