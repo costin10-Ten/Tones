@@ -20,7 +20,7 @@ export default config({
       label: '驚悚短篇',
       slugField: 'title',
       path: 'src/content/stories/*',
-      format: { contentField: 'content', extension: 'md' },
+      format: { contentField: 'content' },
       schema: {
         title: fields.slug({ name: { label: '標題' } }),
         fileNum: fields.text({ label: '檔案編號' }),
@@ -52,12 +52,9 @@ export default config({
         }),
         icon: fields.text({ label: '圖示符號', defaultValue: '✖' }),
         published: fields.checkbox({ label: '已發布', defaultValue: true }),
-        content: fields.document({
+        content: fields.markdoc({
           label: '內容',
-          formatting: true,
-          dividers: true,
-          links: true,
-          images: true,
+          extension: 'md',
         }),
       },
     }),
