@@ -20,7 +20,7 @@ export default config({
       label: '驚悚短篇',
       slugField: 'title',
       path: 'src/content/stories/*',
-      format: { contentField: 'content' },
+      format: { contentField: 'content', extension: 'md' },
       schema: {
         title: fields.slug({ name: { label: '標題' } }),
         fileNum: fields.text({ label: '檔案編號' }),
