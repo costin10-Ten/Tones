@@ -42,6 +42,8 @@ const nextStory = currentIndex > 0 ? sorted[currentIndex - 1] : null;
 // All stories data for client-side category-aware navigation
 const allStoriesData = sorted.map(s => ({ slug: s.slug, tags: s.data.tags, title: s.data.title }));
 
+const ogImageUrl = new URL(`/og/${slug}.png`, Astro.url).href;
+
 const levelLabel: Record<string, string> = {
   'public': '公開', 'restricted': '限制', 'top-secret': '極密', 'paid': '付費',
 };
@@ -52,9 +54,11 @@ const storyId = `story:${slug}`;
 <Layout
   title={`${entry.data.title} — 弦音異象`}
   description={entry.data.excerpt}
+  ogImage={ogImageUrl}
 >
   <!-- ─── Reader Header ─── -->
   <header>
+    <button id="agBack" class="ctrl-btn back-btn" aria-label="返回" title="返回列表">←</button>
     <a href="/" class="rdr-logo">弦音<em>異象</em></a>
     <div class="rdr-ttl">{entry.data.title}</div>
     <ThemeSwitcher />
@@ -161,8 +165,21 @@ const storyId = `story:${slug}`;
 
 <script is:inline>
   document.getElementById('agBack')?.addEventListener('click', function() {
-    if (history.length > 1) { history.back(); }
-    else { window.location.href = '/'; }
+    var cat = new URLSearchParams(location.search).get('cat');
+    // If we have a category context, go back to the filtered list (shareable)
+    if (cat) {
+      window.location.href = '/stories?cat=' + encodeURIComponent(cat);
+      return;
+    }
+    // If the referrer is within this site, go back in history
+    try {
+      if (document.referrer && new URL(document.referrer).origin === location.origin) {
+        history.back();
+        return;
+      }
+    } catch(_) {}
+    // External link / direct open → go to full stories list
+    window.location.href = '/stories';
   });
 </script>
 
@@ -373,6 +390,14 @@ const storyId = `story:${slug}`;
 </script>
 
 <style>
+  /* ─── Back button ───────────────────────────────────────── */
+  .back-btn {
+    font-size: .95rem;
+    padding: 5px 9px;
+    min-width: 30px;
+    justify-content: center;
+  }
+
   /* ─── Header ─────────────────────────────────────────────── */
   header {
     position: sticky;
