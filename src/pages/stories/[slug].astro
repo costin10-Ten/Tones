@@ -350,7 +350,7 @@ const storyId = `story:${slug}`;
     body.style.fontFamily = fontType === 'serif'
       ? "'Noto Serif TC', serif"
       : "'Noto Sans TC', sans-serif";
-    const lh = (fontSz >= 1.0 ? Math.max(2.08, 2.26 - (fontSz - 1.0) * 0.356) : 2.26).toFixed(2);
+    const lh = (fontSz >= 1.0 ? Math.max(2.0, 2.18 - (fontSz - 1.0) * 0.356) : 2.18).toFixed(2);
     body.style.lineHeight = lh;
     const lbl = document.getElementById('fontLabel');
     if (lbl) lbl.textContent = fontSz.toFixed(1) + '×';
@@ -500,7 +500,7 @@ const storyId = `story:${slug}`;
   .art-body {
     font-family: 'Noto Serif TC', serif;
     font-size: 1rem;
-    line-height: 2.16;
+    line-height: 2.08;
     color: var(--text-dim);
     transition: font-size .2s, line-height .2s;
   }
