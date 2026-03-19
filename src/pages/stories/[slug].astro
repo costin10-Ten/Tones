@@ -331,12 +331,16 @@ const storyId = `story:${slug}`;
     })
     .catch(() => {});
 
-  // Increment view count (fire-and-forget)
-  fetch('/api/stats/view', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ slug: currentSlug }),
-  }).catch(() => {});
+  // Increment view count — skip if already counted this session
+  const _viewKey = 'viewed:' + currentSlug;
+  if (!sessionStorage.getItem(_viewKey)) {
+    sessionStorage.setItem(_viewKey, '1');
+    fetch('/api/stats/view', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug: currentSlug }),
+    }).catch(() => {});
+  }
 
   // ─── Token / Coin button ──────────────────────────────────
   function updateTokenUI() {
