@@ -288,22 +288,39 @@ const storyId = `story:${slug}`;
   }
   updateNavLinks();
 
-  function loadStoryStats(id) {
-    const raw = sGet(id);
-    if (raw) { try { return JSON.parse(raw); } catch(e) {} }
-    return { views: 0, tokens: 0, liked: false };
-  }
-  function saveStoryStats(id, stats) { sSet(id, JSON.stringify(stats)); }
   function fmtN(n) { return n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(n); }
 
-  const stats = loadStoryStats(storyId);
-  stats.views++;
-  saveStoryStats(storyId, stats);
+  // ─── Supabase stats ───────────────────────────────────────
+  // liked state stays in localStorage (per-device fallback for non-login users)
+  function sGet(k) { try { return localStorage.getItem(k); } catch(e) { return null; } }
+  function sSet(k, v) { try { localStorage.setItem(k, v); } catch(e) {} }
+
+  let liked = sGet('hz-liked:' + currentSlug) === '1';
+  let globalTokens = 0;
+
   // Track last visited story for homepage CTA
   sSet('hz-last-story', currentSlug);
 
-  const viewsEl = document.getElementById('art-views');
-  if (viewsEl) viewsEl.textContent = fmtN(stats.views);
+  // Fetch current stats from Supabase
+  fetch('/api/stats/' + currentSlug)
+    .then(r => r.json())
+    .then(data => {
+      globalTokens = data.tokens ?? 0;
+      const viewsEl = document.getElementById('art-views');
+      const artTokens = document.getElementById('art-tokens');
+      const cnt = document.getElementById('tokenCnt');
+      if (viewsEl) viewsEl.textContent = fmtN(data.views ?? 0);
+      if (artTokens) artTokens.textContent = fmtN(globalTokens);
+      if (cnt) cnt.textContent = fmtN(globalTokens);
+    })
+    .catch(() => {});
+
+  // Increment view count (fire-and-forget)
+  fetch('/api/stats/view', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ slug: currentSlug }),
+  }).catch(() => {});
 
   // ─── Token / Coin button ──────────────────────────────────
   function updateTokenUI() {
@@ -312,19 +329,34 @@ const storyId = `story:${slug}`;
     const cnt = document.getElementById('tokenCnt');
     const label = btn?.querySelector('.token-label');
     const artTokens = document.getElementById('art-tokens');
-    if (icon) icon.textContent = stats.liked ? '◈' : '⎔';
-    if (cnt) cnt.textContent = fmtN(stats.tokens);
-    if (label) label.textContent = stats.liked ? '收回金幣' : '給顆金幣';
-    if (artTokens) artTokens.textContent = fmtN(stats.tokens);
-    btn?.classList.toggle('on', !!stats.liked);
+    if (icon) icon.textContent = liked ? '◈' : '⎔';
+    if (cnt) cnt.textContent = fmtN(globalTokens);
+    if (label) label.textContent = liked ? '收回金幣' : '給顆金幣';
+    if (artTokens) artTokens.textContent = fmtN(globalTokens);
+    btn?.classList.toggle('on', liked);
   }
   updateTokenUI();
 
   document.getElementById('tokenBtn')?.addEventListener('click', () => {
-    stats.liked = !stats.liked;
-    stats.tokens = Math.max(0, stats.tokens + (stats.liked ? 1 : -1));
-    saveStoryStats(storyId, stats);
+    const action = liked ? 'remove' : 'add';
+    liked = !liked;
+    globalTokens = Math.max(0, globalTokens + (liked ? 1 : -1));
+    sSet('hz-liked:' + currentSlug, liked ? '1' : '0');
     updateTokenUI();
+
+    fetch('/api/stats/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug: currentSlug, action }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.tokens !== undefined) {
+          globalTokens = data.tokens;
+          updateTokenUI();
+        }
+      })
+      .catch(() => {}); // keep optimistic update on error
   });
 
   // ─── Reading progress bar ─────────────────────────────────
