@@ -50,7 +50,7 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
       <div class="stats-grid">
         <div class="stat-box">
           <div class="stat-box-num" id="statViews">0</div>
-          <div class="stat-box-lbl">瀏覽次數</div>
+          <div class="stat-box-lbl">全站瀏覽</div>
         </div>
         <div class="stat-box">
           <div class="stat-box-num" id="statTokens">0</div>
@@ -58,7 +58,7 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
         </div>
         <div class="stat-box">
           <div class="stat-box-num" id="statRead">0</div>
-          <div class="stat-box-lbl">已讀卷宗</div>
+          <div class="stat-box-lbl">已收藏卷宗</div>
         </div>
         <div class="stat-box">
           <div class="stat-box-num">{sorted.length}</div>
@@ -101,35 +101,33 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
   </footer>
 </Layout>
 
-<script define:vars={{ storySlugs: sorted.map(s => s.slug) }}>
-  function sGet(k) { try { return localStorage.getItem(k); } catch(e) { return null; } }
+<script>
   function fmtN(n) { return n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(n); }
 
-  // Load stats from localStorage for all stories
-  let totalViews = 0, totalTokens = 0, totalRead = 0;
+  // Load stats from Supabase
+  fetch('/api/member/stats')
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(data => {
+      document.getElementById('statViews').textContent = fmtN(data.totalViews ?? 0);
+      document.getElementById('statTokens').textContent = fmtN(data.userTokenCount ?? 0);
+      document.getElementById('statRead').textContent = String(data.tokenedSlugs?.length ?? 0);
 
-  storySlugs.forEach(slug => {
-    const raw = sGet('story:' + slug);
-    let stats = { views: 0, tokens: 0, liked: false };
-    if (raw) { try { stats = JSON.parse(raw); } catch(e) {} }
+      const tokenedSet = new Set(data.tokenedSlugs ?? []);
+      const statsMap = data.statsMap ?? {};
 
-    totalViews += stats.views;
-    totalTokens += stats.tokens;
-    if (stats.views > 0) totalRead++;
-
-    // Update per-story display
-    const viewEl = document.querySelector(`.track-views[data-slug="${slug}"]`);
-    const tokenEl = document.querySelector(`.track-tokens[data-slug="${slug}"]`);
-    const dotEl = document.querySelector(`.track-read-dot[data-slug="${slug}"]`);
-
-    if (viewEl) viewEl.textContent = '👁 ' + fmtN(stats.views);
-    if (tokenEl) tokenEl.textContent = '⎔ ' + fmtN(stats.tokens);
-    if (dotEl) dotEl.classList.toggle('read', stats.views > 0);
-  });
-
-  document.getElementById('statViews').textContent = fmtN(totalViews);
-  document.getElementById('statTokens').textContent = fmtN(totalTokens);
-  document.getElementById('statRead').textContent = String(totalRead);
+      document.querySelectorAll('.track-views[data-slug]').forEach(el => {
+        const slug = el.dataset.slug;
+        el.textContent = '👁 ' + fmtN(statsMap[slug]?.views ?? 0);
+      });
+      document.querySelectorAll('.track-tokens[data-slug]').forEach(el => {
+        const slug = el.dataset.slug;
+        el.textContent = '⎔ ' + fmtN(statsMap[slug]?.tokens ?? 0);
+      });
+      document.querySelectorAll('.track-read-dot[data-slug]').forEach(el => {
+        el.classList.toggle('read', tokenedSet.has(el.dataset.slug));
+      });
+    })
+    .catch(() => {});
 
   // Load Clerk user info for display
   window.addEventListener('load', async () => {
