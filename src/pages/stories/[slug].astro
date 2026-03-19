@@ -55,7 +55,26 @@ const storyId = `story:${slug}`;
   title={`${entry.data.title} — 弦音異象`}
   description={entry.data.excerpt}
   ogImage={ogImageUrl}
+  ogType="article"
+  articleMeta={{ author: entry.data.author, tags: entry.data.tags }}
 >
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": entry.data.title,
+    "description": entry.data.excerpt,
+    "author": { "@type": "Person", "name": entry.data.author },
+    "datePublished": entry.data.date,
+    "image": ogImageUrl,
+    "url": Astro.url.origin + Astro.url.pathname,
+    "publisher": {
+      "@type": "Organization",
+      "name": "弦音異象",
+      "url": Astro.url.origin
+    },
+    "keywords": entry.data.tags.join(', '),
+    "inLanguage": "zh-TW"
+  })} slot="head" />
   <!-- ─── Reader Header ─── -->
   <header>
     <button id="agBack" class="ctrl-btn back-btn" aria-label="返回" title="返回列表">←</button>

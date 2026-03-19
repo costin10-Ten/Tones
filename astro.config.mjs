@@ -6,6 +6,7 @@ import keystatic from '@keystatic/astro';
 import vercel from '@astrojs/vercel/serverless';
 
 export default defineConfig({
+  site: 'https://tones-pi.vercel.app',
   output: 'hybrid',
   adapter: vercel(),
   integrations: [

@@ -4,6 +4,8 @@ import StoryCard from '../../components/StoryCard.astro';
 import ThemeSwitcher from '../../components/ThemeSwitcher.astro';
 import { getCollection } from 'astro:content';
 
+export const prerender = true;
+
 const allStories = await getCollection('stories', ({ data }) => data.published);
 const stories = allStories.sort((a, b) => a.data.fileNum.localeCompare(b.data.fileNum));
 

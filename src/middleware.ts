@@ -9,10 +9,16 @@ export const onRequest = clerkMiddleware((auth, context) => {
     return;
   }
 
-  // Protect /member — must be logged in
   const { userId } = auth();
+
+  // Protect /member — must be logged in
   if (pathname.startsWith('/member') && !userId) {
     return context.redirect('/sign-in?redirect_url=' + encodeURIComponent(pathname));
+  }
+
+  // Redirect already-authenticated users away from auth pages
+  if (userId && (pathname.startsWith('/sign-in') || pathname.startsWith('/sign-up'))) {
+    return context.redirect('/');
   }
 
   // Individual story access control is handled inside [slug].astro
