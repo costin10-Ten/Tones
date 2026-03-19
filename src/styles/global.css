@@ -820,6 +820,25 @@ img {
   flex-shrink: 0;
 }
 
+/* ─── Card progress bar (injected client-side) ─── */
+.card-progress-wrap {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+}
+.card-progress-bar {
+  height: 100%;
+  background: var(--accent);
+  opacity: 0.6;
+  transition: width .3s ease;
+}
+.bm-dot {
+  color: var(--accent);
+  font-size: .7rem;
+}
+
 /* ============================================
    STORY CARD VIS VARIANTS (v1–v5)
    ============================================ */

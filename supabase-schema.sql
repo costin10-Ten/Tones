@@ -49,3 +49,43 @@ begin
   where story_slug = p_slug;
 end;
 $$;
+
+-- ============================================================
+-- 聯繫作者留言
+-- ============================================================
+create table if not exists contact_messages (
+  id         uuid default gen_random_uuid() primary key,
+  user_id    text,                          -- nullable（未登入也可留言）
+  message    text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table contact_messages enable row level security;
+-- 任何人可寫入，只有 service_role 可讀取
+create policy "Anyone can insert messages"
+  on contact_messages for insert with check (true);
+
+-- ============================================================
+-- 閱讀進度（登入用戶跨裝置同步）
+-- ============================================================
+create table if not exists reading_progress (
+  user_id    text not null,
+  story_slug text not null,
+  pct        integer not null default 0 check (pct >= 0 and pct <= 100),
+  updated_at timestamptz not null default now(),
+  primary key (user_id, story_slug)
+);
+
+alter table reading_progress enable row level security;
+
+-- ============================================================
+-- 書籤（登入用戶）
+-- ============================================================
+create table if not exists bookmarks (
+  user_id    text not null,
+  story_slug text not null,
+  created_at timestamptz not null default now(),
+  primary key (user_id, story_slug)
+);
+
+alter table bookmarks enable row level security;

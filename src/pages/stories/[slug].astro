@@ -84,6 +84,9 @@ const storyId = `story:${slug}`;
     <button id="widthToggle" class="ctrl-btn" title="切換滿版/窄版">
       ⊡<span class="ctrl-lbl" id="widthLbl">窄版</span>
     </button>
+    <button id="bookmarkBtn" class="ctrl-btn" title="書籤">
+      ☐<span class="ctrl-lbl" id="bookmarkLbl">書籤</span>
+    </button>
   </header>
 
   <!-- ─── Reading Progress Bar ─── -->
@@ -118,6 +121,13 @@ const storyId = `story:${slug}`;
       <!-- Content -->
       <div class="art-body" id="artBody">
         <Content />
+      </div>
+
+      <!-- Share Row -->
+      <div class="share-row">
+        <button class="share-btn" id="shareBtn">↑ 分享</button>
+        <button class="share-btn" id="copyBtn">⎘ 複製連結</button>
+        <span id="copyFeedback" class="copy-feedback"></span>
       </div>
 
       <!-- Bottom Nav -->
@@ -202,7 +212,7 @@ const storyId = `story:${slug}`;
   });
 </script>
 
-<script define:vars={{ storyId, currentSlug: slug, allStoriesData }}>
+<script define:vars={{ storyId, currentSlug: slug, allStoriesData, storyTitle: entry.data.title }}>
   // ─── View counter ─────────────────────────────────────────
   function sGet(k) { try { return localStorage.getItem(k); } catch(e) { return null; } }
   function sSet(k, v) { try { localStorage.setItem(k, v); } catch(e) {} }
@@ -359,13 +369,72 @@ const storyId = `story:${slug}`;
       .catch(() => {}); // keep optimistic update on error
   });
 
-  // ─── Reading progress bar ─────────────────────────────────
+  // ─── Reading progress bar + save ──────────────────────────
   const progressBar = document.getElementById('progress');
+  let progressSaveTimer = null;
+  let lastSavedPct = parseInt(sGet('hz-progress:' + currentSlug) || '0', 10);
+
+  function saveProgress(pct) {
+    sSet('hz-progress:' + currentSlug, String(pct));
+    // Fire-and-forget for logged-in users; 401 for anonymous is silently ignored
+    fetch('/api/progress', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug: currentSlug, pct }),
+    }).catch(() => {});
+  }
+
   window.addEventListener('scroll', () => {
     if (!progressBar) return;
     const docH = document.documentElement.scrollHeight - window.innerHeight;
-    progressBar.style.width = docH > 0 ? (window.scrollY / docH * 100) + '%' : '0%';
+    const pct = docH > 0 ? Math.round(window.scrollY / docH * 100) : 0;
+    progressBar.style.width = pct + '%';
+
+    if (Math.abs(pct - lastSavedPct) >= 5) {
+      clearTimeout(progressSaveTimer);
+      progressSaveTimer = setTimeout(() => { saveProgress(pct); lastSavedPct = pct; }, 2000);
+    }
   }, { passive: true });
+
+  // ─── Bookmark button ───────────────────────────────────────
+  let bookmarked = sGet('hz-bookmark:' + currentSlug) === '1';
+
+  function updateBookmarkUI() {
+    const btn = document.getElementById('bookmarkBtn');
+    const lbl = document.getElementById('bookmarkLbl');
+    if (btn) { btn.firstChild.nodeValue = bookmarked ? '☑' : '☐'; btn.classList.toggle('on', bookmarked); }
+    if (lbl) lbl.textContent = bookmarked ? '已書籤' : '書籤';
+  }
+  updateBookmarkUI();
+
+  document.getElementById('bookmarkBtn')?.addEventListener('click', () => {
+    bookmarked = !bookmarked;
+    sSet('hz-bookmark:' + currentSlug, bookmarked ? '1' : '0');
+    updateBookmarkUI();
+    fetch('/api/bookmark', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug: currentSlug, action: bookmarked ? 'add' : 'remove' }),
+    }).catch(() => {});
+  });
+
+  // ─── Share buttons ─────────────────────────────────────────
+  function copyLink() {
+    navigator.clipboard?.writeText(location.href).then(() => {
+      const fb = document.getElementById('copyFeedback');
+      if (fb) { fb.textContent = '已複製！'; setTimeout(() => { fb.textContent = ''; }, 2000); }
+    }).catch(() => {});
+  }
+
+  document.getElementById('shareBtn')?.addEventListener('click', async () => {
+    if (navigator.share) {
+      try { await navigator.share({ title: storyTitle, text: storyTitle, url: location.href }); return; }
+      catch (_) {}
+    }
+    copyLink();
+  });
+
+  document.getElementById('copyBtn')?.addEventListener('click', copyLink);
 
   // ─── Wide / Narrow toggle ─────────────────────────────────
   const artWrap = document.getElementById('artWrap');
@@ -674,6 +743,35 @@ const storyId = `story:${slug}`;
   .ft-opt:hover, .ft-opt.on { color: var(--text); background: var(--bg2); }
   .ft-opt-serif { font-family: 'Noto Serif TC', serif; font-weight: 900; }
   .ft-opt-sans  { font-family: 'Noto Sans TC', sans-serif; font-weight: 700; }
+
+  /* ─── Share Row ──────────────────────────────────────────── */
+  .share-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px dashed var(--border);
+    flex-wrap: wrap;
+  }
+  .share-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .7rem;
+    letter-spacing: .1em;
+    padding: 7px 14px;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .share-btn:hover { border-color: var(--text); color: var(--text); }
+  .copy-feedback {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .65rem;
+    color: var(--accent);
+    letter-spacing: .1em;
+  }
 
   /* ─── Art Nav (bottom) ───────────────────────────────────── */
   .art-nav {

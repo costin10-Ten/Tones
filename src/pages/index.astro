@@ -542,19 +542,34 @@ const isLoggedIn = !!userId;
     // ─── Mind Map ────────────────────────────────────────────
     initMindMap();
 
-    // ─── Message send (mock) ────────────────────────────────
-    document.getElementById('sendMsgBtn')?.addEventListener('click', () => {
+    // ─── Message send ────────────────────────────────────────
+    document.getElementById('sendMsgBtn')?.addEventListener('click', async () => {
       const ta = document.getElementById('authorMsg') as HTMLTextAreaElement | null;
       const st = document.getElementById('msgStatus');
+      const btn = document.getElementById('sendMsgBtn') as HTMLButtonElement | null;
       if (!ta || !st) return;
       if (!ta.value.trim()) {
         st.style.color = 'var(--danger)';
         st.textContent = '[ 錯誤：無法發送空訊號 ]';
-      } else {
-        st.style.color = 'var(--accent)';
-        st.textContent = '[ 訊號已加密傳送。觀測者會收到的。 ]';
-        ta.value = '';
+        st.style.display = 'block';
+        setTimeout(() => { if (st) st.style.display = 'none'; }, 3000);
+        return;
       }
+      if (btn) btn.disabled = true;
+      try {
+        const res = await fetch('/api/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: ta.value.trim() }),
+        });
+        st.style.color = res.ok ? 'var(--accent)' : 'var(--danger)';
+        st.textContent = res.ok ? '[ 訊號已加密傳送。觀測者會收到的。 ]' : '[ 傳送失敗，請稍後再試 ]';
+        if (res.ok) ta.value = '';
+      } catch {
+        st.style.color = 'var(--danger)';
+        st.textContent = '[ 網路中斷，無法傳送 ]';
+      }
+      if (btn) btn.disabled = false;
       st.style.display = 'block';
       setTimeout(() => { if (st) st.style.display = 'none'; }, 4000);
     }, { signal: sig });

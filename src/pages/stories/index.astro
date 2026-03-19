@@ -194,6 +194,44 @@ const catCounts = Object.fromEntries(
 
   document.addEventListener('astro:after-swap', initExplorer);
   initExplorer();
+
+  // ─── Client-side: show reading progress + bookmark on cards ──
+  function applyLocalProgress() {
+    document.querySelectorAll<HTMLElement>('.story-card[href]').forEach(card => {
+      const href = card.getAttribute('href') ?? '';
+      const slug = href.replace('/stories/', '').split('?')[0];
+      if (!slug) return;
+
+      const pct = parseInt(localStorage.getItem('hz-progress:' + slug) || '0', 10);
+      const bookmarked = localStorage.getItem('hz-bookmark:' + slug) === '1';
+
+      if (pct > 0) {
+        let bar = card.querySelector<HTMLElement>('.card-progress-bar');
+        if (!bar) {
+          const wrap = document.createElement('div');
+          wrap.className = 'card-progress-wrap';
+          bar = document.createElement('div');
+          bar.className = 'card-progress-bar';
+          wrap.appendChild(bar);
+          card.appendChild(wrap);
+        }
+        bar.style.width = pct + '%';
+      }
+
+      if (bookmarked) {
+        const fileNum = card.querySelector<HTMLElement>('.file-num');
+        if (fileNum && !fileNum.querySelector('.bm-dot')) {
+          const dot = document.createElement('span');
+          dot.className = 'bm-dot';
+          dot.textContent = ' ☑';
+          fileNum.appendChild(dot);
+        }
+      }
+    });
+  }
+
+  document.addEventListener('astro:after-swap', applyLocalProgress);
+  applyLocalProgress();
 </script>
 
 <style>

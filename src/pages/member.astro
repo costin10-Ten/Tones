@@ -74,8 +74,14 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
             <div class="track-left">
               <div class="track-read-dot" data-slug={story.slug}></div>
               <div>
-                <div class="track-title">{story.data.title}</div>
+                <div class="track-title">
+                  <span class="track-bookmark-icon" data-slug={story.slug}></span>
+                  {story.data.title}
+                </div>
                 <div class="track-meta">{story.data.fileNum} · {story.data.date}</div>
+                <div class="track-progress-wrap">
+                  <div class="track-progress-bar" data-slug={story.slug} style="width:0%"></div>
+                </div>
               </div>
             </div>
             <div class="track-right">
@@ -113,6 +119,7 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
       document.getElementById('statRead').textContent = String(data.tokenedSlugs?.length ?? 0);
 
       const tokenedSet = new Set(data.tokenedSlugs ?? []);
+      const bookmarkedSet = new Set(data.bookmarkedSlugs ?? []);
       const statsMap = data.statsMap ?? {};
 
       document.querySelectorAll('.track-views[data-slug]').forEach(el => {
@@ -125,6 +132,15 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
       });
       document.querySelectorAll('.track-read-dot[data-slug]').forEach(el => {
         el.classList.toggle('read', tokenedSet.has(el.dataset.slug));
+      });
+      document.querySelectorAll('.track-bookmark-icon[data-slug]').forEach(el => {
+        if (bookmarkedSet.has(el.dataset.slug)) el.textContent = '☑ ';
+      });
+
+      // Reading progress from localStorage
+      document.querySelectorAll('.track-progress-bar[data-slug]').forEach(el => {
+        const pct = parseInt(localStorage.getItem('hz-progress:' + el.dataset.slug) || '0', 10);
+        if (pct > 0) (el as HTMLElement).style.width = pct + '%';
       });
     })
     .catch(() => {});
@@ -365,6 +381,24 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
     transition: background .2s;
   }
   .track-read-dot.read { background: var(--accent); }
+  .track-bookmark-icon {
+    color: var(--accent);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .75rem;
+  }
+  .track-progress-wrap {
+    height: 2px;
+    background: var(--border);
+    margin-top: 5px;
+    border-radius: 1px;
+    overflow: hidden;
+  }
+  .track-progress-bar {
+    height: 100%;
+    background: var(--accent);
+    transition: width .3s ease;
+    border-radius: 1px;
+  }
   .track-title {
     font-family: 'Noto Serif TC', serif;
     font-size: .85rem;

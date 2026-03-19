@@ -20,6 +20,13 @@ export const GET: APIRoute = async ({ locals }) => {
 
   const tokenedSlugs = new Set((userTokens ?? []).map((r: { story_slug: string }) => r.story_slug));
 
+  // Bookmarks
+  const { data: bookmarkData } = await supabase
+    .from('bookmarks')
+    .select('story_slug')
+    .eq('user_id', userId);
+  const bookmarkedSlugs = (bookmarkData ?? []).map((r: { story_slug: string }) => r.story_slug);
+
   const statsMap: Record<string, { views: number; tokens: number }> = {};
   let totalViews = 0;
   for (const row of storyStats ?? []) {
@@ -31,6 +38,7 @@ export const GET: APIRoute = async ({ locals }) => {
     totalViews,
     userTokenCount: tokenedSlugs.size,
     tokenedSlugs: [...tokenedSlugs],
+    bookmarkedSlugs,
     statsMap,
   }), { headers: { 'Content-Type': 'application/json' } });
 };
