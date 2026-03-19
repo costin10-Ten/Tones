@@ -821,6 +821,82 @@ img {
 }
 
 /* ============================================
+   STORY CARD VIS VARIANTS (v1–v5)
+   ============================================ */
+
+/* v1: default — 標準深紅（無額外樣式，繼承 .story-card） */
+
+/* v2: 干擾訊號 — 青藍色，hover 有掃描線閃爍 */
+.story-card.vis-v2 {
+  border-color: #003344;
+}
+.story-card.vis-v2 .file-num { color: #00b4d8; }
+.story-card.vis-v2::before { background: #00b4d8; }
+.story-card.vis-v2:hover {
+  border-color: #00b4d8;
+  box-shadow: 0 0 20px rgba(0, 180, 216, 0.15), 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+.story-card.vis-v2::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0, 180, 216, 0.03) 3px,
+    rgba(0, 180, 216, 0.03) 4px
+  );
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.story-card.vis-v2:hover::after { opacity: 1; }
+
+/* v3: 機密檔案 — 琥珀黃，虛線邊框，像政府機密文件 */
+.story-card.vis-v3 {
+  border: 1px dashed #6b4c00;
+  background: #090800;
+}
+.story-card.vis-v3 .file-num { color: #d4a017; }
+.story-card.vis-v3::before { background: #d4a017; }
+.story-card.vis-v3:hover {
+  border-color: #d4a017;
+  background: #0d0b00;
+  box-shadow: 0 0 20px rgba(212, 160, 23, 0.12), 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+.story-card.vis-v3 .card-icon {
+  color: #d4a017;
+  opacity: 0.6;
+}
+
+/* v4: 深淵 — 紫色，更深的陰影，帶玄幻感 */
+.story-card.vis-v4 {
+  border-color: #1a0030;
+  background: #0a0010;
+}
+.story-card.vis-v4 .file-num { color: #9b5de5; }
+.story-card.vis-v4::before { background: #9b5de5; }
+.story-card.vis-v4:hover {
+  border-color: #9b5de5;
+  background: #0e0018;
+  box-shadow: 0 0 30px rgba(155, 93, 229, 0.15), 0 4px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* v5: 生物污染 — 毒綠色，有腐蝕感 */
+.story-card.vis-v5 {
+  border-color: #0d2200;
+  background: #050d00;
+}
+.story-card.vis-v5 .file-num { color: #39d353; }
+.story-card.vis-v5::before { background: #39d353; }
+.story-card.vis-v5:hover {
+  border-color: #39d353;
+  background: #080f00;
+  box-shadow: 0 0 20px rgba(57, 211, 83, 0.12), 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* ============================================
    SECTION HEADERS
    ============================================ */
 

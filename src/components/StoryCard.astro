@@ -22,6 +22,7 @@ const {
   tags,
   level,
   excerpt,
+  vis = 'v1',
   icon = '✖',
   slug,
   views = 0,
@@ -43,7 +44,7 @@ const levelClass: Record<string, string> = {
 };
 ---
 
-<a href={`/stories/${slug}`} class="story-card" aria-label={`閱讀：${title}`}>
+<a href={`/stories/${slug}`} class={`story-card vis-${vis}`} aria-label={`閱讀：${title}`}>
   <div class="card-header">
     <div class="card-meta-left">
       <span class="file-num">{fileNum}</span>
