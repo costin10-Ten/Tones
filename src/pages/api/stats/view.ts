@@ -33,7 +33,7 @@ export const POST: APIRoute = async ({ request }) => {
   const { error } = await supabase.rpc('increment_view', { p_slug: slug });
 
   if (error) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    return new Response(JSON.stringify({ error: '更新失敗，請稍後再試' }), { status: 500 });
   }
 
   return new Response(JSON.stringify({ ok: true }), {

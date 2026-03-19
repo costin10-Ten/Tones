@@ -90,6 +90,9 @@ const totalStories = allStories.length;
     var d = new Date(iso);
     return d.getFullYear() + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + String(d.getDate()).padStart(2,'0');
   }
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
 
   var allData = [];
   var currentSort = 'views';
@@ -121,12 +124,13 @@ const totalStories = allStories.length;
       return;
     }
     body.innerHTML = rows.map(function(r) {
-      var title = titleMap[r.story_slug] || r.story_slug;
+      var slug = escHtml(r.story_slug);
+      var title = escHtml(titleMap[r.story_slug] || r.story_slug);
       var maxViews = allData[0]?.views ?? 1;
       var pct = maxViews > 0 ? Math.round((r.views / maxViews) * 100) : 0;
       return '<tr>' +
         '<td class="title-cell">' +
-          '<a href="/stories/' + r.story_slug + '" class="story-link">' + title + '</a>' +
+          '<a href="/stories/' + slug + '" class="story-link">' + title + '</a>' +
           '<div class="view-bar-wrap"><div class="view-bar" style="width:' + pct + '%"></div></div>' +
         '</td>' +
         '<td class="num-col accent-num">' + fmtN(r.views) + '</td>' +
@@ -151,7 +155,7 @@ const totalStories = allStories.length;
     })
     .catch(function(err) {
       var body = document.getElementById('statsBody');
-      if (body) body.innerHTML = '<tr><td colspan="4" class="loading-row err-row">載入失敗 (' + err + ')</td></tr>';
+      if (body) body.innerHTML = '<tr><td colspan="4" class="loading-row err-row">載入失敗（' + escHtml(String(err)) + '）</td></tr>';
     });
 
   document.querySelectorAll('.sort-btn').forEach(function(btn) {

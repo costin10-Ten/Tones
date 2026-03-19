@@ -13,7 +13,7 @@ export const GET: APIRoute = async ({ locals }) => {
     .select('story_slug, views, tokens, updated_at')
     .order('views', { ascending: false });
 
-  if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+  if (error) return new Response(JSON.stringify({ error: '查詢失敗，請稍後再試' }), { status: 500 });
   return new Response(JSON.stringify(data ?? []), {
     headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
   });
