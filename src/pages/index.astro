@@ -356,25 +356,34 @@ const isLoggedIn = !!userId;
     }
   }
 
-  // ─── Update hero stats (Supabase for logged-in users) ─────
+  // ─── Update hero stats (全員可見全站統計) ──────────────────
   function updateHeroStats() {
     const { isLoggedIn, totalStories, inaccessibleCount } = getHpMeta();
-    if (!isLoggedIn) return; // 未登入保持 ∞
 
-    fetch('/api/member/stats')
+    // 全站統計（所有人都顯示）
+    fetch('/api/stats/global')
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(data => {
         const viewersEl = document.getElementById('statViewers');
         const coinsEl   = document.getElementById('statCoins');
-        const mystEl    = document.getElementById('statMysteries');
         if (viewersEl) viewersEl.textContent = fmtN(data.totalViews ?? 0);
-        if (coinsEl)   coinsEl.textContent   = fmtN(data.userTokenCount ?? 0);
-        if (mystEl) {
-          const tokened = (data.tokenedSlugs ?? []).length;
-          mystEl.textContent = String(Math.max(0, totalStories - tokened - inaccessibleCount));
-        }
+        if (coinsEl)   coinsEl.textContent   = fmtN(data.totalTokens ?? 0);
       })
       .catch(() => {});
+
+    // 未解之謎只對登入者顯示個人化數字
+    if (isLoggedIn) {
+      fetch('/api/member/stats')
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(data => {
+          const mystEl = document.getElementById('statMysteries');
+          if (mystEl) {
+            const tokened = (data.tokenedSlugs ?? []).length;
+            mystEl.textContent = String(Math.max(0, totalStories - tokened - inaccessibleCount));
+          }
+        })
+        .catch(() => {});
+    }
   }
   updateHeroStats();
 
