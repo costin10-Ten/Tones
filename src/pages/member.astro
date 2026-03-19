@@ -66,6 +66,12 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
         </div>
       </div>
 
+      <!-- ─── Achievement Badges ─── -->
+      <div class="sec-hd" style="margin-top:40px"><div class="sec-title">成就徽章</div></div>
+      <div class="badges-grid" id="badgesGrid">
+        <!-- Rendered by JS -->
+      </div>
+
       <!-- ─── Story List with read status ─── -->
       <div class="sec-hd" style="margin-top:40px"><div class="sec-title">卷宗追蹤</div></div>
       <div class="story-track-list">
@@ -142,6 +148,14 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
         const pct = parseInt(localStorage.getItem('hz-progress:' + el.dataset.slug) || '0', 10);
         if (pct > 0) (el as HTMLElement).style.width = pct + '%';
       });
+
+      // Achievement badges
+      const readCount = Object.keys(localStorage)
+        .filter(k => k.startsWith('hz-progress:')).length;
+      const bookmarkCount = data.bookmarkedSlugs?.length ?? 0;
+      const tokenCount = data.userTokenCount ?? 0;
+      const totalStories = document.querySelectorAll('.track-item').length;
+      renderBadges({ readCount, bookmarkCount, tokenCount, totalStories });
     })
     .catch(() => {});
 
@@ -174,6 +188,32 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
       nameEl.textContent = '已驗證觀測者';
     }
   }, 1500);
+
+  function renderBadges({ readCount, bookmarkCount, tokenCount, totalStories }: { readCount: number; bookmarkCount: number; tokenCount: number; totalStories: number }) {
+    const grid = document.getElementById('badgesGrid');
+    if (!grid) return;
+    const defs = [
+      { id: 'first', icon: '◈', name: '初次接觸', desc: '閱讀第一篇故事', unlocked: readCount >= 1 },
+      { id: 'read5', icon: '⎗', name: '深度追蹤', desc: '閱讀 5 篇以上', unlocked: readCount >= 5 },
+      { id: 'read10', icon: '⎜', name: '現場調查員', desc: '閱讀 10 篇以上', unlocked: readCount >= 10 },
+      { id: 'read20', icon: '⊕', name: '資深觀測者', desc: '閱讀 20 篇以上', unlocked: readCount >= 20 },
+      { id: 'half', icon: '◑', name: '半程突破', desc: '閱讀超過一半卷宗', unlocked: totalStories > 0 && readCount >= totalStories / 2 },
+      { id: 'all', icon: '●', name: '全部解封', desc: '閱讀所有卷宗', unlocked: totalStories > 0 && readCount >= totalStories },
+      { id: 'bk1', icon: '☑', name: '第一份書籤', desc: '收藏 1 篇故事', unlocked: bookmarkCount >= 1 },
+      { id: 'bk5', icon: '◫', name: '個人檔案庫', desc: '收藏 5 篇以上', unlocked: bookmarkCount >= 5 },
+      { id: 'tk1', icon: '⎔', name: '初次贊助', desc: '給出第一枚金幣', unlocked: tokenCount >= 1 },
+      { id: 'tk5', icon: '◈', name: '金幣散播者', desc: '給出 5 枚以上金幣', unlocked: tokenCount >= 5 },
+      { id: 'tk10', icon: '⊛', name: '異象支持者', desc: '給出 10 枚以上金幣', unlocked: tokenCount >= 10 },
+    ];
+    grid.innerHTML = defs.map(b =>
+      `<div class="badge-box${b.unlocked ? ' unlocked' : ' locked'}">
+        <div class="badge-icon">${b.icon}</div>
+        <div class="badge-name">${b.name}</div>
+        <div class="badge-desc">${b.desc}</div>
+        ${b.unlocked ? '<div class="badge-status">已解鎖</div>' : '<div class="badge-status locked-txt">未解鎖</div>'}
+      </div>`
+    ).join('');
+  }
 
   // Sign out via Clerk
   document.getElementById('signOutBtn')?.addEventListener('click', async () => {
@@ -450,9 +490,54 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
   .btn-ghost:hover { border-color: var(--text); color: var(--bg); background: var(--text); }
   .btn-ghost.danger:hover { border-color: var(--danger); color: var(--danger); background: transparent; }
 
+  /* ─── Achievement Badges ─── */
+  .badges-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .badge-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 16px 12px;
+    text-align: center;
+    transition: all .2s;
+  }
+  .badge-box.unlocked { border-color: rgba(212, 160, 23, 0.45); }
+  .badge-box.locked { opacity: .4; }
+  .badge-icon {
+    font-size: 1.6rem;
+    margin-bottom: 6px;
+    color: var(--text-muted);
+  }
+  .badge-box.unlocked .badge-icon { color: #d4a017; }
+  .badge-name {
+    font-family: 'Noto Serif TC', serif;
+    font-size: .78rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .badge-desc {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .58rem;
+    color: var(--text-muted);
+    letter-spacing: .04em;
+    margin-bottom: 8px;
+  }
+  .badge-status {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .58rem;
+    color: #d4a017;
+    letter-spacing: .1em;
+  }
+  .locked-txt { color: var(--border); }
+
   @media (max-width: 500px) {
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
     .track-right { display: none; }
     .id-body { flex-direction: column; text-align: center; }
+    .badges-grid { grid-template-columns: repeat(3, 1fr); }
   }
 </style>

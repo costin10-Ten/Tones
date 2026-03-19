@@ -89,3 +89,28 @@ create table if not exists bookmarks (
 );
 
 alter table bookmarks enable row level security;
+
+-- ============================================================
+-- 評論系統
+-- ============================================================
+create table if not exists comments (
+  id           uuid default gen_random_uuid() primary key,
+  story_slug   text not null,
+  user_id      text not null,
+  display_name text not null,
+  content      text not null check (char_length(content) >= 1 and char_length(content) <= 500),
+  created_at   timestamptz not null default now(),
+  deleted      boolean not null default false
+);
+create index if not exists comments_slug_idx on comments (story_slug, created_at);
+alter table comments enable row level security;
+
+-- ============================================================
+-- 電子報訂閱
+-- ============================================================
+create table if not exists email_subscribers (
+  id         uuid default gen_random_uuid() primary key,
+  email      text unique not null,
+  created_at timestamptz not null default now()
+);
+alter table email_subscribers enable row level security;

@@ -12,6 +12,7 @@ interface Props {
   slug: string;
   views?: number;
   tokens?: number;
+  featured?: boolean;
 }
 
 const {
@@ -27,6 +28,7 @@ const {
   slug,
   views = 0,
   tokens = 0,
+  featured = false,
 } = Astro.props;
 
 const levelLabel: Record<string, string> = {
@@ -44,7 +46,7 @@ const levelClass: Record<string, string> = {
 };
 ---
 
-<a href={`/stories/${slug}`} class={`story-card vis-${vis}`} aria-label={`閱讀：${title}`}>
+<a href={`/stories/${slug}`} class={`story-card vis-${vis}${featured ? ' featured' : ''}`} aria-label={`閱讀：${title}`}>
   <div class="card-header">
     <div class="card-meta-left">
       <span class="file-num">{fileNum}</span>
@@ -52,6 +54,7 @@ const levelClass: Record<string, string> = {
       <span class={`level-badge ${levelClass[level] ?? 'level-public'}`}>
         {levelLabel[level] ?? level}
       </span>
+      {featured && <span class="featured-badge">★ 精選</span>}
     </div>
     <span class="card-icon" aria-hidden="true">{icon}</span>
   </div>

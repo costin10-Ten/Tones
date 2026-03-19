@@ -42,6 +42,25 @@ const nextStory = currentIndex > 0 ? sorted[currentIndex - 1] : null;
 // All stories data for client-side category-aware navigation
 const allStoriesData = sorted.map(s => ({ slug: s.slug, tags: s.data.tags, title: s.data.title }));
 
+// ─── Series navigation ───────────────────────────────────────
+const seriesName = entry.data.series;
+const seriesStories = seriesName
+  ? allStories
+      .filter(s => s.data.series === seriesName)
+      .sort((a, b) => (a.data.seriesOrder ?? 0) - (b.data.seriesOrder ?? 0))
+  : [];
+
+// ─── Related stories (same tags, exclude self, up to 3) ──────
+const tagSet = new Set(entry.data.tags);
+const relatedStories = allStories
+  .filter(s => s.slug !== slug && s.data.tags.some(t => tagSet.has(t)))
+  .sort((a, b) => {
+    const aMatch = a.data.tags.filter(t => tagSet.has(t)).length;
+    const bMatch = b.data.tags.filter(t => tagSet.has(t)).length;
+    return bMatch - aMatch || b.data.date.localeCompare(a.data.date);
+  })
+  .slice(0, 3);
+
 const ogImageUrl = new URL(`/og/${slug}.png`, Astro.url).href;
 
 const levelLabel: Record<string, string> = {
@@ -109,6 +128,24 @@ const storyId = `story:${slug}`;
       <!-- Title -->
       <h1>{entry.data.title}</h1>
 
+      <!-- Series navigation banner -->
+      {seriesStories.length > 1 && (
+        <div class="series-nav-box">
+          <div class="series-nav-label">▸ 系列：{seriesName}</div>
+          <div class="series-nav-list">
+            {seriesStories.map((s, i) => (
+              <a
+                href={`/stories/${s.slug}`}
+                class={`series-nav-item${s.slug === slug ? ' current' : ''}`}
+              >
+                <span class="snav-order">{i + 1}</span>
+                <span class="snav-title">{s.data.title}</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
       <!-- Byline + action buttons -->
       <div class="art-byline">
         <div class="byl-item">案件編號 <em>{entry.data.fileNum}</em></div>
@@ -136,6 +173,22 @@ const storyId = `story:${slug}`;
         <span id="copyFeedback" class="copy-feedback"></span>
       </div>
 
+      <!-- Related Stories -->
+      {relatedStories.length > 0 && (
+        <div class="related-section">
+          <div class="related-hd">相關卷宗</div>
+          <div class="related-list">
+            {relatedStories.map(s => (
+              <a href={`/stories/${s.slug}`} class="related-item">
+                <span class="rel-num">{s.data.fileNum}</span>
+                <span class="rel-title">{s.data.title}</span>
+                <span class="rel-tags">{s.data.tags.slice(0, 2).join(' · ')}</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
       <!-- Bottom Nav -->
       <nav class="art-nav" aria-label="文章導覽">
         <a id="navPrev"
@@ -158,6 +211,29 @@ const storyId = `story:${slug}`;
           <span class="nav-arrow">→</span>
         </a>
       </nav>
+      <!-- Comments -->
+      <div class="comments-section" id="commentsSection" data-slug={slug} data-authed={userId ? '1' : '0'}>
+        <div class="comments-hd">[ 目擊者留言 ]</div>
+        <div id="commentsList" class="comments-list">
+          <div class="comments-loading">載入中…</div>
+        </div>
+        {userId ? (
+          <form id="commentForm" class="comment-form">
+            <input type="text" id="commentName" class="comment-input" placeholder="代號（選填，預設匿名觀測者）" maxlength="30" />
+            <textarea id="commentContent" class="comment-textarea" placeholder="留下你的觀察紀錄… （上限 500 字）" maxlength="500" rows="3"></textarea>
+            <div class="comment-actions">
+              <span id="commentCharCount" class="comment-char">0 / 500</span>
+              <button type="submit" id="commentSubmit" class="comment-submit">提交觀察報告</button>
+            </div>
+            <div id="commentMsg" class="comment-msg"></div>
+          </form>
+        ) : (
+          <div class="comment-login-prompt">
+            <a href={signInUrl} class="comment-login-btn">[ 登入後留言 ]</a>
+          </div>
+        )}
+      </div>
+
     </div>
   </main>
 
@@ -525,6 +601,95 @@ const storyId = `story:${slug}`;
 
   document.getElementById('ftSerif')?.addEventListener('click', () => setFontType('serif'));
   document.getElementById('ftSans')?.addEventListener('click', () => setFontType('sans'));
+
+  // ─── Comments ─────────────────────────────────────────────
+  (function() {
+    var section = document.getElementById('commentsSection');
+    if (!section) return;
+    var slug = section.dataset.slug;
+    var authed = section.dataset.authed === '1';
+    var list = document.getElementById('commentsList');
+
+    function fmtDate(iso) {
+      var d = new Date(iso);
+      return d.getFullYear() + '.' +
+        String(d.getMonth() + 1).padStart(2, '0') + '.' +
+        String(d.getDate()).padStart(2, '0');
+    }
+
+    function renderComments(comments) {
+      if (!list) return;
+      if (!comments.length) {
+        list.innerHTML = '<div class="comment-empty">尚無觀測紀錄。成為第一位目擊者。</div>';
+        return;
+      }
+      list.innerHTML = comments.map(function(c) {
+        return '<div class="comment-item">' +
+          '<div class="comment-meta"><span class="comment-name">' + escHtml(c.display_name) + '</span>' +
+          '<span class="comment-date">' + fmtDate(c.created_at) + '</span></div>' +
+          '<div class="comment-body">' + escHtml(c.content) + '</div>' +
+          '</div>';
+      }).join('');
+    }
+
+    function escHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    fetch('/api/comments?slug=' + slug)
+      .then(function(r) { return r.json(); })
+      .then(function(data) { renderComments(Array.isArray(data) ? data : []); })
+      .catch(function() { if (list) list.innerHTML = ''; });
+
+    var form = document.getElementById('commentForm');
+    var textarea = document.getElementById('commentContent');
+    var charCount = document.getElementById('commentCharCount');
+    var msg = document.getElementById('commentMsg');
+
+    textarea?.addEventListener('input', function() {
+      var len = textarea.value.length;
+      if (charCount) charCount.textContent = len + ' / 500';
+    });
+
+    form?.addEventListener('submit', function(e) {
+      e.preventDefault();
+      var content = textarea?.value.trim() ?? '';
+      if (!content) return;
+      var nameEl = document.getElementById('commentName');
+      var displayName = nameEl?.value.trim() || '';
+      var submitBtn = document.getElementById('commentSubmit');
+      if (submitBtn) submitBtn.disabled = true;
+
+      fetch('/api/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug: slug, content: content, displayName: displayName }),
+      })
+        .then(function(r) { return r.ok ? r.json() : Promise.reject(r.status); })
+        .then(function(comment) {
+          if (textarea) textarea.value = '';
+          if (charCount) charCount.textContent = '0 / 500';
+          if (nameEl) nameEl.value = '';
+          if (msg) { msg.textContent = '觀察報告已提交。'; msg.className = 'comment-msg ok'; }
+          // Prepend new comment to list
+          var existing = list?.querySelectorAll('.comment-item').length ?? 0;
+          var empty = list?.querySelector('.comment-empty');
+          if (empty) empty.remove();
+          var el = document.createElement('div');
+          el.className = 'comment-item new';
+          el.innerHTML = '<div class="comment-meta"><span class="comment-name">' +
+            escHtml(comment.display_name) + '</span><span class="comment-date">剛剛</span></div>' +
+            '<div class="comment-body">' + escHtml(comment.content) + '</div>';
+          list?.prepend(el);
+          setTimeout(function() { el.classList.remove('new'); }, 1500);
+          setTimeout(function() { if (msg) msg.textContent = ''; }, 3000);
+        })
+        .catch(function(err) {
+          if (msg) { msg.textContent = err === 401 ? '請先登入再留言。' : '提交失敗，請稍後再試。'; msg.className = 'comment-msg err'; }
+        })
+        .finally(function() { if (submitBtn) submitBtn.disabled = false; });
+    });
+  })();
 
 </script>
 
@@ -1019,4 +1184,219 @@ const storyId = `story:${slug}`;
     .ag-actions { flex-direction: column; align-items: stretch; }
     .ag-btn { justify-content: center; }
   }
+
+  /* ─── Series Nav ────────────────────────────────────────── */
+  .series-nav-box {
+    margin: 1.2rem 0 1.6rem;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 14px 18px;
+  }
+  .series-nav-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .68rem;
+    letter-spacing: .15em;
+    color: var(--accent);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+  .series-nav-list { display: flex; flex-direction: column; gap: 4px; }
+  .series-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px;
+    text-decoration: none;
+    border: 1px solid transparent;
+    transition: all .18s;
+  }
+  .series-nav-item:hover { border-color: var(--border); background: var(--bg2); }
+  .series-nav-item.current {
+    border-color: var(--accent);
+    background: rgba(var(--accent-rgb, 180,0,0), .06);
+    pointer-events: none;
+  }
+  .snav-order {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .6rem;
+    color: var(--text-muted);
+    min-width: 18px;
+  }
+  .series-nav-item.current .snav-order { color: var(--accent); }
+  .snav-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: .82rem;
+    color: var(--text-dim);
+  }
+  .series-nav-item.current .snav-title { color: var(--text); font-weight: 700; }
+
+  /* ─── Related Stories ───────────────────────────────────── */
+  .related-section { margin: 2rem 0; }
+  .related-hd {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .72rem;
+    letter-spacing: .2em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+  }
+  .related-hd::before { content: '[ '; color: var(--accent); }
+  .related-hd::after  { content: ' ]'; color: var(--accent); }
+  .related-list { display: flex; flex-direction: column; gap: 4px; }
+  .related-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid transparent;
+    text-decoration: none;
+    transition: all .18s;
+  }
+  .related-item:hover { border-left-color: var(--accent); background: var(--bg2); }
+  .rel-num {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .6rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+  .rel-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: .85rem;
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .related-item:hover .rel-title { color: var(--accent); }
+  .rel-tags {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .6rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* ─── Comments ──────────────────────────────────────────── */
+  .comments-section { margin: 2rem 0 1rem; }
+  .comments-hd {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .72rem;
+    letter-spacing: .2em;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+    margin-bottom: 14px;
+    text-transform: uppercase;
+  }
+  .comments-loading {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .7rem;
+    color: var(--text-muted);
+    padding: 8px 0;
+  }
+  .comment-empty {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .72rem;
+    color: var(--text-muted);
+    padding: 10px 0;
+    font-style: italic;
+  }
+  .comment-item {
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border);
+    margin-bottom: 6px;
+    transition: border-left-color .3s;
+  }
+  .comment-item.new { border-left-color: var(--accent); }
+  .comment-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .comment-name {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .68rem;
+    color: var(--accent);
+    letter-spacing: .05em;
+  }
+  .comment-date {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .6rem;
+    color: var(--text-muted);
+  }
+  .comment-body {
+    font-family: 'Noto Serif TC', serif;
+    font-size: .85rem;
+    color: var(--text-dim);
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .comment-form { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .comment-input, .comment-textarea {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Noto Serif TC', serif;
+    font-size: .85rem;
+    padding: 10px 14px;
+    width: 100%;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color .18s;
+    resize: vertical;
+  }
+  .comment-input:focus, .comment-textarea:focus { border-color: var(--accent); }
+  .comment-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+  .comment-char {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .62rem;
+    color: var(--text-muted);
+  }
+  .comment-submit {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .72rem;
+    letter-spacing: .1em;
+    padding: 9px 18px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all .18s;
+    text-transform: uppercase;
+  }
+  .comment-submit:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .comment-submit:disabled { opacity: .5; cursor: not-allowed; }
+  .comment-msg { font-family: 'Share Tech Mono', monospace; font-size: .68rem; }
+  .comment-msg.ok { color: var(--accent); }
+  .comment-msg.err { color: var(--danger); }
+  .comment-login-prompt {
+    padding: 16px 0;
+    text-align: center;
+  }
+  .comment-login-btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .75rem;
+    letter-spacing: .12em;
+    color: var(--accent);
+    text-decoration: none;
+    border: 1px solid var(--accent);
+    padding: 8px 20px;
+    transition: all .18s;
+  }
+  .comment-login-btn:hover { background: var(--accent); color: var(--bg); }
 </style>

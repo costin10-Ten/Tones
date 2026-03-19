@@ -14,6 +14,9 @@ const storiesCollection = defineCollection({
     vis: z.enum(['v1', 'v2', 'v3', 'v4', 'v5']).default('v1'),
     icon: z.string().default('✖'),
     published: z.boolean().default(true),
+    featured: z.boolean().default(false),
+    series: z.string().optional(),
+    seriesOrder: z.number().optional(),
   }),
 });
 

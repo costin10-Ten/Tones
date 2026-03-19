@@ -1,0 +1,156 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import ThemeSwitcher from '../../components/ThemeSwitcher.astro';
+import { getCollection } from 'astro:content';
+
+export const prerender = true;
+
+const allStories = await getCollection('stories', ({ data }) => data.published);
+
+// Build tag → stories map
+const tagMap = new Map<string, typeof allStories>();
+for (const story of allStories) {
+  for (const tag of story.data.tags) {
+    if (!tagMap.has(tag)) tagMap.set(tag, []);
+    tagMap.get(tag)!.push(story);
+  }
+}
+
+// Sort tags by story count desc
+const tags = [...tagMap.entries()]
+  .sort((a, b) => b[1].length - a[1].length);
+---
+
+<Layout title="標籤索引 — 弦音異象" description="依異常分類瀏覽所有卷宗">
+  <header>
+    <a href="/" class="rdr-logo">弦音<em>異象</em></a>
+    <div class="rdr-ttl">標籤索引</div>
+    <ThemeSwitcher />
+    <a href="/" class="nav-a">← 返回大廳</a>
+  </header>
+
+  <main class="tags-main">
+    <div class="tags-wrap">
+      <div class="page-hd">
+        <div class="page-title">異常分類索引</div>
+        <div class="page-sub">{allStories.length} 份卷宗 · {tags.length} 個異常類別</div>
+      </div>
+
+      {tags.map(([tag, stories]) => (
+        <section class="tag-section" id={`tag-${encodeURIComponent(tag)}`}>
+          <div class="tag-section-hd">
+            <span class="tag-name">{tag}</span>
+            <span class="tag-count">{stories.length} 份卷宗</span>
+          </div>
+          <div class="tag-story-list">
+            {stories
+              .sort((a, b) => b.data.date.localeCompare(a.data.date))
+              .map(s => (
+                <a href={`/stories/${s.slug}`} class="tag-story-item">
+                  <span class="tsi-num">{s.data.fileNum}</span>
+                  <span class="tsi-title">{s.data.title}</span>
+                  <span class="tsi-date">{s.data.date}</span>
+                </a>
+              ))
+            }
+          </div>
+        </section>
+      ))}
+    </div>
+  </main>
+
+  <footer>
+    <div class="ft-logo">弦音<em>異象</em></div>
+    <div class="ft-txt">ANOMALY ARCHIVES · CLASSIFIED</div>
+  </footer>
+</Layout>
+
+<style>
+  header {
+    position: sticky; top: 0; z-index: 100;
+    height: 56px; display: flex; align-items: center; gap: 12px;
+    padding: 0 16px; background: var(--bg); border-bottom: 1px solid var(--border);
+  }
+  .rdr-logo {
+    font-family: 'Noto Serif TC', serif; font-weight: 900; font-size: 1rem;
+    color: var(--text); text-decoration: none; letter-spacing: .08em; flex-shrink: 0;
+  }
+  .rdr-logo em { color: var(--accent); font-style: normal; }
+  .rdr-ttl {
+    flex: 1; font-family: 'Noto Serif TC', serif; font-size: .85rem; font-weight: 700;
+    color: var(--text); text-align: center; letter-spacing: .04em;
+  }
+  .nav-a {
+    font-family: 'Share Tech Mono', monospace; font-size: .72rem;
+    color: var(--text-dim); text-decoration: none; letter-spacing: .08em;
+    border: 1px solid var(--border); padding: 5px 10px; white-space: nowrap;
+    transition: all .18s; flex-shrink: 0;
+  }
+  .nav-a:hover { color: var(--text); border-color: var(--text); }
+
+  .tags-main { min-height: 100vh; background: var(--bg); }
+  .tags-wrap { max-width: 720px; margin: 0 auto; padding: 48px 24px 100px; }
+
+  .page-hd { margin-bottom: 40px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
+  .page-title {
+    font-family: 'Share Tech Mono', monospace; font-size: 1rem;
+    letter-spacing: .2em; color: var(--text); font-weight: bold;
+    text-transform: uppercase;
+  }
+  .page-title::before { content: '[ '; color: var(--accent); }
+  .page-title::after  { content: ' ]'; color: var(--accent); }
+  .page-sub {
+    font-family: 'Share Tech Mono', monospace; font-size: .65rem;
+    color: var(--text-muted); letter-spacing: .1em; margin-top: 8px;
+  }
+
+  .tag-section { margin-bottom: 36px; }
+  .tag-section-hd {
+    display: flex; align-items: baseline; justify-content: space-between;
+    border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 10px;
+  }
+  .tag-name {
+    font-family: 'Share Tech Mono', monospace; font-size: .8rem;
+    letter-spacing: .15em; color: var(--accent); text-transform: uppercase;
+    font-weight: bold;
+  }
+  .tag-count {
+    font-family: 'Share Tech Mono', monospace; font-size: .6rem;
+    color: var(--text-muted); letter-spacing: .08em;
+  }
+
+  .tag-story-list { display: flex; flex-direction: column; gap: 3px; }
+  .tag-story-item {
+    display: grid; grid-template-columns: auto 1fr auto;
+    align-items: center; gap: 10px;
+    padding: 9px 12px; background: var(--surface); border: 1px solid var(--border);
+    border-left: 3px solid transparent; text-decoration: none; transition: all .18s;
+  }
+  .tag-story-item:hover { border-left-color: var(--accent); background: var(--bg2); }
+  .tsi-num {
+    font-family: 'Share Tech Mono', monospace; font-size: .6rem;
+    color: var(--text-muted); white-space: nowrap;
+  }
+  .tsi-title {
+    font-family: 'Noto Serif TC', serif; font-size: .85rem;
+    font-weight: 700; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .tag-story-item:hover .tsi-title { color: var(--accent); }
+  .tsi-date {
+    font-family: 'Share Tech Mono', monospace; font-size: .6rem;
+    color: var(--text-muted); white-space: nowrap; flex-shrink: 0;
+  }
+
+  footer { text-align: center; padding: 40px 24px; border-top: 1px solid var(--border); }
+  .ft-logo {
+    font-family: 'Noto Serif TC', serif; font-weight: 900;
+    font-size: 1.1rem; color: var(--text); letter-spacing: .08em; margin-bottom: 6px;
+  }
+  .ft-logo em { color: var(--accent); font-style: normal; }
+  .ft-txt { font-family: 'Share Tech Mono', monospace; font-size: .65rem; color: var(--text-muted); }
+
+  @media (max-width: 500px) {
+    .tsi-date { display: none; }
+  }
+</style>

@@ -8,7 +8,12 @@ import { SignedIn, SignedOut, UserButton, SignInButton } from '@clerk/astro/comp
 import { getCollection } from 'astro:content';
 
 const allStories = await getCollection('stories', ({ data }) => data.published);
-const stories = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date));
+const stories = allStories.sort((a, b) => {
+  // Featured first, then by date descending
+  if (a.data.featured && !b.data.featured) return -1;
+  if (!a.data.featured && b.data.featured) return 1;
+  return b.data.date.localeCompare(a.data.date);
+});
 
 const categories = ['全部', '記憶科技', '地下城市', 'AI社會', '生態復育', '情感科技', '🔍 彩蛋'];
 
@@ -233,6 +238,7 @@ const isLoggedIn = !!userId;
             vis={story.data.vis}
             icon={story.data.icon}
             slug={story.slug}
+            featured={story.data.featured}
           />
         ))}
       </div>
@@ -314,6 +320,19 @@ const isLoggedIn = !!userId;
       <button class="modal-close" id="closeModalBtn" aria-label="關閉">[X]</button>
     </div>
   </div>
+
+  <!-- ─── Newsletter ─── -->
+  <section class="newsletter-section">
+    <div class="newsletter-inner">
+      <div class="nl-label">訂閱異象通知</div>
+      <p class="nl-desc">新案件解封時，第一時間通知你。</p>
+      <form class="nl-form" id="nlForm">
+        <input type="email" id="nlEmail" class="nl-input" placeholder="your@email.com" required />
+        <button type="submit" class="nl-btn" id="nlBtn">訂閱</button>
+      </form>
+      <div id="nlMsg" class="nl-msg"></div>
+    </div>
+  </section>
 
   <!-- ─── Footer ─── -->
   <footer>
@@ -802,8 +821,38 @@ const isLoggedIn = !!userId;
   document.addEventListener('astro:after-swap', () => {
     updateHeroStats();
     initHomepage();
+    initNewsletter();
   });
   initHomepage();
+  initNewsletter();
+
+  function initNewsletter() {
+    var form = document.getElementById('nlForm') as HTMLFormElement | null;
+    var msg = document.getElementById('nlMsg');
+    var btn = document.getElementById('nlBtn') as HTMLButtonElement | null;
+    if (!form || (form as HTMLElement & { dataset: DOMStringMap }).dataset.init) return;
+    (form as HTMLElement & { dataset: DOMStringMap }).dataset.init = '1';
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      var email = (document.getElementById('nlEmail') as HTMLInputElement | null)?.value.trim() ?? '';
+      if (!email) return;
+      if (btn) btn.disabled = true;
+      fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email }),
+      })
+        .then(function(r) { return r.ok ? r.json() : r.json().then(function(d: { error?: string }) { return Promise.reject(d.error); }); })
+        .then(function() {
+          if (msg) { msg.textContent = '✓ 已訂閱，新案件解封時將通知你。'; msg.className = 'nl-msg ok'; }
+          form!.reset();
+        })
+        .catch(function(err: unknown) {
+          if (msg) { msg.textContent = typeof err === 'string' ? err : '訂閱失敗，請稍後再試。'; msg.className = 'nl-msg err'; }
+          if (btn) btn.disabled = false;
+        });
+    });
+  }
 </script>
 
 <style>
@@ -1260,5 +1309,69 @@ const isLoggedIn = !!userId;
   @media (max-width: 480px) {
     .stat-num { font-size: 1.4rem; }
     header { padding: 0 10px; }
+  }
+
+  /* ─── Newsletter ─────────────────────────────────── */
+  .newsletter-section {
+    padding: 48px 24px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    background: var(--surface);
+  }
+  .newsletter-inner { max-width: 480px; margin: 0 auto; }
+  .nl-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .7rem;
+    letter-spacing: .25em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .nl-label::before { content: '[ '; }
+  .nl-label::after  { content: ' ]'; }
+  .nl-desc {
+    font-family: 'Noto Serif TC', serif;
+    font-size: .88rem;
+    color: var(--text-dim);
+    margin-bottom: 18px;
+  }
+  .nl-form { display: flex; gap: 8px; }
+  .nl-input {
+    flex: 1;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .82rem;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color .18s;
+  }
+  .nl-input:focus { border-color: var(--accent); }
+  .nl-btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .72rem;
+    letter-spacing: .1em;
+    padding: 10px 20px;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    cursor: pointer;
+    transition: all .18s;
+    white-space: nowrap;
+  }
+  .nl-btn:hover:not(:disabled) { background: var(--accent); color: var(--bg); }
+  .nl-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .nl-msg {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .68rem;
+    margin-top: 10px;
+    min-height: 18px;
+  }
+  .nl-msg.ok { color: var(--accent); }
+  .nl-msg.err { color: var(--danger); }
+  @media (max-width: 480px) {
+    .nl-form { flex-direction: column; }
+    .nl-btn { text-align: center; }
   }
 </style>

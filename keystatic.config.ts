@@ -55,6 +55,9 @@ export default config({
         }),
         icon: fields.text({ label: '圖示符號', defaultValue: '✖' }),
         published: fields.checkbox({ label: '已發布', defaultValue: true }),
+        featured: fields.checkbox({ label: '精選置頂', defaultValue: false }),
+        series: fields.text({ label: '系列名稱（選填）' }),
+        seriesOrder: fields.integer({ label: '系列順序（選填）' }),
         content: fields.markdoc({
           label: '內容',
           extension: 'md',
