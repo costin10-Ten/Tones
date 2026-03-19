@@ -356,33 +356,25 @@ const isLoggedIn = !!userId;
     }
   }
 
-  // ─── Update hero stats ─────────────────────────────────────
+  // ─── Update hero stats (Supabase for logged-in users) ─────
   function updateHeroStats() {
     const { isLoggedIn, totalStories, inaccessibleCount } = getHpMeta();
-    let totalViews = 0, totalTokens = 0, viewedCount = 0;
-    try {
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (!k?.startsWith('story:')) continue;
-        const d = JSON.parse(localStorage.getItem(k) || '{}');
-        totalViews += d.views || 0;
-        totalTokens += d.tokens || 0;
-        if ((d.views || 0) > 0) viewedCount++;
-      }
-    } catch(_) {}
+    if (!isLoggedIn) return; // 未登入保持 ∞
 
-    if (isLoggedIn) {
-      const viewersEl = document.getElementById('statViewers');
-      const coinsEl   = document.getElementById('statCoins');
-      const mystEl    = document.getElementById('statMysteries');
-      if (viewersEl) viewersEl.textContent = fmtN(totalViews);
-      if (coinsEl)   coinsEl.textContent   = fmtN(totalTokens);
-      if (mystEl) {
-        const remaining = Math.max(0, totalStories - viewedCount - inaccessibleCount);
-        mystEl.textContent = String(remaining);
-      }
-    }
-    // Non-members keep ∞ (rendered server-side)
+    fetch('/api/member/stats')
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => {
+        const viewersEl = document.getElementById('statViewers');
+        const coinsEl   = document.getElementById('statCoins');
+        const mystEl    = document.getElementById('statMysteries');
+        if (viewersEl) viewersEl.textContent = fmtN(data.totalViews ?? 0);
+        if (coinsEl)   coinsEl.textContent   = fmtN(data.userTokenCount ?? 0);
+        if (mystEl) {
+          const tokened = (data.tokenedSlugs ?? []).length;
+          mystEl.textContent = String(Math.max(0, totalStories - tokened - inaccessibleCount));
+        }
+      })
+      .catch(() => {});
   }
   updateHeroStats();
 
