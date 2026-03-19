@@ -7,24 +7,18 @@ export const GET: APIRoute = async ({ locals }) => {
   const userId = locals.auth?.()?.userId ?? null;
   if (!userId) return new Response('Unauthorized', { status: 401 });
 
-  // Stories this user has tokened
-  const { data: userTokens } = await supabase
-    .from('user_tokens')
-    .select('story_slug')
-    .eq('user_id', userId);
-
-  // All story stats
-  const { data: storyStats } = await supabase
-    .from('story_stats')
-    .select('story_slug, views, tokens');
+  // Run all 3 queries in parallel — previously sequential (3× round-trip → 1× round-trip)
+  const [
+    { data: userTokens },
+    { data: storyStats },
+    { data: bookmarkData },
+  ] = await Promise.all([
+    supabase.from('user_tokens').select('story_slug').eq('user_id', userId),
+    supabase.from('story_stats').select('story_slug, views, tokens'),
+    supabase.from('bookmarks').select('story_slug').eq('user_id', userId),
+  ]);
 
   const tokenedSlugs = new Set((userTokens ?? []).map((r: { story_slug: string }) => r.story_slug));
-
-  // Bookmarks
-  const { data: bookmarkData } = await supabase
-    .from('bookmarks')
-    .select('story_slug')
-    .eq('user_id', userId);
   const bookmarkedSlugs = (bookmarkData ?? []).map((r: { story_slug: string }) => r.story_slug);
 
   const statsMap: Record<string, { views: number; tokens: number }> = {};
@@ -40,5 +34,10 @@ export const GET: APIRoute = async ({ locals }) => {
     tokenedSlugs: [...tokenedSlugs],
     bookmarkedSlugs,
     statsMap,
-  }), { headers: { 'Content-Type': 'application/json' } });
+  }), {
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'private, max-age=300, stale-while-revalidate=600',
+    },
+  });
 };

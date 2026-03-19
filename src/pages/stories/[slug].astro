@@ -478,7 +478,7 @@ const storyId = `story:${slug}`;
 
     if (Math.abs(pct - lastSavedPct) >= 5) {
       clearTimeout(progressSaveTimer);
-      progressSaveTimer = setTimeout(() => { saveProgress(pct); lastSavedPct = pct; }, 2000);
+      progressSaveTimer = setTimeout(() => { saveProgress(pct); lastSavedPct = pct; }, 5000);
     }
   }, { passive: true });
 
