@@ -1,17 +1,18 @@
 ---
-title: "失憶申請書第三十七號"
-fileNum: "FILE-002"
-date: "2045.01.18"
-readTime: "5 分鐘"
-tags: ["記憶科技"]
-level: "restricted"
-excerpt: "她申請授權遺忘執照，只為了抹去孩子死去的記憶；然而官方表格要求她先以文字完整描述那段記憶。"
-author: "弦音觀測者"
-vis: "v1"
-icon: "◈"
+title: 失憶申請書第三十七號
+fileNum: FILE-002
+date: 2045.01.18
+readTime: 5 分鐘
+tags:
+  - 記憶科技
+level: top-secret
+excerpt: 她申請授權遺忘執照，只為了抹去孩子死去的記憶；然而官方表格要求她先以文字完整描述那段記憶。
+author: 弦音觀測者
+vis: v5
+icon: ◈
 published: true
+featured: false
 ---
-
 表格的第一行要求申請者填寫姓名。
 
 陳雅惠把筆放在紙面上，*停了很久*，才寫下自己的名字。她已經練習過很多次——在家、在浴室、在等公車的時候——練習如何把這些字用最平靜的方式填進格子裡。
