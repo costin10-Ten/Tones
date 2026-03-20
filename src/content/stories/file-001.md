@@ -5,12 +5,13 @@ date: 2045.01.05
 readTime: 4 分鐘
 tags:
   - 記憶科技
-level: public
+level: restricted
 excerpt: 林志翔的快樂通勤記憶被神經連結供應商授權販售，陌生人的腦海中正在播放他從未同意出售的美好時光。
 author: 弦音觀測者
 vis: v4
 icon: ○
 published: true
+featured: false
 ---
 林志翔第一次發現這件事，是在公司的洗手間裡。
 
