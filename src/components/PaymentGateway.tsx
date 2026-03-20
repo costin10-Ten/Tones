@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface PaymentGatewayProps {
   storyTitle: string;
@@ -23,19 +23,37 @@ export function PaymentGateway({ storyTitle, storySlug, previewContent }: Paymen
     e.preventDefault();
     setStep('processing');
 
-    // Simulated payment flow — replace with real Stripe integration
+    // TODO: Replace with real Stripe payment verification before calling unlock
+    // For now: simulate payment delay then record unlock server-side
     await new Promise(resolve => setTimeout(resolve, 1500));
 
-    // Stub: always succeeds in demo
-    const success = true;
-
-    if (success) {
-      setStep('success');
-    } else {
-      setErrorMsg('付款失敗，請檢查您的卡片資訊。');
+    try {
+      const res = await fetch('/api/unlock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug: storySlug }),
+      });
+      if (res.ok) {
+        setStep('success');
+      } else if (res.status === 401) {
+        setErrorMsg('請先登入再進行解鎖。');
+        setStep('error');
+      } else {
+        setErrorMsg('解鎖失敗，請稍後再試。');
+        setStep('error');
+      }
+    } catch {
+      setErrorMsg('網路錯誤，請稍後再試。');
       setStep('error');
     }
   }
+
+  useEffect(() => {
+    if (step === 'success') {
+      const t = setTimeout(() => window.location.reload(), 1000);
+      return () => clearTimeout(t);
+    }
+  }, [step]);
 
   if (step === 'success') {
     return (
@@ -45,9 +63,6 @@ export function PaymentGateway({ storyTitle, storySlug, previewContent }: Paymen
           解鎖成功
         </h3>
         <p className="access-gate-desc">正在載入機密內容...</p>
-        <script dangerouslySetInnerHTML={{ __html: `
-          setTimeout(() => window.location.reload(), 1000);
-        `}} />
       </div>
     );
   }

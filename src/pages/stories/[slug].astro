@@ -4,6 +4,7 @@ import ThemeSwitcher from '../../components/ThemeSwitcher.astro';
 import { PaymentGateway } from '../../components/PaymentGateway';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { getCollection, getEntry } from 'astro:content';
+import { supabase } from '../../lib/supabase';
 
 export const prerender = false;
 
@@ -25,13 +26,24 @@ const isRestricted = level === 'restricted';
 const isTopSecret  = level === 'top-secret';
 const isPaid       = level === 'paid';
 
-// Access gate: unauthenticated users see an in-page gate (no redirect, no content leak)
-const showAccessGate = (isRestricted || isTopSecret) && !userId;
 const signInUrl = `/sign-in?redirect_url=${encodeURIComponent(Astro.url.pathname)}`;
 
-// Paid content: authenticated but not subscribed → show PaymentGateway
-const isSubscribed = false; // TODO: check DB/Stripe subscription
-const showPaywall = isPaid && (!userId || !isSubscribed);
+// Paid content: check if user has unlocked this story in user_unlocks table
+let isUnlocked = false;
+if (isPaid && userId) {
+  const { data } = await supabase
+    .from('user_unlocks')
+    .select('story_slug')
+    .eq('user_id', userId)
+    .eq('story_slug', slug)
+    .single();
+  isUnlocked = !!data;
+}
+
+// showAccessGate: not logged in AND story requires auth (restricted, top-secret, or paid)
+const showAccessGate = !userId && (isRestricted || isTopSecret || isPaid);
+// showPaywall: logged in but paid story not yet unlocked
+const showPaywall = isPaid && !!userId && !isUnlocked;
 
 // Adjacent stories for prev/next navigation
 const allStories = await getCollection('stories', ({ data }) => data.published);
@@ -161,10 +173,41 @@ const storyId = `story:${slug}`;
         </div>
       </div>
 
-      <!-- Content -->
-      <div class="art-body" id="artBody">
-        <Content />
-      </div>
+      <!-- Content (gated by auth level) -->
+      {showAccessGate ? (
+        <div class="art-body">
+          <div class="access-gate">
+            <div class="ag-badge">
+              {isTopSecret ? '⚠ 極機密文件' : isPaid ? '⚠ 付費限定' : '⚠ 限制閱覽'}
+            </div>
+            {entry.data.excerpt && (
+              <p class="ag-excerpt">{entry.data.excerpt}</p>
+            )}
+            <div class="ag-divider" />
+            <div class="ag-msg">
+              此卷宗需要 <strong>身份驗證</strong> 才能存取。<br />
+              請登入或建立帳號以取得閱覽授權。
+            </div>
+            <div class="ag-actions">
+              <a href={signInUrl} class="ag-btn ag-btn-primary">[ 登入 / 建立帳號 ]</a>
+              <a href="/stories" class="ag-btn ag-btn-ghost">← 返回卷宗列表</a>
+            </div>
+          </div>
+        </div>
+      ) : showPaywall ? (
+        <div class="art-body">
+          <PaymentGateway
+            client:load
+            storyTitle={entry.data.title}
+            storySlug={slug}
+            previewContent={entry.data.excerpt}
+          />
+        </div>
+      ) : (
+        <div class="art-body" id="artBody">
+          <Content />
+        </div>
+      )}
 
       <!-- Share Row -->
       <div class="share-row">
