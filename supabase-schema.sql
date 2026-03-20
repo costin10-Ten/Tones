@@ -114,3 +114,14 @@ create table if not exists email_subscribers (
   created_at timestamptz not null default now()
 );
 alter table email_subscribers enable row level security;
+
+-- ============================================================
+-- 付費解鎖紀錄（paid 等級故事）
+-- ============================================================
+create table if not exists user_unlocks (
+  user_id    text not null,
+  story_slug text not null,
+  created_at timestamptz not null default now(),
+  primary key (user_id, story_slug)
+);
+alter table user_unlocks enable row level security;
