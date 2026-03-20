@@ -5,7 +5,7 @@ date: 2045.01.18
 readTime: 5 分鐘
 tags:
   - 記憶科技
-level: top-secret
+level: restricted
 excerpt: 她申請授權遺忘執照，只為了抹去孩子死去的記憶；然而官方表格要求她先以文字完整描述那段記憶。
 author: 弦音觀測者
 vis: v5
