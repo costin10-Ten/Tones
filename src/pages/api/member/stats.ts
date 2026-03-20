@@ -7,16 +7,30 @@ export const GET: APIRoute = async ({ locals }) => {
   const userId = locals.auth?.()?.userId ?? null;
   if (!userId) return new Response('Unauthorized', { status: 401 });
 
-  // Run all 3 queries in parallel — previously sequential (3× round-trip → 1× round-trip)
-  const [
-    { data: userTokens },
-    { data: storyStats },
-    { data: bookmarkData },
-  ] = await Promise.all([
-    supabase.from('user_tokens').select('story_slug').eq('user_id', userId),
-    supabase.from('story_stats').select('story_slug, views, tokens'),
-    supabase.from('bookmarks').select('story_slug').eq('user_id', userId),
-  ]);
+  // Run all 3 queries in parallel with a 7s timeout
+  const abort = new AbortController();
+  const timer = setTimeout(() => abort.abort(), 7000);
+
+  let userTokens, storyStats, bookmarkData;
+  try {
+    [
+      { data: userTokens },
+      { data: storyStats },
+      { data: bookmarkData },
+    ] = await Promise.all([
+      supabase.from('user_tokens').select('story_slug').eq('user_id', userId).abortSignal(abort.signal),
+      supabase.from('story_stats').select('story_slug, views, tokens').limit(500).abortSignal(abort.signal),
+      supabase.from('bookmarks').select('story_slug').eq('user_id', userId).abortSignal(abort.signal),
+    ]);
+  } catch (err: unknown) {
+    clearTimeout(timer);
+    const isTimeout = err instanceof Error && err.name === 'AbortError';
+    return new Response(JSON.stringify({ error: isTimeout ? 'timeout' : 'db_error' }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  clearTimeout(timer);
 
   const tokenedSlugs = new Set((userTokens ?? []).map((r: { story_slug: string }) => r.story_slug));
   const bookmarkedSlugs = (bookmarkData ?? []).map((r: { story_slug: string }) => r.story_slug);

@@ -18,6 +18,7 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
 <Layout title="會員登入 — 弦音異象" description="你的觀測者身份資料與閱讀紀錄">
   <!-- ─── Header ─── -->
   <header>
+    <a href="/" class="ctrl-btn back-btn" title="返回首頁">←</a>
     <a href="/" class="rdr-logo">弦音<em>異象</em></a>
     <div class="rdr-ttl">觀測者身份核實</div>
     <ThemeSwitcher />
@@ -47,17 +48,18 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
 
       <!-- ─── Reading Stats ─── -->
       <div class="sec-hd"><div class="sec-title">閱讀紀錄</div></div>
+      <div id="statsError" class="stats-error" style="display:none"></div>
       <div class="stats-grid">
         <div class="stat-box">
-          <div class="stat-box-num" id="statViews">0</div>
+          <div class="stat-box-num skeleton" id="statViews">—</div>
           <div class="stat-box-lbl">全站瀏覽</div>
         </div>
         <div class="stat-box">
-          <div class="stat-box-num" id="statTokens">0</div>
+          <div class="stat-box-num skeleton" id="statTokens">—</div>
           <div class="stat-box-lbl">沒收金幣</div>
         </div>
         <div class="stat-box">
-          <div class="stat-box-num" id="statRead">0</div>
+          <div class="stat-box-num skeleton" id="statRead">—</div>
           <div class="stat-box-lbl">已收藏卷宗</div>
         </div>
         <div class="stat-box">
@@ -109,6 +111,15 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
 
   <footer>
     <div class="ft-logo">弦音<em>異象</em></div>
+    <nav class="ft-nav">
+      <a href="/">首頁</a>
+      <span class="ft-sep">·</span>
+      <a href="/stories">卷宗</a>
+      <span class="ft-sep">·</span>
+      <a href="/tags">標籤</a>
+      <span class="ft-sep">·</span>
+      <a href="/member">會員</a>
+    </nav>
     <div class="ft-txt">ANOMALY ARCHIVES · CLASSIFIED<br>一切皆為虛構，除非你相信。</div>
   </footer>
 </Layout>
@@ -116,48 +127,99 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
 <script>
   function fmtN(n) { return n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(n); }
 
+  function clearSkeleton() {
+    document.querySelectorAll('.stat-box-num.skeleton').forEach(el => {
+      el.classList.remove('skeleton');
+    });
+  }
+
+  function showStatsError(msg: string) {
+    clearSkeleton();
+    ['statViews', 'statTokens', 'statRead'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = '—';
+    });
+    const errEl = document.getElementById('statsError');
+    if (errEl) {
+      errEl.style.display = '';
+      errEl.innerHTML = msg +
+        ' <button class="stats-retry-btn" id="statsRetry">重試</button>';
+      document.getElementById('statsRetry')?.addEventListener('click', loadStats);
+    }
+  }
+
+  function applyStats(data) {
+    clearSkeleton();
+    const errEl = document.getElementById('statsError');
+    if (errEl) errEl.style.display = 'none';
+
+    document.getElementById('statViews').textContent = fmtN(data.totalViews ?? 0);
+    document.getElementById('statTokens').textContent = fmtN(data.userTokenCount ?? 0);
+    document.getElementById('statRead').textContent = String(data.bookmarkedSlugs?.length ?? 0);
+
+    const tokenedSet = new Set(data.tokenedSlugs ?? []);
+    const bookmarkedSet = new Set(data.bookmarkedSlugs ?? []);
+    const statsMap = data.statsMap ?? {};
+
+    document.querySelectorAll('.track-views[data-slug]').forEach(el => {
+      el.textContent = '👁 ' + fmtN(statsMap[el.dataset.slug]?.views ?? 0);
+    });
+    document.querySelectorAll('.track-tokens[data-slug]').forEach(el => {
+      el.textContent = '⎔ ' + fmtN(statsMap[el.dataset.slug]?.tokens ?? 0);
+    });
+    document.querySelectorAll('.track-read-dot[data-slug]').forEach(el => {
+      el.classList.toggle('read', tokenedSet.has(el.dataset.slug));
+    });
+    document.querySelectorAll('.track-bookmark-icon[data-slug]').forEach(el => {
+      if (bookmarkedSet.has(el.dataset.slug)) el.textContent = '☑ ';
+    });
+
+    // Reading progress from localStorage
+    document.querySelectorAll('.track-progress-bar[data-slug]').forEach(el => {
+      const pct = parseInt(localStorage.getItem('hz-progress:' + el.dataset.slug) || '0', 10);
+      if (pct > 0) (el as HTMLElement).style.width = pct + '%';
+    });
+
+    // Achievement badges
+    const readCount = Object.keys(localStorage)
+      .filter(k => k.startsWith('hz-progress:')).length;
+    const bookmarkCount = data.bookmarkedSlugs?.length ?? 0;
+    const tokenCount = data.userTokenCount ?? 0;
+    const totalStories = document.querySelectorAll('.track-item').length;
+    renderBadges({ readCount, bookmarkCount, tokenCount, totalStories });
+  }
+
+  function loadStats() {
+    // Re-apply skeleton on retry
+    ['statViews', 'statTokens', 'statRead'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.textContent = '—'; el.classList.add('skeleton'); }
+    });
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+
+    fetch('/api/member/stats', { signal: controller.signal })
+      .then(r => { clearTimeout(timer); return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(data => {
+        if (data?.error === 'timeout') {
+          showStatsError('伺服器回應逾時。');
+        } else {
+          applyStats(data);
+        }
+      })
+      .catch(err => {
+        clearTimeout(timer);
+        if (err?.name === 'AbortError') {
+          showStatsError('讀取逾時，請稍後再試。');
+        } else {
+          showStatsError('無法載入資料。');
+        }
+      });
+  }
+
   // Load stats from Supabase
-  fetch('/api/member/stats')
-    .then(r => r.ok ? r.json() : Promise.reject(r.status))
-    .then(data => {
-      document.getElementById('statViews').textContent = fmtN(data.totalViews ?? 0);
-      document.getElementById('statTokens').textContent = fmtN(data.userTokenCount ?? 0);
-      document.getElementById('statRead').textContent = String(data.tokenedSlugs?.length ?? 0);
-
-      const tokenedSet = new Set(data.tokenedSlugs ?? []);
-      const bookmarkedSet = new Set(data.bookmarkedSlugs ?? []);
-      const statsMap = data.statsMap ?? {};
-
-      document.querySelectorAll('.track-views[data-slug]').forEach(el => {
-        const slug = el.dataset.slug;
-        el.textContent = '👁 ' + fmtN(statsMap[slug]?.views ?? 0);
-      });
-      document.querySelectorAll('.track-tokens[data-slug]').forEach(el => {
-        const slug = el.dataset.slug;
-        el.textContent = '⎔ ' + fmtN(statsMap[slug]?.tokens ?? 0);
-      });
-      document.querySelectorAll('.track-read-dot[data-slug]').forEach(el => {
-        el.classList.toggle('read', tokenedSet.has(el.dataset.slug));
-      });
-      document.querySelectorAll('.track-bookmark-icon[data-slug]').forEach(el => {
-        if (bookmarkedSet.has(el.dataset.slug)) el.textContent = '☑ ';
-      });
-
-      // Reading progress from localStorage
-      document.querySelectorAll('.track-progress-bar[data-slug]').forEach(el => {
-        const pct = parseInt(localStorage.getItem('hz-progress:' + el.dataset.slug) || '0', 10);
-        if (pct > 0) (el as HTMLElement).style.width = pct + '%';
-      });
-
-      // Achievement badges
-      const readCount = Object.keys(localStorage)
-        .filter(k => k.startsWith('hz-progress:')).length;
-      const bookmarkCount = data.bookmarkedSlugs?.length ?? 0;
-      const tokenCount = data.userTokenCount ?? 0;
-      const totalStories = document.querySelectorAll('.track-item').length;
-      renderBadges({ readCount, bookmarkCount, tokenCount, totalStories });
-    })
-    .catch(() => {});
+  loadStats();
 
   // Load Clerk user info for display
   window.addEventListener('load', async () => {
@@ -241,6 +303,23 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
     background: var(--bg);
     border-bottom: 1px solid var(--border);
   }
+  .back-btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .9rem;
+    padding: 5px 9px;
+    min-width: 30px;
+    justify-content: center;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+    flex-shrink: 0;
+    transition: all .2s;
+  }
+  .back-btn:hover { border-color: var(--accent); color: var(--accent); }
   .rdr-logo {
     font-family: 'Noto Serif TC', serif;
     font-weight: 900;
@@ -252,6 +331,7 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
     white-space: nowrap;
   }
   .rdr-logo em { color: var(--accent); font-style: normal; }
+  .rdr-logo:hover { color: var(--text); }
   .rdr-ttl {
     flex: 1;
     font-family: 'Noto Serif TC', serif;
@@ -534,10 +614,104 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
   }
   .locked-txt { color: var(--border); }
 
+  /* ─── Skeleton shimmer ──────────────────────────── */
+  @keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  .stat-box-num.skeleton {
+    color: transparent;
+    background: linear-gradient(90deg, var(--border) 25%, var(--surface) 50%, var(--border) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite linear;
+    border-radius: 2px;
+    min-width: 36px;
+    display: inline-block;
+    user-select: none;
+  }
+
+  /* ─── Stats error banner ─────────────────────────── */
+  .stats-error {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .7rem;
+    color: var(--text-muted);
+    letter-spacing: .06em;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--danger, #d90429);
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .stats-retry-btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .65rem;
+    letter-spacing: .1em;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 4px 12px;
+    cursor: pointer;
+    transition: all .18s;
+    text-transform: uppercase;
+  }
+  .stats-retry-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ─── Footer ─────────────────────────────────────── */
+  footer {
+    text-align: center;
+    padding: 48px 24px;
+    border-top: 1px solid var(--border);
+  }
+  .ft-logo {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 1.2rem;
+    font-weight: 900;
+    color: var(--text);
+    letter-spacing: .1em;
+    margin-bottom: 14px;
+  }
+  .ft-logo em { color: var(--accent); font-style: normal; }
+  .ft-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .ft-nav a {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .65rem;
+    letter-spacing: .1em;
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 4px 8px;
+    transition: color .15s;
+    text-transform: uppercase;
+  }
+  .ft-nav a:hover { color: var(--accent); }
+  .ft-sep {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .6rem;
+    color: var(--border);
+  }
+  .ft-txt {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .65rem;
+    color: var(--text-muted);
+    letter-spacing: .1em;
+    line-height: 1.8;
+  }
+
   @media (max-width: 500px) {
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
     .track-right { display: none; }
     .id-body { flex-direction: column; text-align: center; }
     .badges-grid { grid-template-columns: repeat(3, 1fr); }
+    .rdr-ttl { display: none; }
   }
 </style>
