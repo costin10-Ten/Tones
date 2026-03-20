@@ -33,9 +33,17 @@ export const POST: APIRoute = async ({ request, locals }) => {
   if (!VALID_ACTIONS.has(action as string)) return new Response('Bad request', { status: 400 });
 
   if (action === 'add') {
-    await supabase.from('bookmarks').insert({ user_id: userId, story_slug: slug }).select();
+    const { error } = await supabase
+      .from('bookmarks')
+      .upsert({ user_id: userId, story_slug: slug }, { onConflict: 'user_id,story_slug', ignoreDuplicates: true });
+    if (error) return new Response(JSON.stringify({ error: '操作失敗，請稍後再試' }), { status: 500 });
   } else {
-    await supabase.from('bookmarks').delete().eq('user_id', userId).eq('story_slug', slug);
+    const { error } = await supabase
+      .from('bookmarks')
+      .delete()
+      .eq('user_id', userId)
+      .eq('story_slug', slug);
+    if (error) return new Response(JSON.stringify({ error: '操作失敗，請稍後再試' }), { status: 500 });
   }
 
   return new Response(JSON.stringify({ ok: true }), {

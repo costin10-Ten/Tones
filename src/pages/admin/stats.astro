@@ -9,6 +9,11 @@ const userId = Astro.locals.auth?.()?.userId ?? null;
 if (!userId) {
   return Astro.redirect('/sign-in?redirect_url=/admin/stats');
 }
+// Only the configured admin user may access this page
+const adminId = import.meta.env.ADMIN_USER_ID ?? '';
+if (!adminId || userId !== adminId) {
+  return Astro.redirect('/');
+}
 
 // Build title map from content collection
 const allStories = await getCollection('stories', ({ data }) => data.published);

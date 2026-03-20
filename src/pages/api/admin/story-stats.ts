@@ -4,9 +4,10 @@ import { supabase } from '../../../lib/supabase';
 export const prerender = false;
 
 export const GET: APIRoute = async ({ locals }) => {
-  // Require login to view stats
   const userId = locals.auth?.()?.userId ?? null;
   if (!userId) return new Response('Unauthorized', { status: 401 });
+  const adminId = import.meta.env.ADMIN_USER_ID ?? '';
+  if (!adminId || userId !== adminId) return new Response('Forbidden', { status: 403 });
 
   const { data, error } = await supabase
     .from('story_stats')

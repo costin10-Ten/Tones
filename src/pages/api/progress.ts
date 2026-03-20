@@ -34,7 +34,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     .from('reading_progress')
     .upsert({ user_id: userId, story_slug: slug, pct: Math.round(pct), updated_at: new Date().toISOString() });
 
-  if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+  if (error) return new Response(JSON.stringify({ error: '更新失敗，請稍後再試' }), { status: 500 });
 
   return new Response(JSON.stringify({ ok: true }), {
     headers: { 'Content-Type': 'application/json' },

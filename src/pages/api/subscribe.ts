@@ -4,13 +4,38 @@ import { supabase } from '../../lib/supabase';
 export const prerender = false;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MAX_EMAIL_LEN = 254; // RFC 5321
+
+// Per-IP rate limit: max 3 subscriptions per 10 minutes
+const SUB_LIMIT = 3;
+const SUB_WINDOW_MS = 10 * 60_000;
+const subTimestamps = new Map<string, number[]>();
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const cutoff = now - SUB_WINDOW_MS;
+  const times = (subTimestamps.get(ip) ?? []).filter(t => t > cutoff);
+  if (times.length >= SUB_LIMIT) return true;
+  times.push(now);
+  subTimestamps.set(ip, times);
+  if (subTimestamps.size > 500) {
+    for (const [k, ts] of subTimestamps) {
+      if (!ts.some(t => t > cutoff)) subTimestamps.delete(k);
+    }
+  }
+  return false;
+}
 
 export const POST: APIRoute = async ({ request }) => {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  if (isRateLimited(ip))
+    return new Response(JSON.stringify({ error: '操作過於頻繁，請稍後再試' }), { status: 429 });
+
   let body: unknown;
   try { body = await request.json(); } catch { return new Response('Bad request', { status: 400 }); }
 
   const { email } = body as Record<string, unknown>;
-  if (typeof email !== 'string' || !EMAIL_RE.test(email))
+  if (typeof email !== 'string' || email.length > MAX_EMAIL_LEN || !EMAIL_RE.test(email))
     return new Response(JSON.stringify({ error: '請輸入有效的電子郵件' }), { status: 400 });
 
   const { error } = await supabase
