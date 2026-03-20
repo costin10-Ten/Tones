@@ -669,10 +669,13 @@ const isLoggedIn = !!userId;
     const ns = 'http://www.w3.org/2000/svg';
     const nsEl = (tag: string) => document.createElementNS(ns, tag);
 
+    // O(1) node lookup map (avoids O(n) find inside loops)
+    const nodeMap = new Map(nodes.map(n => [n.id, n]));
+
     // Draw edges
     edges.forEach(([a, b]) => {
-      const na = nodes.find(n => n.id === a);
-      const nb = nodes.find(n => n.id === b);
+      const na = nodeMap.get(a);
+      const nb = nodeMap.get(b);
       if (!na || !nb) return;
       const line = nsEl('line') as SVGLineElement;
       line.setAttribute('x1', String(px(na.x)));
@@ -799,7 +802,7 @@ const isLoggedIn = !!userId;
         // Reveal restricted node labels
         nG!.querySelectorAll<SVGGElement>('[data-level="restricted"],[data-level="top-secret"]').forEach(g => {
           const id = g.dataset.id || '';
-          const node = nodes.find(n => n.id === id);
+          const node = nodeMap.get(id);
           if (!node) return;
           const txt = g.querySelector('text');
           if (txt) txt.textContent = node.label.replace('FILE-', '');

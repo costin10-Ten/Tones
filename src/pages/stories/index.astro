@@ -18,9 +18,12 @@ const categories = [
   { key: '🔍 彩蛋',  label: '[ 最高機密 ]',  code: 'TOP-SECRET' },
 ];
 
-const catCounts = Object.fromEntries(
-  categories.map(c => [c.key, stories.filter(s => s.data.tags.includes(c.key)).length])
-);
+// Single O(n) pass instead of O(n × categories) repeated filters
+const _tagCounts: Record<string, number> = {};
+for (const s of stories) {
+  for (const t of s.data.tags) _tagCounts[t] = (_tagCounts[t] ?? 0) + 1;
+}
+const catCounts = Object.fromEntries(categories.map(c => [c.key, _tagCounts[c.key] ?? 0]));
 ---
 
 <Layout title="卷宗總覽 — 弦音異象">
