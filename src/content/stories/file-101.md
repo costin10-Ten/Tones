@@ -12,6 +12,7 @@ author: 弦音觀測者
 vis: v1
 icon: ✖
 published: true
+featured: true
 ---
 傍晚的光從百葉窗的縫隙裡斜進來，落在他的側臉上，把他切成了金色的條紋。
 
