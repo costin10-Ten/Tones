@@ -108,7 +108,7 @@ const storyId = `story:${slug}`;
   })} slot="head" />
   <!-- ─── Reader Header ─── -->
   <header>
-    <button id="agBack" class="ctrl-btn back-btn" aria-label="返回" title="返回列表">←</button>
+    <button id="agBack" class="ctrl-btn back-btn" aria-label="返回" title="返回列表">&lt;</button>
     <a href="/" class="rdr-logo">弦音<em>異象</em></a>
     <div class="rdr-ttl">{entry.data.title}</div>
     <ThemeSwitcher />
@@ -190,7 +190,7 @@ const storyId = `story:${slug}`;
             </div>
             <div class="ag-actions">
               <a href={signInUrl} class="ag-btn ag-btn-primary">[ 登入 / 建立帳號 ]</a>
-              <a href="/stories" class="ag-btn ag-btn-ghost">← 返回卷宗列表</a>
+              <a href="/stories" class="ag-btn ag-btn-ghost">&lt; 返回卷宗列表</a>
             </div>
           </div>
         </div>
@@ -319,20 +319,26 @@ const storyId = `story:${slug}`;
 
 <script is:inline>
   document.getElementById('agBack')?.addEventListener('click', function() {
-    var cat = new URLSearchParams(location.search).get('cat');
-    // If we have a category context, go back to the filtered list (shareable)
+    var params = new URLSearchParams(location.search);
+    var cat = params.get('cat');
+    var ref = params.get('ref');
+    // ?cat= — came from category-filtered story list
     if (cat) {
       window.location.href = '/stories?cat=' + encodeURIComponent(cat);
       return;
     }
-    // If the referrer is within this site, go back in history
+    // ?ref= — explicit source context
+    if (ref === 'member')  { window.location.href = '/member';  return; }
+    if (ref === 'tags')    { window.location.href = '/tags';    return; }
+    if (ref === 'readlist') { window.location.href = '/stories'; return; }
+    // Same-origin referrer fallback (series nav, homepage links, etc.)
     try {
       if (document.referrer && new URL(document.referrer).origin === location.origin) {
         history.back();
         return;
       }
     } catch(_) {}
-    // External link / direct open → go to full stories list
+    // Direct link / external → story list
     window.location.href = '/stories';
   });
 </script>

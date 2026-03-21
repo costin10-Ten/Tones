@@ -46,7 +46,7 @@ const tags = [...tagMap.entries()]
             {stories
               .sort((a, b) => b.data.date.localeCompare(a.data.date))
               .map(s => (
-                <a href={`/stories/${s.slug}`} class="tag-story-item">
+                <a href={`/stories/${s.slug}?ref=tags`} class="tag-story-item">
                   <span class="tsi-num">{s.data.fileNum}</span>
                   <span class="tsi-title">{s.data.title}</span>
                   <span class="tsi-date">{s.data.date}</span>

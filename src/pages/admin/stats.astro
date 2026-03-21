@@ -23,10 +23,10 @@ const totalStories = allStories.length;
 
 <Layout title="故事統計 — 弦音異象" description="故事閱讀數與金幣統計">
   <header>
+    <a href="/member" class="back-btn" title="返回會員頁">&lt;</a>
     <a href="/" class="rdr-logo">弦音<em>異象</em></a>
     <div class="rdr-ttl">故事統計後台</div>
     <ThemeSwitcher />
-    <a href="/member" class="nav-a">← 返回</a>
   </header>
 
   <main class="stats-main">
@@ -193,13 +193,14 @@ const totalStories = allStories.length;
     flex: 1; font-family: 'Noto Serif TC', serif; font-size: .85rem;
     font-weight: 700; color: var(--text); text-align: center; letter-spacing: .04em;
   }
-  .nav-a {
-    font-family: 'Share Tech Mono', monospace; font-size: .72rem;
-    color: var(--text-dim); text-decoration: none; letter-spacing: .08em;
-    border: 1px solid var(--border); padding: 5px 10px; white-space: nowrap;
-    transition: all .18s; flex-shrink: 0;
+  .back-btn {
+    font-family: 'Share Tech Mono', monospace; font-size: .9rem;
+    color: var(--text-muted); text-decoration: none;
+    border: 1px solid var(--border); padding: 5px 9px;
+    min-width: 30px; display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: all .2s;
   }
-  .nav-a:hover { color: var(--text); border-color: var(--text); }
+  .back-btn:hover { border-color: var(--accent); color: var(--accent); }
 
   .stats-main { min-height: 100vh; background: var(--bg); }
   .stats-wrap { max-width: 860px; margin: 0 auto; padding: 48px 24px 100px; }

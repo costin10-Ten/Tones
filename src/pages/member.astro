@@ -18,7 +18,7 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
 <Layout title="會員登入 — 弦音異象" description="你的觀測者身份資料與閱讀紀錄">
   <!-- ─── Header ─── -->
   <header>
-    <a href="/" class="ctrl-btn back-btn" title="返回首頁">←</a>
+    <a href="/" class="ctrl-btn back-btn" title="返回首頁">&lt;</a>
     <a href="/" class="rdr-logo">弦音<em>異象</em></a>
     <div class="rdr-ttl">觀測者身份核實</div>
     <ThemeSwitcher />
@@ -78,7 +78,7 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
       <div class="sec-hd" style="margin-top:40px"><div class="sec-title">卷宗追蹤</div></div>
       <div class="story-track-list">
         {sorted.map(story => (
-          <a href={`/stories/${story.slug}`} class="track-item" data-slug={story.slug}>
+          <a href={`/stories/${story.slug}?ref=member`} class="track-item" data-slug={story.slug}>
             <div class="track-left">
               <div class="track-read-dot" data-slug={story.slug}></div>
               <div>
