@@ -73,6 +73,22 @@ const catCounts = Object.fromEntries(categories.map(c => [c.key, _tagCounts[c.ke
         </button>
       ))}
     </div>
+
+    <!-- ─── My Lists panel (populated by JS when logged in) ─── -->
+    <div class="my-lists-wrap" id="myListsWrap" style="display:none">
+      <div class="my-lists-divider"></div>
+      <div class="my-lists-head">
+        <span class="my-lists-label">我的清單</span>
+        <button class="my-lists-add-btn" id="myListsAddBtn" title="建立新清單">＋</button>
+      </div>
+      <div id="myListsBody"><!-- rendered by JS --></div>
+      <!-- New list inline form -->
+      <div class="my-lists-new-form" id="myListsNewForm" style="display:none">
+        <input class="my-lists-input" id="myListsInput" type="text" maxlength="40" placeholder="清單名稱…" />
+        <button class="my-lists-confirm" id="myListsConfirm">確認</button>
+        <button class="my-lists-cancel" id="myListsCancel">✕</button>
+      </div>
+    </div>
   </div>
 
   <!-- ─── Directory Divider ─── -->
@@ -146,6 +162,13 @@ const catCounts = Object.fromEntries(categories.map(c => [c.key, _tagCounts[c.ke
   <div class="sel-bar" id="selBar">
     <span class="sel-info">已標記 <strong id="selCount">0</strong> 件卷宗</span>
     <div class="sel-actions">
+      <!-- Add to list picker (only when logged in, rendered by JS) -->
+      <div class="sel-picker-wrap" id="selPickerWrap" style="display:none">
+        <button class="sel-btn" id="selPickerBtn">＋ 加入清單 ▾</button>
+        <div class="sel-picker-drop" id="selPickerDrop" style="display:none">
+          <!-- rendered by JS -->
+        </div>
+      </div>
       <button class="sel-btn" id="selClear">清除</button>
       <button class="sel-btn accent" id="selRead">[ → 開始閱讀 ]</button>
     </div>
@@ -290,10 +313,285 @@ const catCounts = Object.fromEntries(categories.map(c => [c.key, _tagCounts[c.ke
     updateBar();
   }
 
+  // ─── Multi-list (logged-in only) ─────────────────────────
+  type ListItem = { id: string; name: string; slugs: string[]; is_public: boolean; share_token: string | null };
+
+  let _lists: ListItem[] = [];
+  let _activeListId: string | null = null; // null = show all / category view
+
+  async function fetchLists(): Promise<ListItem[]> {
+    try {
+      const r = await fetch('/api/lists');
+      if (!r.ok) return [];
+      return await r.json();
+    } catch (_) { return []; }
+  }
+
+  async function createList(name: string, slugs: string[] = []): Promise<ListItem | null> {
+    try {
+      const r = await fetch('/api/lists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, slugs }),
+      });
+      if (!r.ok) return null;
+      return await r.json();
+    } catch (_) { return null; }
+  }
+
+  async function updateList(id: string, patch: object): Promise<ListItem | null> {
+    try {
+      const r = await fetch(`/api/lists/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      });
+      if (!r.ok) return null;
+      return await r.json();
+    } catch (_) { return null; }
+  }
+
+  async function deleteList(id: string): Promise<boolean> {
+    try {
+      const r = await fetch(`/api/lists/${id}`, { method: 'DELETE' });
+      return r.ok;
+    } catch (_) { return false; }
+  }
+
+  function renderMyLists() {
+    const body = document.getElementById('myListsBody');
+    if (!body) return;
+
+    if (_lists.length === 0) {
+      body.innerHTML = '<div class="my-lists-empty">尚無清單</div>';
+      return;
+    }
+
+    body.innerHTML = _lists.map(list => {
+      const isActive = list.id === _activeListId;
+      return `<div class="my-list-item${isActive ? ' active' : ''}" data-id="${list.id}">
+        <button class="mli-name-btn" data-id="${list.id}">
+          <span class="mli-folder">${isActive ? '▣' : '▷'}</span>
+          <span class="mli-name">${escHtml(list.name)}</span>
+          <span class="mli-count">${list.slugs.length}</span>
+        </button>
+        <div class="mli-actions">
+          ${list.share_token
+            ? `<button class="mli-act share active" data-id="${list.id}" title="複製分享連結">⎘</button>`
+            : `<button class="mli-act share" data-id="${list.id}" title="開啟分享連結">⎘</button>`}
+          <button class="mli-act del" data-id="${list.id}" title="刪除清單">✕</button>
+        </div>
+      </div>`;
+    }).join('');
+
+    // Name button → filter file list to show only this list's slugs
+    body.querySelectorAll<HTMLButtonElement>('.mli-name-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id ?? '';
+        _activeListId = _activeListId === id ? null : id;
+        filterByActiveList();
+        renderMyLists();
+      });
+    });
+
+    // Share button
+    body.querySelectorAll<HTMLButtonElement>('.mli-act.share').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id ?? '';
+        const list = _lists.find(l => l.id === id);
+        if (!list) return;
+        if (list.share_token) {
+          // Already public: copy link
+          const url = location.origin + '/lists/' + list.share_token;
+          try { await navigator.clipboard.writeText(url); } catch (_) {}
+          btn.textContent = '✓';
+          setTimeout(() => { btn.textContent = '⎘'; }, 1500);
+        } else {
+          // Enable sharing
+          const updated = await updateList(id, { is_public: true });
+          if (updated) {
+            _lists = _lists.map(l => l.id === id ? updated : l);
+            renderMyLists();
+            const url = location.origin + '/lists/' + updated.share_token;
+            try { await navigator.clipboard.writeText(url); } catch (_) {}
+          }
+        }
+      });
+    });
+
+    // Delete button
+    body.querySelectorAll<HTMLButtonElement>('.mli-act.del').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id ?? '';
+        if (!confirm('確定要刪除這個清單？')) return;
+        const ok = await deleteList(id);
+        if (ok) {
+          _lists = _lists.filter(l => l.id !== id);
+          if (_activeListId === id) { _activeListId = null; filterByActiveList(); }
+          renderMyLists();
+        }
+      });
+    });
+  }
+
+  function filterByActiveList() {
+    const rows = document.querySelectorAll<HTMLElement>('.file-row');
+    const list = _activeListId ? _lists.find(l => l.id === _activeListId) : null;
+    const slugSet = list ? new Set(list.slugs) : null;
+    let visible = 0;
+    rows.forEach(row => {
+      const show = !slugSet || slugSet.has(row.dataset.slug ?? '');
+      row.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+    const fileCount = document.getElementById('fileCount');
+    const addrCount = document.getElementById('addrCount');
+    if (fileCount) fileCount.textContent = String(visible);
+    if (addrCount) addrCount.textContent = `${visible} 件`;
+  }
+
+  function renderPickerDrop() {
+    const drop = document.getElementById('selPickerDrop');
+    if (!drop) return;
+    if (_lists.length === 0) {
+      drop.innerHTML = '<div class="picker-empty">尚無清單 — 請先建立</div>';
+    } else {
+      drop.innerHTML = _lists.map(l =>
+        `<button class="picker-item" data-id="${l.id}">${escHtml(l.name)} <span class="picker-count">(${l.slugs.length})</span></button>`
+      ).join('') + '<div class="picker-sep"></div><button class="picker-item picker-new" id="pickerNewBtn">＋ 建立新清單</button>';
+
+      drop.querySelectorAll<HTMLButtonElement>('.picker-item:not(.picker-new)').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.dataset.id ?? '';
+          const selected = getSelectedSlugs();
+          if (selected.length === 0) { closePicker(); return; }
+          const updated = await updateList(id, { add: selected });
+          if (updated) {
+            _lists = _lists.map(l => l.id === id ? updated : l);
+            renderMyLists();
+          }
+          closePicker();
+        });
+      });
+
+      drop.querySelector<HTMLButtonElement>('#pickerNewBtn')?.addEventListener('click', () => {
+        closePicker();
+        openNewListForm(getSelectedSlugs());
+      });
+    }
+  }
+
+  function getSelectedSlugs(): string[] {
+    try { return JSON.parse(localStorage.getItem('hz-readlist') ?? '[]'); } catch (_) { return []; }
+  }
+
+  function closePicker() {
+    const drop = document.getElementById('selPickerDrop');
+    if (drop) drop.style.display = 'none';
+  }
+
+  function openNewListForm(initialSlugs: string[] = []) {
+    const wrap = document.getElementById('myListsWrap');
+    const form = document.getElementById('myListsNewForm');
+    const input = document.getElementById('myListsInput') as HTMLInputElement | null;
+    if (wrap) wrap.style.display = '';
+    if (form) form.style.display = 'flex';
+    if (input) { input.value = ''; input.focus(); input.dataset.initialSlugs = JSON.stringify(initialSlugs); }
+  }
+
+  function escHtml(s: string) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  async function initLists() {
+    // Check if logged in via Clerk
+    let isLoggedIn = false;
+    try {
+      // @ts-ignore
+      await new Promise<void>(resolve => {
+        // @ts-ignore
+        if (window.Clerk?.loaded) { resolve(); return; }
+        let tries = 0;
+        const t = setInterval(() => {
+          // @ts-ignore
+          if (window.Clerk?.loaded || ++tries > 20) { clearInterval(t); resolve(); }
+        }, 200);
+      });
+      // @ts-ignore
+      isLoggedIn = !!(await window.Clerk?.user);
+    } catch (_) {}
+
+    if (!isLoggedIn) return;
+
+    // Show my lists panel and selection picker
+    const wrap = document.getElementById('myListsWrap');
+    const pickerWrap = document.getElementById('selPickerWrap');
+    if (wrap) wrap.style.display = '';
+    if (pickerWrap) pickerWrap.style.display = '';
+
+    _lists = await fetchLists();
+    renderMyLists();
+
+    // New list form
+    const addBtn   = document.getElementById('myListsAddBtn');
+    const newForm  = document.getElementById('myListsNewForm');
+    const input    = document.getElementById('myListsInput') as HTMLInputElement | null;
+    const confirm  = document.getElementById('myListsConfirm');
+    const cancel   = document.getElementById('myListsCancel');
+
+    addBtn?.addEventListener('click', () => {
+      if (newForm) newForm.style.display = 'flex';
+      input?.focus();
+    });
+
+    cancel?.addEventListener('click', () => {
+      if (newForm) newForm.style.display = 'none';
+      if (input) input.value = '';
+    });
+
+    async function submitNewList() {
+      const name = input?.value.trim() ?? '';
+      if (!name) { input?.focus(); return; }
+      let initialSlugs: string[] = [];
+      try { initialSlugs = JSON.parse(input?.dataset.initialSlugs ?? '[]'); } catch (_) {}
+      const created = await createList(name, initialSlugs);
+      if (created) {
+        _lists = [..._lists, created];
+        renderMyLists();
+      }
+      if (newForm) newForm.style.display = 'none';
+      if (input) { input.value = ''; input.dataset.initialSlugs = ''; }
+    }
+
+    confirm?.addEventListener('click', submitNewList);
+    input?.addEventListener('keydown', e => { if (e.key === 'Enter') submitNewList(); if (e.key === 'Escape') cancel?.click(); });
+
+    // Picker dropdown
+    const pickerBtn  = document.getElementById('selPickerBtn');
+    const pickerDrop = document.getElementById('selPickerDrop');
+
+    pickerBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = pickerDrop?.style.display !== 'none';
+      if (!isOpen) {
+        renderPickerDrop();
+        if (pickerDrop) pickerDrop.style.display = 'flex';
+      } else {
+        closePicker();
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      const wrap = document.getElementById('selPickerWrap');
+      if (wrap && !wrap.contains(e.target as Node)) closePicker();
+    });
+  }
+
   function init() {
     initExplorer();
     applyLocalProgress();
     initSelection();
+    initLists();
   }
 
   document.addEventListener('astro:after-swap', init);
@@ -686,6 +984,173 @@ const catCounts = Object.fromEntries(categories.map(c => [c.key, _tagCounts[c.ke
     color: var(--text-muted);
     letter-spacing: 0.15em;
   }
+
+  /* ─── My Lists Panel ────────────────────────────── */
+  .my-lists-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 10px 0 8px;
+  }
+  .my-lists-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .my-lists-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--text-muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .my-lists-add-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    padding: 0;
+  }
+  .my-lists-add-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .my-lists-empty {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    padding: 4px 0;
+    opacity: 0.6;
+  }
+  .my-list-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 0;
+  }
+  .mli-name-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: color 0.15s;
+    flex: 1;
+    text-align: left;
+    min-width: 0;
+  }
+  .mli-name-btn:hover { color: var(--text); }
+  .my-list-item.active .mli-name-btn { color: var(--accent); }
+  .mli-folder { font-size: 0.6rem; opacity: 0.7; flex-shrink: 0; }
+  .mli-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mli-count {
+    font-size: 0.58rem;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    padding: 1px 4px;
+    flex-shrink: 0;
+  }
+  .my-list-item.active .mli-count { border-color: var(--accent); color: var(--accent); }
+  .mli-actions { display: flex; gap: 3px; flex-shrink: 0; }
+  .mli-act {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.65rem;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s;
+    padding: 0;
+  }
+  .my-list-item:hover .mli-act { opacity: 1; }
+  .mli-act.share:hover, .mli-act.share.active { color: var(--accent); }
+  .mli-act.del:hover { color: var(--danger, #d90429); }
+
+  /* New list form */
+  .my-lists-new-form {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .my-lists-input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    padding: 5px 8px;
+    outline: none;
+    min-width: 0;
+  }
+  .my-lists-input:focus { border-color: var(--accent); }
+  .my-lists-confirm,
+  .my-lists-cancel {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    padding: 4px 9px;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .my-lists-confirm:hover { border-color: var(--accent); color: var(--accent); }
+  .my-lists-cancel:hover  { border-color: var(--danger, #d90429); color: var(--danger, #d90429); }
+
+  /* ─── Picker Dropdown ────────────────────────────── */
+  .sel-picker-wrap { position: relative; }
+  .sel-picker-drop {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    right: 0;
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    min-width: 180px;
+    flex-direction: column;
+    z-index: 300;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  }
+  .picker-item {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.68rem;
+    padding: 9px 14px;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+    width: 100%;
+    letter-spacing: 0.04em;
+  }
+  .picker-item:hover { background: var(--accent-dim); color: var(--accent); }
+  .picker-count { color: var(--text-muted); font-size: 0.6rem; }
+  .picker-sep { height: 1px; background: var(--border); margin: 2px 0; }
+  .picker-empty {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--text-muted);
+    padding: 10px 14px;
+  }
+  .picker-new { color: var(--accent); }
 
   /* ─── Responsive ─────────────────────────────────── */
   @media (max-width: 700px) {

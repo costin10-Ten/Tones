@@ -1,0 +1,435 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import ThemeSwitcher from '../../components/ThemeSwitcher.astro';
+import { SignedIn } from '@clerk/astro/components';
+import { getCollection } from 'astro:content';
+import { supabase } from '../../lib/supabase';
+
+export const prerender = false;
+
+const { token } = Astro.params;
+
+// Fetch the shared list
+const { data: sharedList, error } = await supabase
+  .from('reading_lists')
+  .select('id, name, slugs, user_id, created_at')
+  .eq('share_token', token ?? '')
+  .eq('is_public', true)
+  .single();
+
+if (error || !sharedList) {
+  return Astro.redirect('/stories');
+}
+
+// Fetch story metadata for all slugs in the list
+const allStories = await getCollection('stories', ({ data }) => data.published);
+const storyMap = Object.fromEntries(allStories.map(s => [s.slug, s]));
+
+const listStories = (sharedList.slugs as string[])
+  .map(slug => storyMap[slug])
+  .filter(Boolean);
+
+const createdDate = new Date(sharedList.created_at as string).toLocaleDateString('zh-TW', {
+  year: 'numeric', month: 'long', day: 'numeric',
+});
+---
+
+<Layout title={`${sharedList.name} — 弦音異象分享清單`} description={`觀測者分享清單：${sharedList.name}，共 ${listStories.length} 件卷宗`}>
+  <header>
+    <a href="/" class="rdr-logo">弦音<em>異象</em></a>
+    <div class="rdr-ttl">分享清單</div>
+    <ThemeSwitcher />
+    <a href="/stories" class="nav-a">← 所有卷宗</a>
+  </header>
+
+  <main class="share-main">
+    <div class="share-wrap">
+
+      <!-- ─── List Header ─── -->
+      <div class="share-card">
+        <div class="sc-tag">OBSERVER · SHARED LIST</div>
+        <div class="sc-body">
+          <div class="sc-icon">◈</div>
+          <div class="sc-info">
+            <div class="sc-name">{sharedList.name}</div>
+            <div class="sc-meta">{listStories.length} 件卷宗 · 建立於 {createdDate}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── Copy to my lists (logged-in only) ─── -->
+      <SignedIn>
+        <div class="copy-bar">
+          <span class="copy-hint">將此清單複製到你的帳號</span>
+          <button class="copy-btn" id="copyListBtn" data-name={sharedList.name} data-slugs={JSON.stringify(sharedList.slugs)}>
+            [ ＋ 複製清單 ]
+          </button>
+          <span class="copy-done" id="copyDone" style="display:none">✓ 已複製</span>
+        </div>
+      </SignedIn>
+
+      <!-- ─── Story List ─── -->
+      <div class="share-list-header">
+        <span class="slh-num">編號</span>
+        <span class="slh-title">標題</span>
+        <span class="slh-tags">分類</span>
+        <span class="slh-time">時長</span>
+      </div>
+
+      <div class="share-file-list">
+        {listStories.length === 0 ? (
+          <div class="share-empty">[ 此清單目前為空 ]</div>
+        ) : listStories.map((story, i) => (
+          <a href={`/stories/${story.slug}?ref=home`} class="share-row">
+            <span class="sr-idx">{String(i + 1).padStart(2, '0')}</span>
+            <span class="sr-icon">{story.data.icon}</span>
+            <span class="sr-filenum">{story.data.fileNum}</span>
+            <span class="sr-title">{story.data.title}</span>
+            <div class="sr-tags">
+              {story.data.tags.slice(0, 2).map(tag => (
+                <span class="sr-tag">{tag}</span>
+              ))}
+            </div>
+            <span class="sr-time">{story.data.readTime}</span>
+            <span class="sr-arrow">›</span>
+          </a>
+        ))}
+      </div>
+
+      <!-- ─── Start reading CTA ─── -->
+      {listStories.length > 0 && (
+        <div class="share-cta">
+          <a href={`/stories/${listStories[0].slug}?ref=home`} class="cta-btn">
+            [ → 從第一篇開始閱讀 ]
+          </a>
+          <a href="/stories" class="cta-ghost">[ 瀏覽所有卷宗 ]</a>
+        </div>
+      )}
+
+    </div>
+  </main>
+
+  <footer>
+    <div class="ft-txt">ANOMALY ARCHIVES · CLASSIFIED<br>一切皆為虛構，除非你相信。</div>
+  </footer>
+</Layout>
+
+<script>
+  document.getElementById('copyListBtn')?.addEventListener('click', async function() {
+    const btn = this as HTMLButtonElement;
+    const name = btn.dataset.name ?? '分享清單';
+    let slugs: string[] = [];
+    try { slugs = JSON.parse(btn.dataset.slugs ?? '[]'); } catch (_) {}
+
+    btn.disabled = true;
+    btn.textContent = '[ 複製中… ]';
+
+    try {
+      const r = await fetch('/api/lists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, slugs }),
+      });
+      if (r.ok) {
+        btn.style.display = 'none';
+        const done = document.getElementById('copyDone');
+        if (done) done.style.display = '';
+      } else {
+        btn.disabled = false;
+        btn.textContent = '[ ＋ 複製清單 ]';
+      }
+    } catch (_) {
+      btn.disabled = false;
+      btn.textContent = '[ ＋ 複製清單 ]';
+    }
+  });
+</script>
+
+<style>
+  /* ─── Header ──────────────────────────────────── */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 16px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+  .rdr-logo {
+    font-family: 'Noto Serif TC', serif;
+    font-weight: 900;
+    font-size: 1rem;
+    color: var(--text);
+    text-decoration: none;
+    letter-spacing: 0.08em;
+    flex-shrink: 0;
+  }
+  .rdr-logo em { color: var(--accent); font-style: normal; }
+  .rdr-ttl {
+    flex: 1;
+    font-family: 'Noto Serif TC', serif;
+    font-size: .85rem;
+    font-weight: 700;
+    color: var(--text);
+    text-align: center;
+    letter-spacing: .04em;
+  }
+  .nav-a {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .7rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    letter-spacing: .08em;
+    white-space: nowrap;
+    padding: 5px 10px;
+    border: 1px solid var(--border);
+    transition: all .18s;
+    flex-shrink: 0;
+  }
+  .nav-a:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ─── Main layout ─────────────────────────────── */
+  .share-main { min-height: 80vh; }
+  .share-wrap {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* ─── List header card ────────────────────────── */
+  .share-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+  .sc-tag {
+    background: var(--accent);
+    color: var(--bg);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .58rem;
+    letter-spacing: .2em;
+    padding: 5px 16px;
+    font-weight: bold;
+  }
+  .sc-body {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 20px 24px;
+  }
+  .sc-icon {
+    font-size: 2rem;
+    color: var(--accent);
+    flex-shrink: 0;
+    font-family: 'Share Tech Mono', monospace;
+  }
+  .sc-name {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 1.2rem;
+    font-weight: 900;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .sc-meta {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .62rem;
+    color: var(--text-muted);
+    letter-spacing: .06em;
+  }
+
+  /* ─── Copy bar ───────────────────────────────── */
+  .copy-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--accent-dim);
+    border: 1px solid var(--accent);
+    padding: 10px 16px;
+    margin-bottom: 24px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .7rem;
+    flex-wrap: wrap;
+  }
+  .copy-hint { color: var(--text-dim); flex: 1; letter-spacing: .04em; }
+  .copy-btn {
+    background: none;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .68rem;
+    padding: 6px 16px;
+    cursor: pointer;
+    letter-spacing: .08em;
+    transition: all .18s;
+    white-space: nowrap;
+  }
+  .copy-btn:hover { background: var(--accent); color: var(--bg); }
+  .copy-done { color: var(--accent); letter-spacing: .08em; }
+
+  /* ─── List column header ──────────────────────── */
+  .share-list-header {
+    display: flex;
+    align-items: center;
+    padding: 6px 12px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .56rem;
+    color: var(--text-muted);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    gap: 0;
+  }
+  .slh-num   { width: 32px; flex-shrink: 0; }
+  .slh-title { flex: 1; padding-left: 60px; }
+  .slh-tags  { width: 140px; flex-shrink: 0; }
+  .slh-time  { width: 48px; flex-shrink: 0; text-align: right; }
+
+  /* ─── Share file list ─────────────────────────── */
+  .share-file-list { display: flex; flex-direction: column; margin-bottom: 32px; }
+  .share-row {
+    display: flex;
+    align-items: center;
+    padding: 11px 12px;
+    border-bottom: 1px solid var(--border);
+    text-decoration: none;
+    color: inherit;
+    transition: background .12s;
+    gap: 0;
+  }
+  .share-row:hover { background: var(--surface); }
+  .sr-idx {
+    width: 32px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .58rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+  .sr-icon {
+    width: 24px;
+    font-size: .8rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    text-align: center;
+  }
+  .sr-filenum {
+    width: 78px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .63rem;
+    color: var(--accent);
+    letter-spacing: .05em;
+    flex-shrink: 0;
+  }
+  .sr-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: .85rem;
+    font-weight: 700;
+    color: var(--text);
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 12px;
+  }
+  .share-row:hover .sr-title { color: var(--accent); }
+  .sr-tags {
+    width: 140px;
+    flex-shrink: 0;
+    display: flex;
+    gap: 4px;
+    overflow: hidden;
+  }
+  .sr-tag {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .54rem;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    padding: 2px 5px;
+    white-space: nowrap;
+  }
+  .sr-time {
+    width: 48px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .6rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    text-align: right;
+  }
+  .sr-arrow {
+    width: 24px;
+    font-size: 1rem;
+    color: var(--text-dim);
+    text-align: center;
+    transition: transform .15s, color .15s;
+  }
+  .share-row:hover .sr-arrow { color: var(--accent); transform: translateX(2px); }
+  .share-empty {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .75rem;
+    color: var(--text-muted);
+    padding: 32px 0;
+    text-align: center;
+    letter-spacing: .1em;
+  }
+
+  /* ─── CTA ────────────────────────────────────── */
+  .share-cta {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .cta-btn {
+    display: inline-flex;
+    align-items: center;
+    background: var(--accent);
+    color: var(--bg);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .75rem;
+    letter-spacing: .1em;
+    padding: 12px 24px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: opacity .18s;
+  }
+  .cta-btn:hover { opacity: .85; }
+  .cta-ghost {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .75rem;
+    letter-spacing: .1em;
+    padding: 12px 24px;
+    text-decoration: none;
+    transition: all .18s;
+  }
+  .cta-ghost:hover { border-color: var(--text); color: var(--text); }
+
+  /* ─── Footer ──────────────────────────────────── */
+  footer {
+    text-align: center;
+    padding: 40px 24px;
+    border-top: 1px solid var(--border);
+  }
+  .ft-txt {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .62rem;
+    color: var(--text-muted);
+    letter-spacing: .1em;
+    line-height: 1.8;
+  }
+
+  @media (max-width: 600px) {
+    .sr-tags, .slh-tags { display: none; }
+    .rdr-ttl { display: none; }
+    .copy-bar { flex-direction: column; align-items: flex-start; gap: 8px; }
+  }
+</style>
