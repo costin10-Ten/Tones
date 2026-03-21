@@ -22,6 +22,24 @@ for (const s of stories) {
   for (const t of s.data.tags) _tagCounts[t] = (_tagCounts[t] ?? 0) + 1;
 }
 const catCounts = Object.fromEntries(categories.map(c => [c.key, _tagCounts[c.key] ?? 0]));
+
+// Site-curated lists (build-time defined)
+const curatedLists = [
+  {
+    id: 'starter',
+    label: '入門推薦',
+    icon: '◈',
+    slugs: stories.filter(s => s.data.level === 'public').slice(0, 5).map(s => s.slug),
+  },
+  {
+    id: 'thriller',
+    label: '深度驚悚',
+    icon: '⊕',
+    slugs: stories.filter(s => s.data.tags.some(t => ['記憶科技', 'AI社會'].includes(t))).slice(0, 6).map(s => s.slug),
+  },
+];
+
+const paidStories = stories.filter(s => s.data.level === 'paid');
 ---
 
 <Layout title="卷宗總覽 — 弦音異象">
@@ -73,6 +91,45 @@ const catCounts = Object.fromEntries(categories.map(c => [c.key, _tagCounts[c.ke
         </button>
       ))}
     </div>
+
+    <!-- ─── Site-curated Lists ─── -->
+    <div class="dir-extra-wrap">
+      <div class="dir-extra-divider"></div>
+      <div class="dir-extra-label">站內精選</div>
+      <div class="dir-row-cats">
+        {curatedLists.map(list => (
+          <button
+            class="dir-cat dir-curated"
+            data-curated-id={list.id}
+            data-curated-slugs={JSON.stringify(list.slugs)}
+            data-label={list.label}
+          >
+            <span class="dir-folder-icon">▷</span>
+            <span class="dir-name">{list.label}<span class="dir-slash">/</span></span>
+            <span class="dir-count">{list.slugs.length}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+
+    <!-- ─── Paid Zone ─── -->
+    {paidStories.length > 0 && (
+      <div class="dir-extra-wrap">
+        <div class="dir-extra-divider"></div>
+        <div class="dir-extra-label">付費專區</div>
+        <div class="dir-row-cats">
+          <button
+            class="dir-cat dir-paid"
+            id="dirPaid"
+            data-paid-slugs={JSON.stringify(paidStories.map(s => s.slug))}
+          >
+            <span class="dir-folder-icon">⎔</span>
+            <span class="dir-name">付費內容<span class="dir-slash">/</span></span>
+            <span class="dir-count">{paidStories.length}</span>
+          </button>
+        </div>
+      </div>
+    )}
 
     <!-- ─── My Lists panel (populated by JS when logged in) ─── -->
     <div class="my-lists-wrap" id="myListsWrap" style="display:none">
@@ -225,6 +282,44 @@ const catCounts = Object.fromEntries(categories.map(c => [c.key, _tagCounts[c.ke
       if (fileCount)   fileCount.textContent    = String(visible);
       if (noRes)       noRes.style.display      = visible === 0 ? 'block' : 'none';
     }
+
+    // ─── Curated list filter ──────────────────────────────
+    function selectCurated(btn: HTMLButtonElement) {
+      const slugSet = new Set<string>(JSON.parse(btn.dataset.curatedSlugs ?? '[]'));
+      const label   = btn.dataset.label ?? '';
+      history.replaceState(null, '', '/stories');
+
+      // Deactivate all dir buttons
+      dirAll!.classList.remove('on');
+      catBtns.forEach(b => b.classList.remove('on'));
+      document.querySelectorAll<HTMLButtonElement>('.dir-curated,.dir-paid').forEach(b => b.classList.remove('on'));
+      dirAll!.querySelector('.dir-folder-icon')!.textContent = '▷';
+      catBtns.forEach(b => { (b.querySelector('.dir-folder-icon') as HTMLElement).textContent = '▷'; });
+      btn.classList.add('on');
+      (btn.querySelector('.dir-folder-icon') as HTMLElement).textContent = '▣';
+
+      let visible = 0;
+      rows.forEach(row => {
+        const show = slugSet.has(row.dataset.slug ?? '');
+        row.style.display = show ? '' : 'none';
+        if (show) { visible++; }
+        const link = row.querySelector<HTMLAnchorElement>('.file-row-link');
+        if (link) link.href = row.dataset.baseHref ?? link.href.split('?')[0];
+      });
+
+      if (addrCurrent) addrCurrent.textContent = label;
+      if (addrCount)   addrCount.textContent   = `${visible} 件`;
+      if (dirPath)     dirPath.textContent      = `/ ${label}`;
+      if (fileCount)   fileCount.textContent    = String(visible);
+      if (noRes)       noRes.style.display      = visible === 0 ? 'block' : 'none';
+    }
+
+    document.querySelectorAll<HTMLButtonElement>('.dir-curated').forEach(btn => {
+      btn.addEventListener('click', () => selectCurated(btn));
+    });
+    document.querySelector<HTMLButtonElement>('#dirPaid')?.addEventListener('click', (e) => {
+      selectCurated(e.currentTarget as HTMLButtonElement);
+    });
 
     dirAll.addEventListener('click', () => selectCat('全部', '全部卷宗', 'ALL'));
     catBtns.forEach(btn => {
@@ -984,6 +1079,20 @@ const catCounts = Object.fromEntries(categories.map(c => [c.key, _tagCounts[c.ke
     color: var(--text-muted);
     letter-spacing: 0.15em;
   }
+
+  /* ─── Extra sections (curated / paid / my lists) ── */
+  .dir-extra-wrap { padding-top: 0; }
+  .dir-extra-divider { height: 1px; background: var(--border); margin: 10px 0 8px; }
+  .dir-extra-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.58rem;
+    color: var(--text-muted);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .dir-paid.on { border-color: #d4a017; color: #d4a017; background: rgba(212,160,23,0.08); }
+  .dir-paid.on .dir-count { border-color: #d4a017; color: #d4a017; }
 
   /* ─── My Lists Panel ────────────────────────────── */
   .my-lists-divider {

@@ -31,6 +31,13 @@ const isLoggedIn = !!userId;
 const storiesMapJson = JSON.stringify(
   Object.fromEntries(allStories.map(s => [s.slug, { fileNum: s.data.fileNum, title: s.data.title }]))
 );
+
+// Site-curated lists for sidebar
+const curatedLists = [
+  { id: 'starter',  label: '入門推薦', icon: '◈', slugs: stories.filter(s => s.data.level === 'public').slice(0, 5).map(s => s.slug) },
+  { id: 'thriller', label: '深度驚悚', icon: '⊕', slugs: stories.filter(s => s.data.tags.some(t => ['記憶科技','AI社會'].includes(t))).slice(0, 6).map(s => s.slug) },
+];
+const paidStories = stories.filter(s => s.data.level === 'paid');
 ---
 
 <Layout>
@@ -102,6 +109,45 @@ const storiesMapJson = JSON.stringify(
         <a href="/sign-in" class="sb-link sb-link-bold" style="color:var(--accent)">> 登入系統</a>
         <a href="/sign-up" class="sb-link">> 申請觀測者身份</a>
       </SignedOut>
+
+      <!-- ─── My Lists (logged-in, populated by JS) ─── -->
+      <SignedIn>
+        <div class="sb-section" style="margin-top:24px">我的清單</div>
+        <div id="sbMyLists">
+          <span class="sb-list-loading">載入中…</span>
+        </div>
+        <a href="/stories" class="sb-link sb-link-manage">> 管理所有清單</a>
+      </SignedIn>
+
+      <!-- ─── Site Curated Lists ─── -->
+      <div class="sb-section" style="margin-top:24px">站內精選</div>
+      {curatedLists.map(list => (
+        <a href={`/stories`} class="sb-link" data-curated-label={list.label}>
+          > {list.icon} {list.label}
+          <span class="sb-list-cnt">{list.slugs.length}</span>
+        </a>
+      ))}
+
+      <!-- ─── Paid Zone ─── -->
+      {paidStories.length > 0 && (
+        <>
+          <div class="sb-section" style="margin-top:24px">付費專區</div>
+          <SignedIn>
+            {paidStories.slice(0, 3).map(s => (
+              <a href={`/stories/${s.slug}`} class="sb-link sb-link-paid">
+                > ⎔ {s.data.title}
+              </a>
+            ))}
+            {paidStories.length > 3 && (
+              <a href="/stories" class="sb-link sb-link-manage">> 還有 {paidStories.length - 3} 篇…</a>
+            )}
+          </SignedIn>
+          <SignedOut>
+            <div class="sb-paid-note">登入後查看付費內容</div>
+            <a href="/sign-in" class="sb-link" style="color:var(--accent)">> 登入解鎖 →</a>
+          </SignedOut>
+        </>
+      )}
 
       <div class="sb-section" style="margin-top:32px">系統數據</div>
       <div class="sb-stat-box">
@@ -870,9 +916,49 @@ const storiesMapJson = JSON.stringify(
   }
 
   // Module scripts run once per session — no deduplication flag needed
+  // ─── Load user's reading lists into left sidebar ──────────
+  async function loadSbLists() {
+    const el = document.getElementById('sbMyLists');
+    if (!el) return;
+    try {
+      const r = await fetch('/api/lists');
+      if (!r.ok) { el.innerHTML = ''; return; }
+      const lists: { id: string; name: string; slugs: string[] }[] = await r.json();
+      if (lists.length === 0) {
+        el.innerHTML = '<a href="/stories" class="sb-link sb-link-manage">> 建立第一個清單</a>';
+        return;
+      }
+      el.innerHTML = lists.slice(0, 5).map(l =>
+        `<a href="/stories" class="sb-link" data-list-id="${l.id}">
+          > ${l.name.replace(/</g,'&lt;')}
+          <span class="sb-list-cnt">${l.slugs.length}</span>
+        </a>`
+      ).join('') +
+        (lists.length > 5 ? `<a href="/stories" class="sb-link sb-link-manage">> 還有 ${lists.length - 5} 個清單…</a>` : '');
+    } catch (_) { el.innerHTML = ''; }
+  }
+
+  // Check Clerk login state then load lists
+  async function maybeSbLists() {
+    try {
+      await new Promise<void>(res => {
+        // @ts-ignore
+        if (window.Clerk?.loaded) { res(); return; }
+        let n = 0; const t = setInterval(() => {
+          // @ts-ignore
+          if (window.Clerk?.loaded || ++n > 20) { clearInterval(t); res(); }
+        }, 200);
+      });
+      // @ts-ignore
+      if (await window.Clerk?.user) loadSbLists();
+    } catch (_) {}
+  }
+  maybeSbLists();
+
   document.addEventListener('astro:after-swap', () => {
     updateHeroStats();
     initHomepage();
+    maybeSbLists();
     initNewsletter();
   });
   initHomepage();
@@ -1158,6 +1244,31 @@ const storiesMapJson = JSON.stringify(
   /* ─── Sidebar bold links ─────────────────────────── */
   .sb-link-bold { font-weight: 700; color: var(--text) !important; }
   .sb-link-bold:hover { color: var(--accent) !important; }
+  .sb-link-manage { color: var(--text-muted); font-size: .75rem; }
+  .sb-link-paid { color: #d4a017 !important; }
+  .sb-list-cnt {
+    float: right;
+    font-size: .65rem;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    letter-spacing: 0;
+  }
+  .sb-list-loading {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .65rem;
+    color: var(--text-muted);
+    padding: 4px 0;
+    opacity: .5;
+    display: block;
+  }
+  .sb-paid-note {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .65rem;
+    color: var(--text-muted);
+    padding: 6px 0;
+    letter-spacing: .04em;
+  }
 
   /* ─── Plain text toggle button ───────────────────── */
   .sb-plain-btn {
