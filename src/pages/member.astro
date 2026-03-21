@@ -75,8 +75,13 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
       </div>
 
       <!-- ─── Story List with read status ─── -->
-      <div class="sec-hd" style="margin-top:40px"><div class="sec-title">卷宗追蹤</div></div>
-      <div class="story-track-list">
+      <div class="sec-hd" style="margin-top:40px">
+        <div class="sec-title">卷宗追蹤</div>
+        <button class="hide-read-btn" id="hideReadBtn" title="隱藏已讀文章">
+          <span id="hideReadLabel">顯示全部</span>
+        </button>
+      </div>
+      <div class="story-track-list" id="storyTrackList">
         {sorted.map(story => (
           <a href={`/stories/${story.slug}?ref=member`} class="track-item" data-slug={story.slug}>
             <div class="track-left">
@@ -153,9 +158,12 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
     const errEl = document.getElementById('statsError');
     if (errEl) errEl.style.display = 'none';
 
-    document.getElementById('statViews').textContent = fmtN(data.totalViews ?? 0);
-    document.getElementById('statTokens').textContent = fmtN(data.userTokenCount ?? 0);
-    document.getElementById('statRead').textContent = String(data.bookmarkedSlugs?.length ?? 0);
+    const svEl = document.getElementById('statViews');
+    const stEl = document.getElementById('statTokens');
+    const srEl = document.getElementById('statRead');
+    if (svEl) svEl.textContent = fmtN(data.totalViews ?? 0);
+    if (stEl) stEl.textContent = fmtN(data.userTokenCount ?? 0);
+    if (srEl) srEl.textContent = String(data.bookmarkedSlugs?.length ?? 0);
 
     const tokenedSet = new Set(data.tokenedSlugs ?? []);
     const bookmarkedSet = new Set(data.bookmarkedSlugs ?? []);
@@ -187,6 +195,9 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
     const tokenCount = data.userTokenCount ?? 0;
     const totalStories = document.querySelectorAll('.track-item').length;
     renderBadges({ readCount, bookmarkCount, tokenCount, totalStories });
+
+    // Init hide-read toggle after DOM is populated with progress data
+    initHideRead();
   }
 
   function loadStats() {
@@ -254,28 +265,88 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
   function renderBadges({ readCount, bookmarkCount, tokenCount, totalStories }: { readCount: number; bookmarkCount: number; tokenCount: number; totalStories: number }) {
     const grid = document.getElementById('badgesGrid');
     if (!grid) return;
+
     const defs = [
-      { id: 'first', icon: '◈', name: '初次接觸', desc: '閱讀第一篇故事', unlocked: readCount >= 1 },
-      { id: 'read5', icon: '⎗', name: '深度追蹤', desc: '閱讀 5 篇以上', unlocked: readCount >= 5 },
-      { id: 'read10', icon: '⎜', name: '現場調查員', desc: '閱讀 10 篇以上', unlocked: readCount >= 10 },
-      { id: 'read20', icon: '⊕', name: '資深觀測者', desc: '閱讀 20 篇以上', unlocked: readCount >= 20 },
-      { id: 'half', icon: '◑', name: '半程突破', desc: '閱讀超過一半卷宗', unlocked: totalStories > 0 && readCount >= totalStories / 2 },
-      { id: 'all', icon: '●', name: '全部解封', desc: '閱讀所有卷宗', unlocked: totalStories > 0 && readCount >= totalStories },
-      { id: 'bk1', icon: '☑', name: '第一份書籤', desc: '收藏 1 篇故事', unlocked: bookmarkCount >= 1 },
-      { id: 'bk5', icon: '◫', name: '個人檔案庫', desc: '收藏 5 篇以上', unlocked: bookmarkCount >= 5 },
-      { id: 'tk1', icon: '⎔', name: '初次贊助', desc: '給出第一枚金幣', unlocked: tokenCount >= 1 },
-      { id: 'tk5', icon: '◈', name: '金幣散播者', desc: '給出 5 枚以上金幣', unlocked: tokenCount >= 5 },
-      { id: 'tk10', icon: '⊛', name: '異象支持者', desc: '給出 10 枚以上金幣', unlocked: tokenCount >= 10 },
+      { id: 'first',  icon: '◈', name: '初次接觸',   desc: '閱讀第一篇故事',       req: 1,            current: readCount,    unlocked: readCount >= 1 },
+      { id: 'read5',  icon: '⎗', name: '深度追蹤',   desc: '閱讀 5 篇以上',        req: 5,            current: readCount,    unlocked: readCount >= 5 },
+      { id: 'read10', icon: '⎜', name: '現場調查員', desc: '閱讀 10 篇以上',       req: 10,           current: readCount,    unlocked: readCount >= 10 },
+      { id: 'read20', icon: '⊕', name: '資深觀測者', desc: '閱讀 20 篇以上',       req: 20,           current: readCount,    unlocked: readCount >= 20 },
+      { id: 'half',   icon: '◑', name: '半程突破',   desc: '閱讀超過一半卷宗',    req: Math.ceil(totalStories / 2), current: readCount, unlocked: totalStories > 0 && readCount >= totalStories / 2 },
+      { id: 'all',    icon: '●', name: '全部解封',   desc: '閱讀所有卷宗',         req: totalStories, current: readCount,    unlocked: totalStories > 0 && readCount >= totalStories },
+      { id: 'bk1',   icon: '☑', name: '第一份書籤', desc: '收藏 1 篇故事',        req: 1,            current: bookmarkCount, unlocked: bookmarkCount >= 1 },
+      { id: 'bk5',   icon: '◫', name: '個人檔案庫', desc: '收藏 5 篇以上',        req: 5,            current: bookmarkCount, unlocked: bookmarkCount >= 5 },
+      { id: 'tk1',   icon: '⎔', name: '初次贊助',   desc: '給出第一枚金幣',       req: 1,            current: tokenCount,   unlocked: tokenCount >= 1 },
+      { id: 'tk5',   icon: '◈', name: '金幣散播者', desc: '給出 5 枚以上金幣',    req: 5,            current: tokenCount,   unlocked: tokenCount >= 5 },
+      { id: 'tk10',  icon: '⊛', name: '異象支持者', desc: '給出 10 枚以上金幣',   req: 10,           current: tokenCount,   unlocked: tokenCount >= 10 },
     ];
-    grid.innerHTML = defs.map(b =>
-      `<div class="badge-box${b.unlocked ? ' unlocked' : ' locked'}">
-        <div class="badge-icon">${b.icon}</div>
+
+    grid.innerHTML = defs.map(b => {
+      const pct = b.req > 0 ? Math.min(100, Math.round((b.current / b.req) * 100)) : 0;
+      const progressBar = b.unlocked
+        ? ''
+        : `<div class="badge-prog-wrap"><div class="badge-prog-bar" style="width:${pct}%"></div></div>
+           <div class="badge-prog-label">${b.current} / ${b.req}</div>`;
+      return `<div class="badge-box${b.unlocked ? ' unlocked' : ' locked'}">
+        <div class="badge-icon-wrap">
+          <span class="badge-icon">${b.icon}</span>
+          ${b.unlocked ? '<span class="badge-unlock-ring"></span>' : ''}
+        </div>
         <div class="badge-name">${b.name}</div>
         <div class="badge-desc">${b.desc}</div>
-        ${b.unlocked ? '<div class="badge-status">已解鎖</div>' : '<div class="badge-status locked-txt">未解鎖</div>'}
-      </div>`
-    ).join('');
+        ${b.unlocked
+          ? '<div class="badge-status">✓ 已解鎖</div>'
+          : progressBar}
+      </div>`;
+    }).join('');
   }
+
+  // ─── Hide-read toggle ─────────────────────────────
+  function initHideRead() {
+    const btn = document.getElementById('hideReadBtn');
+    const label = document.getElementById('hideReadLabel');
+    const list = document.getElementById('storyTrackList');
+    if (!btn || !list) return;
+
+    let hidden = false;
+
+    btn.addEventListener('click', () => {
+      hidden = !hidden;
+      if (label) label.textContent = hidden ? '顯示全部' : '隱藏已讀';
+      btn.classList.toggle('active', hidden);
+
+      const items = list.querySelectorAll<HTMLElement>('.track-item[data-slug]');
+      let visibleCount = 0;
+      let hiddenCount = 0;
+
+      items.forEach(item => {
+        const slug = item.dataset.slug ?? '';
+        const pct = parseInt(localStorage.getItem('hz-progress:' + slug) || '0', 10);
+        const isRead = pct >= 80;
+        if (hidden && isRead) {
+          item.style.display = 'none';
+          hiddenCount++;
+        } else {
+          item.style.display = '';
+          visibleCount++;
+        }
+      });
+
+      // Show "all done" message if everything is hidden
+      let doneMsg = list.querySelector<HTMLElement>('.track-all-done');
+      if (hidden && hiddenCount > 0 && visibleCount === 0) {
+        if (!doneMsg) {
+          doneMsg = document.createElement('div');
+          doneMsg.className = 'track-all-done';
+          doneMsg.innerHTML = '<span class="done-icon">●</span><span class="done-msg">所有卷宗已閱覽完畢<br><span class="done-sub">你已調查了這個世界的每一個角落</span></span>';
+          list.appendChild(doneMsg);
+        }
+        doneMsg.style.display = 'flex';
+      } else if (doneMsg) {
+        doneMsg.style.display = 'none';
+      }
+    });
+  }
+
 
   // Sign out via Clerk
   document.getElementById('signOutBtn')?.addEventListener('click', async () => {
@@ -430,6 +501,7 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
   .sec-hd {
     display: flex;
     align-items: baseline;
+    justify-content: space-between;
     margin-bottom: 16px;
     border-bottom: 1px solid var(--border);
     padding-bottom: 10px;
@@ -570,41 +642,93 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
   .btn-ghost:hover { border-color: var(--text); color: var(--bg); background: var(--text); }
   .btn-ghost.danger:hover { border-color: var(--danger); color: var(--danger); background: transparent; }
 
+  /* ─── Hide-read button ─── */
+  .hide-read-btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .6rem;
+    letter-spacing: .1em;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 4px 12px;
+    cursor: pointer;
+    transition: all .18s;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .hide-read-btn:hover,
+  .hide-read-btn.active { border-color: var(--accent); color: var(--accent); }
+
   /* ─── Achievement Badges ─── */
   .badges-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
+    gap: 12px;
     margin-bottom: 8px;
   }
   .badge-box {
     background: var(--surface);
     border: 1px solid var(--border);
-    padding: 16px 12px;
+    padding: 20px 14px 16px;
     text-align: center;
-    transition: all .2s;
+    transition: all .25s;
+    position: relative;
+    overflow: hidden;
   }
-  .badge-box.unlocked { border-color: rgba(212, 160, 23, 0.45); }
-  .badge-box.locked { opacity: .4; }
+  .badge-box.unlocked {
+    border-color: rgba(212, 160, 23, 0.5);
+    box-shadow: 0 0 18px rgba(212, 160, 23, 0.08);
+  }
+  .badge-box.unlocked::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #d4a017, transparent);
+  }
+  .badge-box.locked { opacity: .5; }
+  .badge-box.locked:hover { opacity: .75; }
+
+  .badge-icon-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+  }
   .badge-icon {
-    font-size: 1.6rem;
-    margin-bottom: 6px;
+    font-size: 2rem;
     color: var(--text-muted);
+    line-height: 1;
+    position: relative;
+    z-index: 1;
   }
   .badge-box.unlocked .badge-icon { color: #d4a017; }
+  .badge-unlock-ring {
+    position: absolute;
+    inset: -6px;
+    border: 1px solid rgba(212, 160, 23, 0.35);
+    border-radius: 50%;
+    animation: badge-pulse 2.5s ease-in-out infinite;
+  }
+  @keyframes badge-pulse {
+    0%, 100% { opacity: .6; transform: scale(1); }
+    50% { opacity: .2; transform: scale(1.12); }
+  }
   .badge-name {
     font-family: 'Noto Serif TC', serif;
-    font-size: .78rem;
+    font-size: .8rem;
     font-weight: 700;
     color: var(--text);
-    margin-bottom: 4px;
+    margin-bottom: 5px;
   }
   .badge-desc {
     font-family: 'Share Tech Mono', monospace;
-    font-size: .58rem;
+    font-size: .56rem;
     color: var(--text-muted);
     letter-spacing: .04em;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
+    line-height: 1.5;
   }
   .badge-status {
     font-family: 'Share Tech Mono', monospace;
@@ -612,7 +736,56 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
     color: #d4a017;
     letter-spacing: .1em;
   }
-  .locked-txt { color: var(--border); }
+  .badge-prog-wrap {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 5px;
+  }
+  .badge-prog-bar {
+    height: 100%;
+    background: var(--text-muted);
+    border-radius: 2px;
+    transition: width .4s ease;
+  }
+  .badge-prog-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .55rem;
+    color: var(--text-muted);
+    letter-spacing: .06em;
+  }
+
+  /* ─── All-done message ─── */
+  .track-all-done {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 32px 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+  }
+  .done-icon {
+    font-size: 2rem;
+    color: var(--accent);
+    flex-shrink: 0;
+    animation: badge-pulse 2.5s ease-in-out infinite;
+  }
+  .done-msg {
+    font-family: 'Noto Serif TC', serif;
+    font-size: .9rem;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.6;
+  }
+  .done-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .65rem;
+    color: var(--text-muted);
+    font-weight: 400;
+    letter-spacing: .06em;
+  }
 
   /* ─── Skeleton shimmer ──────────────────────────── */
   @keyframes shimmer {

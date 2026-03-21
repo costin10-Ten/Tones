@@ -26,6 +26,11 @@ const totalStories = stories.length;
 // Check server-side auth to pass isLoggedIn flag to client
 const userId = Astro.locals.auth?.()?.userId ?? null;
 const isLoggedIn = !!userId;
+
+// Minimal story map for client-side resume card
+const storiesMapJson = JSON.stringify(
+  Object.fromEntries(allStories.map(s => [s.slug, { fileNum: s.data.fileNum, title: s.data.title }]))
+);
 ---
 
 <Layout>
@@ -187,6 +192,18 @@ const isLoggedIn = !!userId;
       <div class="hero-actions">
         <SignedIn>
           <a href={`/stories/${stories[0]?.slug ?? ''}`} class="btn-primary" id="resumeBtn">[ 繼續閱讀 ]</a>
+          <!-- Resume info strip (populated by JS) -->
+          <div class="resume-strip" id="resumeStrip" style="display:none">
+            <div class="rs-top">
+              <span class="rs-filenum" id="rsFileNum"></span>
+              <span class="rs-title" id="rsTitle"></span>
+            </div>
+            <div class="rs-prog-wrap">
+              <div class="rs-prog-fill" id="rsProgFill"></div>
+              <span class="rs-pct" id="rsPct"></span>
+            </div>
+            <span class="rs-list" id="rsList" style="display:none"></span>
+          </div>
         </SignedIn>
         <SignedOut>
           <button class="btn-primary" id="unlockBtn" data-href={`/stories/${stories[0]?.slug ?? ''}`}>[ 解鎖第一份卷宗 ]</button>
@@ -348,6 +365,7 @@ const isLoggedIn = !!userId;
        data-logged-in={String(isLoggedIn)}
        data-total={String(totalStories)}
        data-inaccessible={String(inaccessibleCount)}
+       data-stories-map={storiesMapJson}
        hidden></div>
 </Layout>
 
@@ -366,12 +384,43 @@ const isLoggedIn = !!userId;
     };
   }
 
-  // ─── Resume button: update href to last visited story ──────
+  // ─── Resume button + strip: update href & show progress ───
   {
     const lastStory = sGet('hz-last-story');
-    const resumeBtn = document.getElementById('resumeBtn') as HTMLAnchorElement | null;
+    const resumeBtn  = document.getElementById('resumeBtn') as HTMLAnchorElement | null;
+    const strip      = document.getElementById('resumeStrip') as HTMLElement | null;
+    const rsFileNum  = document.getElementById('rsFileNum');
+    const rsTitle    = document.getElementById('rsTitle');
+    const rsProgFill = document.getElementById('rsProgFill') as HTMLElement | null;
+    const rsPct      = document.getElementById('rsPct');
+    const rsList     = document.getElementById('rsList') as HTMLElement | null;
+
     if (resumeBtn && lastStory) {
-      resumeBtn.href = '/stories/' + lastStory;
+      resumeBtn.href = '/stories/' + lastStory + '?ref=home';
+
+      const meta = document.getElementById('hp-meta');
+      let storiesMap: Record<string, { fileNum: string; title: string }> = {};
+      try { storiesMap = JSON.parse(meta?.dataset.storiesMap ?? '{}'); } catch (_) {}
+
+      const info = storiesMap[lastStory];
+      const pct  = parseInt(sGet('hz-progress:' + lastStory) || '0', 10);
+
+      if (info && strip) {
+        if (rsFileNum) rsFileNum.textContent = info.fileNum;
+        if (rsTitle)   rsTitle.textContent   = info.title;
+        if (rsProgFill) rsProgFill.style.width = pct + '%';
+        if (rsPct)     rsPct.textContent     = pct + '%';
+
+        try {
+          const readlist = JSON.parse(sGet('hz-readlist') ?? '[]') as string[];
+          if (readlist.length > 0 && rsList) {
+            rsList.textContent = `閱讀清單 ${readlist.length} 件`;
+            rsList.style.display = '';
+          }
+        } catch (_) {}
+
+        strip.style.display = 'flex';
+      }
     }
   }
 
@@ -1033,7 +1082,46 @@ const isLoggedIn = !!userId;
   .hero-title .line2 { display: block; color: var(--accent); font-size: 0.65em; margin-top: 8px; }
   .hero-title .line3 { display: block; font-size: 0.32em; color: var(--text-muted); letter-spacing: 0.2em; font-family: 'Share Tech Mono', monospace; font-weight: 400; margin-top: 16px; }
   .hero-desc { font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; color: var(--text-dim); line-height: 1.9; letter-spacing: 0.05em; margin-bottom: 40px; }
-  .hero-actions { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+  .hero-actions { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; align-items: flex-start; }
+  /* ─── Resume strip ─── */
+  .resume-strip {
+    flex-direction: column;
+    gap: 5px;
+    background: rgba(0,0,0,0.35);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--accent);
+    padding: 8px 14px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.62rem;
+    min-width: 200px;
+    max-width: 280px;
+  }
+  .rs-top { display: flex; align-items: baseline; gap: 8px; overflow: hidden; }
+  .rs-filenum { color: var(--accent); letter-spacing: 0.06em; flex-shrink: 0; }
+  .rs-title { color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rs-prog-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 3px;
+    position: relative;
+  }
+  .rs-prog-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    background: var(--accent);
+    opacity: 0.6;
+    width: 0;
+    transition: width 0.4s;
+  }
+  .rs-pct {
+    position: relative;
+    margin-left: auto;
+    color: var(--text-muted);
+    font-size: 0.58rem;
+    margin-top: 6px;
+  }
+  .rs-list { color: var(--text-muted); font-size: 0.58rem; letter-spacing: 0.04em; }
   .btn-primary { display: inline-flex; align-items: center; background: var(--accent); color: var(--bg); font-family: 'Share Tech Mono', monospace; font-size: 0.78rem; letter-spacing: 0.12em; padding: 13px 28px; text-decoration: none; transition: all 0.2s; border: 1px solid var(--accent); font-weight: bold; }
   .btn-primary:hover { background: transparent; color: var(--accent); }
   .btn-ghost { display: inline-flex; align-items: center; background: none; color: var(--text-dim); font-family: 'Share Tech Mono', monospace; font-size: 0.78rem; letter-spacing: 0.12em; padding: 13px 28px; cursor: pointer; transition: all 0.2s; border: 1px solid var(--border); }

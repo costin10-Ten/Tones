@@ -1,6 +1,5 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import StoryCard from '../../components/StoryCard.astro';
 import ThemeSwitcher from '../../components/ThemeSwitcher.astro';
 import { getCollection } from 'astro:content';
 
@@ -18,7 +17,6 @@ const categories = [
   { key: '🔍 彩蛋',  label: '[ 最高機密 ]',  code: 'TOP-SECRET' },
 ];
 
-// Single O(n) pass instead of O(n × categories) repeated filters
 const _tagCounts: Record<string, number> = {};
 for (const s of stories) {
   for (const t of s.data.tags) _tagCounts[t] = (_tagCounts[t] ?? 0) + 1;
@@ -42,9 +40,8 @@ const catCounts = Object.fromEntries(categories.map(c => [c.key, _tagCounts[c.ke
     <ThemeSwitcher />
   </header>
 
-  <!-- ─── Explorer Toolbar ─── -->
+  <!-- ─── Explorer Address Bar ─── -->
   <div class="explorer-bar">
-    <!-- Address bar -->
     <div class="addr-bar">
       <span class="addr-proto">ARCHIVE://</span>
       <span class="addr-sep">&nbsp;›&nbsp;</span>
@@ -60,7 +57,6 @@ const catCounts = Object.fromEntries(categories.map(c => [c.key, _tagCounts[c.ke
 
   <!-- ─── Directory Navigator ─── -->
   <div class="dir-nav">
-    <!-- Row 1: Root / All -->
     <div class="dir-row-all">
       <button class="dir-all on" id="dirAll" data-cat="全部">
         <span class="dir-folder-icon">▣</span>
@@ -68,7 +64,6 @@ const catCounts = Object.fromEntries(categories.map(c => [c.key, _tagCounts[c.ke
         <span class="dir-count">{stories.length}</span>
       </button>
     </div>
-    <!-- Row 2: Categories -->
     <div class="dir-row-cats">
       {categories.map(cat => (
         <button class="dir-cat" data-cat={cat.key} data-code={cat.code} data-label={cat.label}>
@@ -87,24 +82,54 @@ const catCounts = Object.fromEntries(categories.map(c => [c.key, _tagCounts[c.ke
     <span class="dir-file-count"><span id="fileCount">{stories.length}</span> 件卷宗</span>
   </div>
 
-  <!-- ─── Stories Grid ─── -->
+  <!-- ─── File List ─── -->
   <main>
-    <div class="cards-grid" id="storiesGrid">
+    <!-- Column header -->
+    <div class="list-header">
+      <span class="lh-check"></span>
+      <span class="lh-icon"></span>
+      <span class="lh-num">編號</span>
+      <span class="lh-title">標題</span>
+      <span class="lh-tags">分類</span>
+      <span class="lh-time">時長</span>
+      <span class="lh-date">日期</span>
+      <span class="lh-arrow"></span>
+    </div>
+
+    <div class="file-list" id="fileList">
       {stories.map(story => (
-        <StoryCard
-          title={story.data.title}
-          fileNum={story.data.fileNum}
-          date={story.data.date}
-          readTime={story.data.readTime}
-          tags={story.data.tags}
-          level={story.data.level}
-          excerpt={story.data.excerpt}
-          vis={story.data.vis}
-          icon={story.data.icon}
-          slug={story.slug}
-        />
+        <div
+          class="file-row"
+          data-slug={story.slug}
+          data-tags={story.data.tags.join(',')}
+          data-base-href={`/stories/${story.slug}`}
+        >
+          <label class="file-ck-wrap" title="加入閱讀清單">
+            <input type="checkbox" class="file-ck" data-slug={story.slug} />
+            <span class="file-ck-box"></span>
+          </label>
+
+          <a class="file-row-link" href={`/stories/${story.slug}`}>
+            <span class="file-icon" aria-hidden="true">{story.data.icon}</span>
+            <span class="file-num">{story.data.fileNum}</span>
+            <span class="file-title">{story.data.title}</span>
+            <div class="file-tags">
+              {story.data.tags.slice(0, 2).map(tag => (
+                <span class="file-tag">{tag}</span>
+              ))}
+            </div>
+            <span class="file-time">{story.data.readTime}</span>
+            <span class="file-date">{story.data.date.slice(0, 7).replace('-', '.')}</span>
+            <span class="file-arrow">›</span>
+          </a>
+
+          <div class="file-prog-wrap">
+            <div class="file-prog-bar" data-slug={story.slug}></div>
+          </div>
+        </div>
       ))}
     </div>
+
     <div id="noResults" style="display:none">
       <div class="no-results-inner">
         <div class="no-results-icon">⊘</div>
@@ -116,68 +141,66 @@ const catCounts = Object.fromEntries(categories.map(c => [c.key, _tagCounts[c.ke
   <footer>
     <div class="ft-txt">ANOMALY ARCHIVES · CLASSIFIED · {stories.length} FILES INDEXED</div>
   </footer>
+
+  <!-- ─── Selection Bar ─── -->
+  <div class="sel-bar" id="selBar">
+    <span class="sel-info">已標記 <strong id="selCount">0</strong> 件卷宗</span>
+    <div class="sel-actions">
+      <button class="sel-btn" id="selClear">清除</button>
+      <button class="sel-btn accent" id="selRead">[ → 開始閱讀 ]</button>
+    </div>
+  </div>
 </Layout>
 
 <script>
+  // ─── Explorer (category filter) ──────────────────────────
   function initExplorer() {
     const dirAll  = document.getElementById('dirAll') as HTMLButtonElement | null;
     const catBtns = document.querySelectorAll<HTMLButtonElement>('.dir-cat');
-    const cards   = document.querySelectorAll<HTMLElement>('.story-card');
-    const grid    = document.getElementById('storiesGrid');
+    const rows    = document.querySelectorAll<HTMLElement>('.file-row');
+    const list    = document.getElementById('fileList');
     const noRes   = document.getElementById('noResults');
     const addrCurrent = document.getElementById('addrCurrent');
     const addrCount   = document.getElementById('addrCount');
     const dirPath     = document.getElementById('dirPath');
     const fileCount   = document.getElementById('fileCount');
-    if (!dirAll || !grid) return;
+    if (!dirAll || !list) return;
 
-    // Build tag index once
-    cards.forEach(card => {
-      if (!card.dataset.tags) {
-        card.dataset.tags = Array.from(card.querySelectorAll('.tag'))
-          .map(t => t.textContent?.trim() ?? '').join(',');
-      }
-    });
-
-    function selectCat(cat: string, label: string, code: string) {
-      // Update URL so the category is shareable
+    function selectCat(cat: string, label: string, _code: string) {
       const url = cat === '全部' ? '/stories' : `/stories?cat=${encodeURIComponent(cat)}`;
       history.replaceState(null, '', url);
 
-      // Update active state
       dirAll!.classList.toggle('on', cat === '全部');
       catBtns.forEach(b => b.classList.toggle('on', b.dataset.cat === cat));
 
-      // Update folder icon
       dirAll!.querySelector('.dir-folder-icon')!.textContent = cat === '全部' ? '▣' : '▷';
       catBtns.forEach(b => {
         (b.querySelector('.dir-folder-icon') as HTMLElement).textContent =
           b.dataset.cat === cat ? '▣' : '▷';
       });
 
-      // Filter cards and update links to carry cat param
       let visible = 0;
-      cards.forEach(card => {
-        const tags = card.dataset.tags?.split(',') ?? [];
+      rows.forEach(row => {
+        const tags = row.dataset.tags?.split(',') ?? [];
         const show = cat === '全部' || tags.includes(cat);
-        card.style.display = show ? '' : 'none';
+        row.style.display = show ? '' : 'none';
         if (show) visible++;
 
-        // Update card href to carry cat param into story page
-        const base = card.dataset.baseHref ?? (card as HTMLAnchorElement).href;
-        card.dataset.baseHref = base.split('?')[0];
-        (card as HTMLAnchorElement).href = cat === '全部'
-          ? card.dataset.baseHref
-          : `${card.dataset.baseHref}?cat=${encodeURIComponent(cat)}`;
+        // Update link href to carry ?cat= into story page
+        const link = row.querySelector<HTMLAnchorElement>('.file-row-link');
+        if (!link) return;
+        const base = row.dataset.baseHref ?? link.href.split('?')[0];
+        row.dataset.baseHref = base;
+        link.href = cat === '全部'
+          ? base
+          : `${base}?cat=${encodeURIComponent(cat)}`;
       });
 
-      // Update address bar + divider
       if (addrCurrent) addrCurrent.textContent = cat === '全部' ? '全部卷宗' : label;
       if (addrCount)   addrCount.textContent   = `${visible} 件`;
       if (dirPath)     dirPath.textContent      = cat === '全部' ? '/ 全部卷宗' : `/ ${label}`;
       if (fileCount)   fileCount.textContent    = String(visible);
-
-      if (noRes) noRes.style.display = visible === 0 ? 'block' : 'none';
+      if (noRes)       noRes.style.display      = visible === 0 ? 'block' : 'none';
     }
 
     dirAll.addEventListener('click', () => selectCat('全部', '全部卷宗', 'ALL'));
@@ -187,7 +210,6 @@ const catCounts = Object.fromEntries(categories.map(c => [c.key, _tagCounts[c.ke
       );
     });
 
-    // Restore from URL param
     const urlCat = new URLSearchParams(location.search).get('cat') ?? '全部';
     const savedBtn = document.querySelector<HTMLButtonElement>(`.dir-cat[data-cat="${urlCat}"]`);
     if (urlCat !== '全部' && savedBtn) {
@@ -195,46 +217,87 @@ const catCounts = Object.fromEntries(categories.map(c => [c.key, _tagCounts[c.ke
     }
   }
 
-  document.addEventListener('astro:after-swap', initExplorer);
-  initExplorer();
-
-  // ─── Client-side: show reading progress + bookmark on cards ──
+  // ─── Progress bars from localStorage ─────────────────────
   function applyLocalProgress() {
-    document.querySelectorAll<HTMLElement>('.story-card[href]').forEach(card => {
-      const href = card.getAttribute('href') ?? '';
-      const slug = href.replace('/stories/', '').split('?')[0];
-      if (!slug) return;
+    document.querySelectorAll<HTMLElement>('.file-prog-bar[data-slug]').forEach(bar => {
+      const pct = parseInt(localStorage.getItem('hz-progress:' + bar.dataset.slug) || '0', 10);
+      bar.style.width = pct > 0 ? pct + '%' : '0';
 
-      const pct = parseInt(localStorage.getItem('hz-progress:' + slug) || '0', 10);
-      const bookmarked = localStorage.getItem('hz-bookmark:' + slug) === '1';
-
-      if (pct > 0) {
-        let bar = card.querySelector<HTMLElement>('.card-progress-bar');
-        if (!bar) {
-          const wrap = document.createElement('div');
-          wrap.className = 'card-progress-wrap';
-          bar = document.createElement('div');
-          bar.className = 'card-progress-bar';
-          wrap.appendChild(bar);
-          card.appendChild(wrap);
-        }
-        bar.style.width = pct + '%';
-      }
-
-      if (bookmarked) {
-        const fileNum = card.querySelector<HTMLElement>('.file-num');
-        if (fileNum && !fileNum.querySelector('.bm-dot')) {
+      // Bookmark dot on file-num
+      if (localStorage.getItem('hz-bookmark:' + bar.dataset.slug) === '1') {
+        const row = bar.closest('.file-row');
+        const numEl = row?.querySelector('.file-num');
+        if (numEl && !numEl.querySelector('.bm-dot')) {
           const dot = document.createElement('span');
           dot.className = 'bm-dot';
           dot.textContent = ' ☑';
-          fileNum.appendChild(dot);
+          numEl.appendChild(dot);
         }
       }
     });
   }
 
-  document.addEventListener('astro:after-swap', applyLocalProgress);
-  applyLocalProgress();
+  // ─── Reading list selection ───────────────────────────────
+  function initSelection() {
+    const selBar     = document.getElementById('selBar');
+    const selCountEl = document.getElementById('selCount');
+    const selClear   = document.getElementById('selClear');
+    const selRead    = document.getElementById('selRead');
+
+    let readlist: string[] = [];
+    try { readlist = JSON.parse(localStorage.getItem('hz-readlist') ?? '[]'); } catch (_) {}
+
+    function save() {
+      try { localStorage.setItem('hz-readlist', JSON.stringify(readlist)); } catch (_) {}
+    }
+
+    function updateBar() {
+      if (!selBar || !selCountEl) return;
+      selBar.classList.toggle('visible', readlist.length > 0);
+      selCountEl.textContent = String(readlist.length);
+    }
+
+    document.querySelectorAll<HTMLInputElement>('.file-ck').forEach(ck => {
+      const slug = ck.dataset.slug ?? '';
+      ck.checked = readlist.includes(slug);
+      ck.closest<HTMLElement>('.file-row')?.classList.toggle('selected', ck.checked);
+
+      ck.addEventListener('change', () => {
+        if (ck.checked) {
+          if (!readlist.includes(slug)) readlist.push(slug);
+        } else {
+          readlist = readlist.filter(s => s !== slug);
+        }
+        ck.closest<HTMLElement>('.file-row')?.classList.toggle('selected', ck.checked);
+        save();
+        updateBar();
+      });
+    });
+
+    selClear?.addEventListener('click', () => {
+      readlist = [];
+      save();
+      document.querySelectorAll<HTMLInputElement>('.file-ck').forEach(ck => { ck.checked = false; });
+      document.querySelectorAll<HTMLElement>('.file-row.selected').forEach(r => r.classList.remove('selected'));
+      updateBar();
+    });
+
+    selRead?.addEventListener('click', () => {
+      if (readlist.length === 0) return;
+      window.location.href = '/stories/' + readlist[0] + '?ref=readlist';
+    });
+
+    updateBar();
+  }
+
+  function init() {
+    initExplorer();
+    applyLocalProgress();
+    initSelection();
+  }
+
+  document.addEventListener('astro:after-swap', init);
+  init();
 </script>
 
 <style>
@@ -297,12 +360,7 @@ const catCounts = Object.fromEntries(categories.map(c => [c.key, _tagCounts[c.ke
     font-size: 0.72rem;
     gap: 16px;
   }
-  .addr-bar {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    overflow: hidden;
-  }
+  .addr-bar { display: flex; align-items: center; overflow: hidden; }
   .addr-proto { color: var(--accent); font-weight: bold; }
   .addr-sep   { color: var(--text-muted); }
   .addr-root  { color: var(--text-dim); }
@@ -330,13 +388,8 @@ const catCounts = Object.fromEntries(categories.map(c => [c.key, _tagCounts[c.ke
     background: var(--bg);
   }
   .dir-row-all { display: flex; }
-  .dir-row-cats {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
+  .dir-row-cats { display: flex; flex-wrap: wrap; gap: 8px; }
 
-  /* ─── All / Root Button ──────────────────────────── */
   .dir-all {
     display: inline-flex;
     align-items: center;
@@ -356,8 +409,6 @@ const catCounts = Object.fromEntries(categories.map(c => [c.key, _tagCounts[c.ke
     color: var(--accent);
     background: var(--accent-dim);
   }
-
-  /* ─── Category Folder Buttons ────────────────────── */
   .dir-cat {
     display: inline-flex;
     align-items: center;
@@ -372,25 +423,10 @@ const catCounts = Object.fromEntries(categories.map(c => [c.key, _tagCounts[c.ke
     cursor: pointer;
     transition: all 0.18s;
   }
-  .dir-cat:hover {
-    border-color: var(--text-dim);
-    color: var(--text);
-  }
-  .dir-cat.on {
-    border-color: var(--accent);
-    color: var(--accent);
-    background: var(--accent-dim);
-  }
-
-  /* ─── Shared folder button elements ─────────────── */
-  .dir-folder-icon {
-    font-size: 0.65rem;
-    opacity: 0.7;
-  }
-  .dir-slash {
-    color: var(--accent);
-    opacity: 0.6;
-  }
+  .dir-cat:hover { border-color: var(--text-dim); color: var(--text); }
+  .dir-cat.on { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .dir-folder-icon { font-size: 0.65rem; opacity: 0.7; }
+  .dir-slash { color: var(--accent); opacity: 0.6; }
   .dir-count {
     font-size: 0.6rem;
     color: var(--text-muted);
@@ -398,11 +434,7 @@ const catCounts = Object.fromEntries(categories.map(c => [c.key, _tagCounts[c.ke
     padding: 1px 5px;
     letter-spacing: 0;
   }
-  .dir-all.on .dir-count,
-  .dir-cat.on .dir-count {
-    border-color: var(--accent);
-    color: var(--accent);
-  }
+  .dir-all.on .dir-count, .dir-cat.on .dir-count { border-color: var(--accent); color: var(--accent); }
 
   /* ─── Directory Divider ──────────────────────────── */
   .dir-divider {
@@ -421,26 +453,226 @@ const catCounts = Object.fromEntries(categories.map(c => [c.key, _tagCounts[c.ke
   .dir-divider-line { flex: 1; height: 1px; background: var(--border); }
   .dir-file-count { white-space: nowrap; }
 
-  /* ─── Stories Grid ───────────────────────────────── */
+  /* ─── Main ───────────────────────────────────────── */
   main {
     max-width: 1100px;
     margin: 0 auto;
-    padding: 32px 24px 60px;
+    padding: 0 0 80px;
   }
-  .cards-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 16px;
+
+  /* ─── Column Header ──────────────────────────────── */
+  .list-header {
+    display: flex;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.58rem;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    user-select: none;
+  }
+  .lh-check { width: 40px; flex-shrink: 0; }
+  .lh-icon  { width: 28px; flex-shrink: 0; }
+  .lh-num   { width: 80px; flex-shrink: 0; padding-left: 2px; }
+  .lh-title { flex: 1; min-width: 0; }
+  .lh-tags  { width: 160px; flex-shrink: 0; display: flex; gap: 4px; }
+  .lh-time  { width: 48px; flex-shrink: 0; text-align: right; }
+  .lh-date  { width: 72px; flex-shrink: 0; text-align: right; padding-right: 8px; }
+  .lh-arrow { width: 32px; flex-shrink: 0; }
+
+  /* ─── File List ──────────────────────────────────── */
+  .file-list { display: flex; flex-direction: column; }
+
+  .file-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.12s;
+    overflow: hidden;
+  }
+  .file-row:hover { background: var(--surface); }
+  .file-row.selected { background: var(--accent-dim); }
+  .file-row.selected .file-num { color: var(--accent); }
+
+  /* ─── Checkbox ───────────────────────────────────── */
+  .file-ck-wrap {
+    width: 40px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    cursor: pointer;
+    z-index: 1;
+  }
+  .file-ck { display: none; }
+  .file-ck-box {
+    width: 13px;
+    height: 13px;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    font-size: 9px;
+    color: var(--bg);
+    flex-shrink: 0;
+  }
+  .file-ck:checked ~ .file-ck-box {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .file-ck:checked ~ .file-ck-box::after { content: '✓'; }
+
+  /* ─── Row Link ───────────────────────────────────── */
+  .file-row-link {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    gap: 0;
+    padding: 11px 0;
+    text-decoration: none;
+    color: inherit;
+    min-width: 0;
+  }
+  .file-icon {
+    width: 28px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    text-align: center;
+  }
+  .file-num {
+    width: 80px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.63rem;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+  }
+  .bm-dot { color: var(--accent); font-size: 0.65rem; }
+  .file-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text);
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 16px;
+  }
+  .file-row:hover .file-title { color: var(--accent); }
+  .file-tags {
+    width: 160px;
+    flex-shrink: 0;
+    display: flex;
+    gap: 4px;
+    overflow: hidden;
+  }
+  .file-tag {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    padding: 2px 5px;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .file-time {
+    width: 48px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    text-align: right;
+  }
+  .file-date {
+    width: 72px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    text-align: right;
+    padding-right: 8px;
+  }
+  .file-arrow {
+    width: 32px;
+    font-size: 1rem;
+    color: var(--text-dim);
+    flex-shrink: 0;
+    text-align: center;
+    transition: transform 0.15s, color 0.15s;
+  }
+  .file-row:hover .file-arrow { color: var(--accent); transform: translateX(2px); }
+
+  /* ─── Progress bar (bottom line) ────────────────── */
+  .file-prog-wrap {
+    position: absolute;
+    bottom: 0;
+    left: 40px;
+    right: 0;
+    height: 2px;
+    pointer-events: none;
+  }
+  .file-prog-bar {
+    height: 100%;
+    background: var(--accent);
+    opacity: 0.45;
+    width: 0;
+    transition: width 0.3s;
   }
 
   /* ─── No Results ─────────────────────────────────── */
-  #noResults {
-    text-align: center;
-    padding: 80px 0;
-  }
+  #noResults { text-align: center; padding: 80px 0; }
   .no-results-inner { display: inline-flex; flex-direction: column; align-items: center; gap: 12px; }
   .no-results-icon  { font-size: 2rem; color: var(--danger); font-family: 'Share Tech Mono', monospace; }
   .no-results-msg   { font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; color: var(--danger); letter-spacing: 0.1em; }
+
+  /* ─── Selection Bar ──────────────────────────────── */
+  .sel-bar {
+    position: fixed;
+    bottom: -80px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 200;
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    transition: bottom 0.25s ease;
+    min-width: 320px;
+    box-shadow: 0 4px 32px rgba(0,0,0,0.5);
+  }
+  .sel-bar.visible { bottom: 24px; }
+  .sel-info { color: var(--text); letter-spacing: 0.05em; flex: 1; }
+  .sel-info strong { color: var(--accent); }
+  .sel-actions { display: flex; gap: 8px; }
+  .sel-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.68rem;
+    padding: 6px 14px;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    transition: all 0.18s;
+  }
+  .sel-btn:hover { border-color: var(--text); color: var(--text); }
+  .sel-btn.accent { border-color: var(--accent); color: var(--accent); }
+  .sel-btn.accent:hover { background: var(--accent); color: var(--bg); }
 
   /* ─── Footer ─────────────────────────────────────── */
   footer {
@@ -456,12 +688,15 @@ const catCounts = Object.fromEntries(categories.map(c => [c.key, _tagCounts[c.ke
   }
 
   /* ─── Responsive ─────────────────────────────────── */
-  @media (max-width: 600px) {
+  @media (max-width: 700px) {
     .explorer-bar { padding: 8px 16px; }
     .dir-nav { padding: 12px 16px 10px; }
     .dir-cat { padding: 6px 10px; font-size: 0.68rem; }
-    main { padding: 24px 16px 48px; }
-    .cards-grid { grid-template-columns: 1fr; }
     .hdr-badge { display: none; }
+    .list-header { display: none; }
+    .file-tags, .file-time, .file-date { display: none; }
+    .lh-tags, .lh-time, .lh-date { display: none; }
+    .file-num { width: 68px; font-size: 0.6rem; }
+    .sel-bar { min-width: unset; width: calc(100% - 32px); }
   }
 </style>
