@@ -216,22 +216,6 @@ const storyId = `story:${slug}`;
         <span id="copyFeedback" class="copy-feedback"></span>
       </div>
 
-      <!-- Related Stories -->
-      {relatedStories.length > 0 && (
-        <div class="related-section">
-          <div class="related-hd">相關卷宗</div>
-          <div class="related-list">
-            {relatedStories.map(s => (
-              <a href={`/stories/${s.slug}`} class="related-item">
-                <span class="rel-num">{s.data.fileNum}</span>
-                <span class="rel-title">{s.data.title}</span>
-                <span class="rel-tags">{s.data.tags.slice(0, 2).join(' · ')}</span>
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
-
       <!-- Bottom Nav -->
       <nav class="art-nav" aria-label="文章導覽">
         <a id="navPrev"
@@ -254,6 +238,23 @@ const storyId = `story:${slug}`;
           <span class="nav-arrow">→</span>
         </a>
       </nav>
+
+      <!-- Related Stories -->
+      {relatedStories.length > 0 && (
+        <div class="related-section">
+          <div class="related-hd">相關卷宗</div>
+          <div class="related-list">
+            {relatedStories.map(s => (
+              <a href={`/stories/${s.slug}`} class="related-item">
+                <span class="rel-num">{s.data.fileNum}</span>
+                <span class="rel-title">{s.data.title}</span>
+                <span class="rel-tags">{s.data.tags.slice(0, 2).join(' · ')}</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
       <!-- Comments -->
       <div class="comments-section" id="commentsSection" data-slug={slug} data-authed={userId ? '1' : '0'}>
         <div class="comments-hd">[ 目擊者留言 ]</div>
@@ -685,10 +686,25 @@ const storyId = `story:${slug}`;
       return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
 
-    fetch('/api/comments?slug=' + slug)
-      .then(function(r) { return r.json(); })
-      .then(function(data) { renderComments(Array.isArray(data) ? data : []); })
-      .catch(function() { if (list) list.innerHTML = ''; });
+    // Lazy-load comments when section scrolls into view
+    var commentsLoaded = false;
+    function loadComments() {
+      if (commentsLoaded) return;
+      commentsLoaded = true;
+      fetch('/api/comments?slug=' + slug)
+        .then(function(r) { return r.json(); })
+        .then(function(data) { renderComments(Array.isArray(data) ? data : []); })
+        .catch(function() { if (list) list.innerHTML = ''; });
+    }
+
+    if ('IntersectionObserver' in window) {
+      var obs = new IntersectionObserver(function(entries) {
+        if (entries[0].isIntersecting) { loadComments(); obs.disconnect(); }
+      }, { rootMargin: '200px' });
+      obs.observe(section);
+    } else {
+      loadComments();
+    }
 
     var form = document.getElementById('commentForm');
     var textarea = document.getElementById('commentContent');

@@ -6,7 +6,7 @@ import { getCollection } from 'astro:content';
 export const prerender = true;
 
 const allStories = await getCollection('stories', ({ data }) => data.published);
-const stories = allStories.sort((a, b) => a.data.fileNum.localeCompare(b.data.fileNum));
+const stories = allStories.sort((a, b) => b.data.fileNum.localeCompare(a.data.fileNum));
 
 const categories = [
   { key: '記憶科技', label: '精神汙染',      code: 'PSY-CONT'   },
