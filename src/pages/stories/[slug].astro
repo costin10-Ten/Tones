@@ -47,7 +47,7 @@ const showPaywall = isPaid && !!userId && !isUnlocked;
 
 // Adjacent stories for prev/next navigation
 const allStories = await getCollection('stories', ({ data }) => data.published);
-const sorted = allStories.sort((a, b) => a.data.fileNum.localeCompare(b.data.fileNum));
+const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date));
 const currentIndex = sorted.findIndex(s => s.slug === slug);
 const prevStory = currentIndex < sorted.length - 1 ? sorted[currentIndex + 1] : null;
 const nextStory = currentIndex > 0 ? sorted[currentIndex - 1] : null;
