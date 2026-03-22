@@ -500,7 +500,6 @@ const storyId = `story:${slug}`;
   });
 
   // ─── Reading progress bar + save ──────────────────────────
-  const progressBar = document.getElementById('progress');
   let progressSaveTimer = null;
   let lastSavedPct = parseInt(sGet('hz-progress:' + currentSlug) || '0', 10);
 
@@ -515,10 +514,8 @@ const storyId = `story:${slug}`;
   }
 
   window.addEventListener('scroll', () => {
-    if (!progressBar) return;
     const docH = document.documentElement.scrollHeight - window.innerHeight;
     const pct = docH > 0 ? Math.round(window.scrollY / docH * 100) : 0;
-    progressBar.style.width = pct + '%';
 
     if (Math.abs(pct - lastSavedPct) >= 5) {
       clearTimeout(progressSaveTimer);
