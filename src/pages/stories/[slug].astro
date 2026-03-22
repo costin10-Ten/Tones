@@ -316,28 +316,29 @@ const storyId = `story:${slug}`;
      aria-label="下一卷宗">›</a>
 </Layout>
 
-<script is:inline>
-  document.getElementById('agBack')?.addEventListener('click', function() {
-    var params = new URLSearchParams(location.search);
-    var ref = params.get('ref') || '';
-    var listParam = params.get('list') || 'all';
-    if (ref === 'home')   { window.location.href = '/';       return; }
-    if (ref === 'member') { window.location.href = '/member'; return; }
-    if (ref === 'tags')   { window.location.href = '/tags';   return; }
-    // Restore list context on stories page
-    if (listParam.startsWith('cat:')) {
-      window.location.href = '/stories?cat=' + encodeURIComponent(listParam.slice(4));
-      return;
-    }
-    if (listParam.startsWith('curated:')) {
-      window.location.href = '/stories?curated=' + encodeURIComponent(listParam.slice(8));
-      return;
-    }
-    window.location.href = '/stories';
-  });
-</script>
-
 <script define:vars={{ storyId, currentSlug: slug, allStoriesData, curatedListsData, storyTitle: entry.data.title }}>
+  // ─── Back button (use .onclick so each page-swap replaces the handler) ──
+  var _agBack = document.getElementById('agBack');
+  if (_agBack) {
+    _agBack.onclick = function() {
+      var params = new URLSearchParams(location.search);
+      var ref = params.get('ref') || '';
+      var listParam = params.get('list') || 'all';
+      if (ref === 'home')   { window.location.href = '/';       return; }
+      if (ref === 'member') { window.location.href = '/member'; return; }
+      if (ref === 'tags')   { window.location.href = '/tags';   return; }
+      if (listParam.startsWith('cat:')) {
+        window.location.href = '/stories?cat=' + encodeURIComponent(listParam.slice(4));
+        return;
+      }
+      if (listParam.startsWith('curated:')) {
+        window.location.href = '/stories?curated=' + encodeURIComponent(listParam.slice(8));
+        return;
+      }
+      window.location.href = '/stories';
+    };
+  }
+
   // ─── View counter ─────────────────────────────────────────
   function sGet(k) { try { return localStorage.getItem(k); } catch(e) { return null; } }
   function sSet(k, v) { try { localStorage.setItem(k, v); } catch(e) {} }
