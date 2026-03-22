@@ -51,8 +51,12 @@ const sorted = allStories.sort((a, b) => a.data.fileNum.localeCompare(b.data.fil
 const currentIndex = sorted.findIndex(s => s.slug === slug);
 const prevStory = currentIndex < sorted.length - 1 ? sorted[currentIndex + 1] : null;
 const nextStory = currentIndex > 0 ? sorted[currentIndex - 1] : null;
-// All stories data for client-side category-aware navigation
+// All stories data for client-side list navigation
 const allStoriesData = sorted.map(s => ({ slug: s.slug, tags: s.data.tags, title: s.data.title }));
+const curatedListsData = [
+  { id: 'starter',  slugs: sorted.filter(s => s.data.level === 'public').slice(0, 5).map(s => s.slug) },
+  { id: 'thriller', slugs: sorted.filter(s => s.data.tags.some((t: string) => ['記憶科技','AI社會'].includes(t))).slice(0, 6).map(s => s.slug) },
+];
 
 // ─── Series navigation ───────────────────────────────────────
 const seriesName = entry.data.series;
@@ -315,111 +319,112 @@ const storyId = `story:${slug}`;
 <script is:inline>
   document.getElementById('agBack')?.addEventListener('click', function() {
     var params = new URLSearchParams(location.search);
-    var cat = params.get('cat');
-    var ref = params.get('ref');
-    // ?cat= — came from category-filtered story list
-    if (cat) {
-      window.location.href = '/stories?cat=' + encodeURIComponent(cat);
+    var ref = params.get('ref') || '';
+    var listParam = params.get('list') || 'all';
+    if (ref === 'home')   { window.location.href = '/';       return; }
+    if (ref === 'member') { window.location.href = '/member'; return; }
+    if (ref === 'tags')   { window.location.href = '/tags';   return; }
+    // Restore list context on stories page
+    if (listParam.startsWith('cat:')) {
+      window.location.href = '/stories?cat=' + encodeURIComponent(listParam.slice(4));
       return;
     }
-    // ?ref= — explicit source context
-    if (ref === 'member')  { window.location.href = '/member';  return; }
-    if (ref === 'tags')    { window.location.href = '/tags';    return; }
-    if (ref === 'readlist') { window.location.href = '/stories'; return; }
-    // Same-origin referrer fallback (series nav, homepage links, etc.)
-    try {
-      if (document.referrer && new URL(document.referrer).origin === location.origin) {
-        history.back();
-        return;
-      }
-    } catch(_) {}
-    // Direct link / external → story list
+    if (listParam.startsWith('curated:')) {
+      window.location.href = '/stories?curated=' + encodeURIComponent(listParam.slice(8));
+      return;
+    }
     window.location.href = '/stories';
   });
 </script>
 
-<script define:vars={{ storyId, currentSlug: slug, allStoriesData, storyTitle: entry.data.title }}>
+<script define:vars={{ storyId, currentSlug: slug, allStoriesData, curatedListsData, storyTitle: entry.data.title }}>
   // ─── View counter ─────────────────────────────────────────
   function sGet(k) { try { return localStorage.getItem(k); } catch(e) { return null; } }
   function sSet(k, v) { try { localStorage.setItem(k, v); } catch(e) {} }
 
-  // ─── Category-aware prev/next ─────────────────────────────
-  function getAdjacent() {
-    var cat = new URLSearchParams(location.search).get('cat') || '全部';
-    var pool = cat !== '全部'
-      ? allStoriesData.filter(function(s) { return s.tags.includes(cat); })
-      : allStoriesData;
-    var idx = pool.findIndex(function(s) { return s.slug === currentSlug; });
-    if (idx === -1) {
-      // current story not in filtered pool (e.g. category changed) → use all
-      pool = allStoriesData;
-      idx = pool.findIndex(function(s) { return s.slug === currentSlug; });
-      cat = '全部';
+  // ─── List-context-aware prev/next ────────────────────────
+  function resolvePool() {
+    var params = new URLSearchParams(location.search);
+    var listParam = params.get('list') || 'all';
+    if (listParam === 'all') return allStoriesData;
+    if (listParam.startsWith('cat:')) {
+      var tag = listParam.slice(4);
+      var filtered = allStoriesData.filter(function(s) { return s.tags.includes(tag); });
+      return filtered.length > 0 ? filtered : allStoriesData;
     }
+    if (listParam.startsWith('curated:')) {
+      var id = listParam.slice(8);
+      var curated = curatedListsData.find(function(l) { return l.id === id; });
+      if (curated) {
+        var pool = curated.slugs
+          .map(function(sl) { return allStoriesData.find(function(s) { return s.slug === sl; }); })
+          .filter(Boolean);
+        if (pool.length > 0) return pool;
+      }
+      return allStoriesData;
+    }
+    if (listParam.startsWith('user:')) {
+      var uid = listParam.slice(5);
+      try {
+        var saved = sessionStorage.getItem('hz-nav-ctx-' + uid);
+        if (saved) {
+          var slugs = JSON.parse(saved);
+          var pool = slugs
+            .map(function(sl) { return allStoriesData.find(function(s) { return s.slug === sl; }); })
+            .filter(Boolean);
+          if (pool.length > 0) return pool;
+        }
+      } catch(_) {}
+    }
+    return allStoriesData;
+  }
+
+  function getAdjacent() {
+    var params = new URLSearchParams(location.search);
+    var listParam = params.get('list') || 'all';
+    var ref = params.get('ref') || '';
+    var pool = resolvePool();
+    var idx = pool.findIndex(function(s) { return s.slug === currentSlug; });
+    if (idx === -1) { pool = allStoriesData; listParam = 'all'; idx = pool.findIndex(function(s) { return s.slug === currentSlug; }); }
+    var suffix = '?list=' + encodeURIComponent(listParam);
+    if (ref) suffix += '&ref=' + encodeURIComponent(ref);
     return {
-      cat: cat,
+      suffix: suffix,
       prevSlug: idx < pool.length - 1 ? pool[idx + 1].slug : null,
       nextSlug: idx > 0 ? pool[idx - 1].slug : null,
     };
   }
 
-  function getStoryTitle(slug) {
-    var s = allStoriesData.find(function(s) { return s.slug === slug; });
+  function getStoryTitle(sl) {
+    var s = allStoriesData.find(function(s) { return s.slug === sl; });
     return s ? s.title : '';
   }
 
   function updateNavLinks() {
     var adj = getAdjacent();
-    var catSuffix = adj.cat !== '全部' ? '?cat=' + encodeURIComponent(adj.cat) : '';
-
     // ── Side buttons ──
     var btnPrev = document.getElementById('btnPrev');
     var btnNext = document.getElementById('btnNext');
     if (btnPrev) {
-      if (adj.prevSlug) {
-        btnPrev.setAttribute('href', '/stories/' + adj.prevSlug + catSuffix);
-        btnPrev.style.opacity = ''; btnPrev.style.pointerEvents = '';
-      } else {
-        btnPrev.removeAttribute('href');
-        btnPrev.style.opacity = '0'; btnPrev.style.pointerEvents = 'none';
-      }
+      if (adj.prevSlug) { btnPrev.setAttribute('href', '/stories/' + adj.prevSlug + adj.suffix); btnPrev.style.opacity = ''; btnPrev.style.pointerEvents = ''; }
+      else { btnPrev.removeAttribute('href'); btnPrev.style.opacity = '0'; btnPrev.style.pointerEvents = 'none'; }
     }
     if (btnNext) {
-      if (adj.nextSlug) {
-        btnNext.setAttribute('href', '/stories/' + adj.nextSlug + catSuffix);
-        btnNext.style.opacity = ''; btnNext.style.pointerEvents = '';
-      } else {
-        btnNext.removeAttribute('href');
-        btnNext.style.opacity = '0'; btnNext.style.pointerEvents = 'none';
-      }
+      if (adj.nextSlug) { btnNext.setAttribute('href', '/stories/' + adj.nextSlug + adj.suffix); btnNext.style.opacity = ''; btnNext.style.pointerEvents = ''; }
+      else { btnNext.removeAttribute('href'); btnNext.style.opacity = '0'; btnNext.style.pointerEvents = 'none'; }
     }
-
     // ── Bottom nav ──
     var navPrev = document.getElementById('navPrev');
     var navNext = document.getElementById('navNext');
     var navPrevTitle = document.getElementById('navPrevTitle');
     var navNextTitle = document.getElementById('navNextTitle');
     if (navPrev) {
-      if (adj.prevSlug) {
-        navPrev.setAttribute('href', '/stories/' + adj.prevSlug + catSuffix);
-        navPrev.style.opacity = ''; navPrev.style.pointerEvents = '';
-        if (navPrevTitle) navPrevTitle.textContent = getStoryTitle(adj.prevSlug);
-      } else {
-        navPrev.removeAttribute('href');
-        navPrev.style.opacity = '0.25'; navPrev.style.pointerEvents = 'none';
-        if (navPrevTitle) navPrevTitle.textContent = '';
-      }
+      if (adj.prevSlug) { navPrev.setAttribute('href', '/stories/' + adj.prevSlug + adj.suffix); navPrev.style.opacity = ''; navPrev.style.pointerEvents = ''; if (navPrevTitle) navPrevTitle.textContent = getStoryTitle(adj.prevSlug); }
+      else { navPrev.removeAttribute('href'); navPrev.style.opacity = '0.25'; navPrev.style.pointerEvents = 'none'; if (navPrevTitle) navPrevTitle.textContent = ''; }
     }
     if (navNext) {
-      if (adj.nextSlug) {
-        navNext.setAttribute('href', '/stories/' + adj.nextSlug + catSuffix);
-        navNext.style.opacity = ''; navNext.style.pointerEvents = '';
-        if (navNextTitle) navNextTitle.textContent = getStoryTitle(adj.nextSlug);
-      } else {
-        navNext.removeAttribute('href');
-        navNext.style.opacity = '0.25'; navNext.style.pointerEvents = 'none';
-        if (navNextTitle) navNextTitle.textContent = '';
-      }
+      if (adj.nextSlug) { navNext.setAttribute('href', '/stories/' + adj.nextSlug + adj.suffix); navNext.style.opacity = ''; navNext.style.pointerEvents = ''; if (navNextTitle) navNextTitle.textContent = getStoryTitle(adj.nextSlug); }
+      else { navNext.removeAttribute('href'); navNext.style.opacity = '0.25'; navNext.style.pointerEvents = 'none'; if (navNextTitle) navNextTitle.textContent = ''; }
     }
   }
   updateNavLinks();

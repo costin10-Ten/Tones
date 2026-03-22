@@ -266,14 +266,13 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
         row.style.display = show ? '' : 'none';
         if (show) visible++;
 
-        // Update link href to carry ?cat= into story page
+        // Update link href to carry list context into reader
         const link = row.querySelector<HTMLAnchorElement>('.file-row-link');
         if (!link) return;
         const base = row.dataset.baseHref ?? link.href.split('?')[0];
         row.dataset.baseHref = base;
-        link.href = cat === '全部'
-          ? base
-          : `${base}?cat=${encodeURIComponent(cat)}`;
+        const ctx = cat === '全部' ? 'all' : 'cat:' + cat;
+        link.href = base + '?list=' + encodeURIComponent(ctx) + '&ref=stories';
       });
 
       if (addrCurrent) addrCurrent.textContent = cat === '全部' ? '全部卷宗' : label;
@@ -285,9 +284,11 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
 
     // ─── Curated list filter ──────────────────────────────
     function selectCurated(btn: HTMLButtonElement) {
-      const slugSet = new Set<string>(JSON.parse(btn.dataset.curatedSlugs ?? '[]'));
-      const label   = btn.dataset.label ?? '';
-      history.replaceState(null, '', '/stories');
+      const slugSet    = new Set<string>(JSON.parse(btn.dataset.curatedSlugs ?? '[]'));
+      const label      = btn.dataset.label ?? '';
+      const curatedId  = btn.dataset.curatedId ?? '';
+      const curatedCtx = curatedId ? 'curated:' + curatedId : 'all';
+      history.replaceState(null, '', curatedId ? '/stories?curated=' + curatedId : '/stories');
 
       // Deactivate all dir buttons
       dirAll!.classList.remove('on');
@@ -304,7 +305,8 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
         row.style.display = show ? '' : 'none';
         if (show) { visible++; }
         const link = row.querySelector<HTMLAnchorElement>('.file-row-link');
-        if (link) link.href = row.dataset.baseHref ?? link.href.split('?')[0];
+        const base = row.dataset.baseHref ?? (link ? link.href.split('?')[0] : '');
+        if (link) link.href = base + '?list=' + encodeURIComponent(curatedCtx) + '&ref=stories';
       });
 
       if (addrCurrent) addrCurrent.textContent = label;
@@ -328,10 +330,15 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
       );
     });
 
-    const urlCat = new URLSearchParams(location.search).get('cat') ?? '全部';
-    const savedBtn = document.querySelector<HTMLButtonElement>(`.dir-cat[data-cat="${urlCat}"]`);
-    if (urlCat !== '全部' && savedBtn) {
-      selectCat(urlCat, savedBtn.dataset.label ?? '', savedBtn.dataset.code ?? '');
+    const urlParams  = new URLSearchParams(location.search);
+    const urlCat     = urlParams.get('cat') ?? '全部';
+    const urlCurated = urlParams.get('curated');
+    if (urlCurated) {
+      const curatedBtn = document.querySelector<HTMLButtonElement>(`[data-curated-id="${urlCurated}"]`);
+      if (curatedBtn) selectCurated(curatedBtn);
+    } else if (urlCat !== '全部') {
+      const savedBtn = document.querySelector<HTMLButtonElement>(`.dir-cat[data-cat="${urlCat}"]`);
+      if (savedBtn) selectCat(urlCat, savedBtn.dataset.label ?? '', savedBtn.dataset.code ?? '');
     }
   }
 
@@ -533,11 +540,19 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
     const rows = document.querySelectorAll<HTMLElement>('.file-row');
     const list = _activeListId ? _lists.find(l => l.id === _activeListId) : null;
     const slugSet = list ? new Set(list.slugs) : null;
+    // Save list order to sessionStorage so reader can resolve user:ID context
+    if (list && _activeListId) {
+      try { sessionStorage.setItem('hz-nav-ctx-' + _activeListId, JSON.stringify(list.slugs)); } catch(_) {}
+    }
+    const ctx = list && _activeListId ? 'user:' + _activeListId : 'all';
     let visible = 0;
     rows.forEach(row => {
       const show = !slugSet || slugSet.has(row.dataset.slug ?? '');
       row.style.display = show ? '' : 'none';
       if (show) visible++;
+      const link = row.querySelector<HTMLAnchorElement>('.file-row-link');
+      const base = row.dataset.baseHref ?? (link ? link.href.split('?')[0] : '');
+      if (link) link.href = base + '?list=' + encodeURIComponent(ctx) + '&ref=stories';
     });
     const fileCount = document.getElementById('fileCount');
     const addrCount = document.getElementById('addrCount');
