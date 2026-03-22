@@ -1,4 +1,4 @@
-import { config, fields, collection } from '@keystatic/core';
+import { config, fields, collection, singleton } from '@keystatic/core';
 import { STORY_TAGS } from './src/content/tags';
 
 export default config({
@@ -127,6 +127,32 @@ export default config({
             },
           },
         }),
+      },
+    }),
+  },
+
+  singletons: {
+    curatedLists: singleton({
+      label: '精選清單',
+      path: 'src/data/curated-lists',
+      format: { data: 'json' },
+      schema: {
+        starter: fields.object({
+          label: fields.text({ label: '清單名稱', defaultValue: '入門推薦' }),
+          icon: fields.text({ label: '圖示符號', defaultValue: '◈' }),
+          slugs: fields.array(
+            fields.relationship({ label: '故事', collection: 'stories' }),
+            { label: '故事清單', itemLabel: (props) => props.value ?? '（未選擇）' }
+          ),
+        }, { label: '入門推薦' }),
+        thriller: fields.object({
+          label: fields.text({ label: '清單名稱', defaultValue: '深度驚悚' }),
+          icon: fields.text({ label: '圖示符號', defaultValue: '⊕' }),
+          slugs: fields.array(
+            fields.relationship({ label: '故事', collection: 'stories' }),
+            { label: '故事清單', itemLabel: (props) => props.value ?? '（未選擇）' }
+          ),
+        }, { label: '深度驚悚' }),
       },
     }),
   },

@@ -1,0 +1,12 @@
+{
+  "starter": {
+    "label": "入門推薦",
+    "icon": "◈",
+    "slugs": ["file-101", "file-045", "file-015", "file-014", "file-013"]
+  },
+  "thriller": {
+    "label": "深度驚悚",
+    "icon": "⊕",
+    "slugs": ["file-047", "file-014", "file-012", "file-006", "file-005"]
+  }
+}

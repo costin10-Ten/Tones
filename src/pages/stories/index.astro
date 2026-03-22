@@ -23,20 +23,12 @@ for (const s of stories) {
 }
 const catCounts = Object.fromEntries(categories.map(c => [c.key, _tagCounts[c.key] ?? 0]));
 
-// Site-curated lists (build-time defined)
+// Site-curated lists — edited via Keystatic > 精選清單
+import curatedData from '../../data/curated-lists.json';
+const _publishedSlugs = new Set(stories.map(s => s.slug));
 const curatedLists = [
-  {
-    id: 'starter',
-    label: '入門推薦',
-    icon: '◈',
-    slugs: stories.filter(s => s.data.level === 'public').slice(0, 5).map(s => s.slug),
-  },
-  {
-    id: 'thriller',
-    label: '深度驚悚',
-    icon: '⊕',
-    slugs: stories.filter(s => s.data.tags.some(t => ['記憶科技', 'AI社會'].includes(t))).slice(0, 6).map(s => s.slug),
-  },
+  { id: 'starter',  label: curatedData.starter.label,  icon: curatedData.starter.icon,  slugs: curatedData.starter.slugs.filter(s => s && _publishedSlugs.has(s)) },
+  { id: 'thriller', label: curatedData.thriller.label, icon: curatedData.thriller.icon, slugs: curatedData.thriller.slugs.filter(s => s && _publishedSlugs.has(s)) },
 ];
 
 const paidStories = stories.filter(s => s.data.level === 'paid');
