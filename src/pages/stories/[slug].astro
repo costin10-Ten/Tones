@@ -112,7 +112,13 @@ const storyId = `story:${slug}`;
   })} slot="head" />
   <!-- ─── Reader Header ─── -->
   <header>
-    <button id="agBack" class="ctrl-btn back-btn" aria-label="返回" title="返回列表">&lt;</button>
+    <button id="agBack" class="ctrl-btn back-btn" aria-label="返回" title="返回列表">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 4L6 10l6 6"/>
+      </svg>
+      <span class="ctrl-lbl">全部文章</span>
+    </button>
     <a href="/" class="rdr-logo">弦音<em>異象</em></a>
     <div class="rdr-ttl">{entry.data.title}</div>
     <ThemeSwitcher />
@@ -748,12 +754,7 @@ const storyId = `story:${slug}`;
 
 <style>
   /* ─── Back button ───────────────────────────────────────── */
-  .back-btn {
-    font-size: .95rem;
-    padding: 5px 9px;
-    min-width: 30px;
-    justify-content: center;
-  }
+  .back-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
 
   /* ─── Header ─────────────────────────────────────────────── */
   header {
@@ -1154,8 +1155,7 @@ const storyId = `story:${slug}`;
     .token-btn { padding: 8px 12px; font-size: .65rem; }
     .font-sz-fab { bottom: 72px; }
     .font-type-fab { bottom: 72px; }
-    .ctrl-lbl { display: none; }
-    .ctrl-btn { padding: 6px 8px; gap: 0; }
+    .ctrl-btn { padding: 6px 8px; }
   }
 
   /* ─── Access Gate ───────────────────────────────────────── */
