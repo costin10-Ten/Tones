@@ -115,9 +115,6 @@ const storyId = `story:${slug}`;
     <button id="widthToggle" class="ctrl-btn" title="切換滿版/窄版">
       ⊡<span class="ctrl-lbl" id="widthLbl">窄版</span>
     </button>
-    <button id="bookmarkBtn" class="ctrl-btn" title="書籤">
-      ☐<span class="ctrl-lbl" id="bookmarkLbl">書籤</span>
-    </button>
   </header>
 
   <!-- ─── Reading Progress Bar ─── -->
@@ -167,9 +164,6 @@ const storyId = `story:${slug}`;
         <div class="byl-item">累積金幣 <em><span id="art-tokens">0</span></em></div>
         <div class="byl-actions">
           <button class="byl-btn" id="bookmarkBtn2" title="書籤">☐ 書籤</button>
-          <button class="byl-btn" id="shareBtn2" title="分享">↑ 分享</button>
-          <button class="byl-btn" id="copyBtn2" title="複製連結">⎘ 複製</button>
-          <span id="copyFeedback2" class="copy-feedback2"></span>
         </div>
       </div>
 
@@ -536,12 +530,6 @@ const storyId = `story:${slug}`;
   let bookmarked = sGet('hz-bookmark:' + currentSlug) === '1';
 
   function updateBookmarkUI() {
-    // header button
-    const btn = document.getElementById('bookmarkBtn');
-    const lbl = document.getElementById('bookmarkLbl');
-    if (btn) { btn.firstChild.nodeValue = bookmarked ? '☑' : '☐'; btn.classList.toggle('on', bookmarked); }
-    if (lbl) lbl.textContent = bookmarked ? '已書籤' : '書籤';
-    // byline button
     const btn2 = document.getElementById('bookmarkBtn2');
     if (btn2) { btn2.textContent = bookmarked ? '☑ 已書籤' : '☐ 書籤'; btn2.classList.toggle('on', bookmarked); }
   }
@@ -557,7 +545,6 @@ const storyId = `story:${slug}`;
       body: JSON.stringify({ slug: currentSlug, action: bookmarked ? 'add' : 'remove' }),
     }).catch(() => {});
   }
-  document.getElementById('bookmarkBtn')?.addEventListener('click', toggleBookmark);
   document.getElementById('bookmarkBtn2')?.addEventListener('click', toggleBookmark);
 
   // ─── Share ─────────────────────────────────────────────────
@@ -573,13 +560,11 @@ const storyId = `story:${slug}`;
       try { await navigator.share({ title: storyTitle, text: storyTitle, url: location.href }); return; }
       catch (_) {}
     }
-    copyLink('copyFeedback2');
+    copyLink('copyFeedback');
   }
 
   document.getElementById('shareBtn')?.addEventListener('click', doShare);
-  document.getElementById('shareBtn2')?.addEventListener('click', doShare);
   document.getElementById('copyBtn')?.addEventListener('click', () => copyLink('copyFeedback'));
-  document.getElementById('copyBtn2')?.addEventListener('click', () => copyLink('copyFeedback2'));
 
   // ─── Wide / Narrow toggle ─────────────────────────────────
   const artWrap = document.getElementById('artWrap');
