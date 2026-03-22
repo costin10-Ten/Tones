@@ -4,9 +4,19 @@ import StoryCard from '../components/StoryCard.astro';
 import ThemeSwitcher from '../components/ThemeSwitcher.astro';
 import { SignedIn, SignedOut, UserButton, SignInButton } from '@clerk/astro/components';
 import { getCollection } from 'astro:content';
+import curatedData from '../data/curated-lists.json';
 
 const allStories = await getCollection('stories', ({ data }) => data.published);
 const stories = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date));
+
+// System date: latest git commit date + 10 years (displayed in fictional 2030s timeline)
+let sysDate = '—';
+try {
+  const { execSync } = await import('child_process');
+  const raw = execSync('git log -1 --format=%ci', { encoding: 'utf-8' }).trim().slice(0, 10);
+  const [y, m, d] = raw.split('-');
+  sysDate = `${parseInt(y) + 10}.${m}.${d}`;
+} catch { /* fallback to — */ }
 
 const categories = ['全部', '★ 精選', '記憶科技', '地下城市', 'AI社會', '生態復育', '情感科技', '🔍 彩蛋'];
 
@@ -22,7 +32,6 @@ const storiesMapJson = JSON.stringify(
 );
 
 // Site-curated lists for sidebar — edited via Keystatic > 精選清單
-import curatedData from '../data/curated-lists.json';
 const _publishedSlugs = new Set(stories.map(s => s.slug));
 const curatedLists = [
   { id: 'starter',  label: curatedData.starter.label,  icon: curatedData.starter.icon,  slugs: curatedData.starter.slugs.filter(s => s && _publishedSlugs.has(s)) },
@@ -147,7 +156,7 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
       </div>
       <div class="sb-stat-box">
         <span class="sb-stat-lbl">最新更新</span>
-        <span class="sb-stat-val" style="font-size:.8rem">{stories[0]?.data.date ?? '—'}</span>
+        <span class="sb-stat-val" style="font-size:.8rem">{sysDate}</span>
       </div>
       <div class="sb-stat-box">
         <span class="sb-stat-lbl">累積瀏覽次數</span>
