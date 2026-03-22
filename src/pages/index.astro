@@ -9,13 +9,13 @@ import curatedData from '../data/curated-lists.json';
 const allStories = await getCollection('stories', ({ data }) => data.published);
 const stories = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date));
 
-// System date: latest git commit date + 10 years (displayed in fictional 2030s timeline)
+// System date: latest git commit date (real date, dot-separated)
 let sysDate = '—';
 try {
   const { execSync } = await import('child_process');
   const raw = execSync('git log -1 --format=%ci', { encoding: 'utf-8' }).trim().slice(0, 10);
   const [y, m, d] = raw.split('-');
-  sysDate = `${parseInt(y) + 10}.${m}.${d}`;
+  sysDate = `${y}.${m}.${d}`;
 } catch { /* fallback to — */ }
 
 const categories = ['全部', '★ 精選', '記憶科技', '地下城市', 'AI社會', '生態復育', '情感科技', '🔍 彩蛋'];
@@ -167,25 +167,39 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
         <span class="sb-stat-val" id="sbTotalTokens">—</span>
       </div>
 
-      <div class="sb-section" style="margin-top:32px">閱讀模式</div>
-      <button class="sb-plain-btn" id="sbPlainBtn" style="touch-action:manipulation">
-        <span id="sbPlainIcon">≡</span>
-        <span id="sbPlainLbl">純文字模式</span>
-        <span id="sbPlainStatus" class="sb-plain-status">關</span>
-      </button>
-
       <div class="sb-section" style="margin-top:32px">視覺覆寫濾鏡</div>
-      <div class="sb-theme-grid">
-        {[
-          ['dark','闇夜'], ['clinical','臨床'], ['biohazard','生化'], ['fog','迷霧'],
-          ['dossier','卷宗'], ['abyss','窒息'], ['cctv','監視'], ['noir','漆黑'],
-        ].map(([name, label]) => (
-          <button class="sb-theme-btn" data-sb={name}>
-            <div class={`sb-dot ${name}`}></div>
-            <div class="sb-theme-name">{label}</div>
-          </button>
-        ))}
-      </div>
+      <SignedIn>
+        <div class="sb-theme-grid">
+          {[
+            ['dark','闇夜'], ['clinical','臨床'], ['biohazard','生化'], ['fog','迷霧'],
+            ['dossier','卷宗'], ['abyss','窒息'], ['cctv','監視'], ['noir','漆黑'],
+          ].map(([name, label]) => (
+            <button class="sb-theme-btn" data-sb={name}>
+              <div class={`sb-dot ${name}`}></div>
+              <div class="sb-theme-name">{label}</div>
+            </button>
+          ))}
+        </div>
+      </SignedIn>
+      <SignedOut>
+        <div class="sb-theme-grid">
+          {[
+            ['dark','闇夜', false], ['clinical','臨床', true], ['biohazard','生化', true], ['fog','迷霧', true],
+            ['dossier','卷宗', false], ['abyss','窒息', true], ['cctv','監視', true], ['noir','漆黑', true],
+          ].map(([name, label, locked]) => locked ? (
+            <a href="/sign-in" class="sb-theme-btn sb-theme-locked" title="加入成為觀測者後解鎖">
+              <div class={`sb-dot ${name}`}></div>
+              <div class="sb-theme-name">{label}</div>
+              <div class="sb-theme-lock">⊘</div>
+            </a>
+          ) : (
+            <button class="sb-theme-btn" data-sb={name}>
+              <div class={`sb-dot ${name}`}></div>
+              <div class="sb-theme-name">{label}</div>
+            </button>
+          ))}
+        </div>
+      </SignedOut>
     </div>
   </div>
 
@@ -197,7 +211,13 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
       <button class="sb-close" id="rightSidebarCloseBtn">[X]</button>
     </div>
     <div class="sb-body">
-      <a href="/stories" class="rsb-more">[ 全部卷宗 → ]</a>
+      <button class="rsb-tutorial-btn" id="tutorialBtn">
+        <span class="rsb-tutorial-icon">?</span>
+        <span class="rsb-tutorial-lbl">網站使用說明</span>
+        <span class="rsb-tutorial-arrow">→</span>
+      </button>
+
+      <a href="/stories" class="rsb-more" style="margin-top:12px">[ 全部卷宗 → ]</a>
 
       <div class="sb-section" style="margin-top:20px">近期攔截訊息</div>
       <div class="rsb-list">
@@ -385,6 +405,100 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
     </div>
   </div>
 
+  <!-- ─── Tutorial Modal ─── -->
+  <div class="tutorial-overlay" id="tutorialModal" role="dialog" aria-modal="true" aria-label="網站使用說明">
+    <div class="tutorial-box">
+      <div class="tutorial-top">
+        <span class="tutorial-step-lbl" id="tutStepLbl">[ 01 / 05 ]</span>
+        <button class="tutorial-skip" id="tutSkipBtn">[ 跳過 ]</button>
+      </div>
+
+      <!-- Step 1 -->
+      <div class="tut-step" data-step="1">
+        <div class="tut-tag">SYS: 初始化完成</div>
+        <div class="tut-title">歡迎進入<em>弦音異象</em></div>
+        <div class="tut-body">
+          <p>這是一個心理驚悚短篇小說平台。</p>
+          <p>每篇故事都能在通勤時間內閱讀完畢——你看到的，可能永遠無法忘記。</p>
+          <p class="tut-hint">// 以下將帶你了解各項系統功能。</p>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="tut-step" data-step="2">
+        <div class="tut-tag">模組 01</div>
+        <div class="tut-title">左邊欄 · 檔案庫<em>導覽</em></div>
+        <div class="tut-body">
+          <p>點擊左上角 <strong>⎔</strong> 按鈕開啟。</p>
+          <ul class="tut-list">
+            <li><strong>主目錄</strong> — 快速導覽至各頁面</li>
+            <li><strong>站內精選</strong> — 作者推薦的閱讀清單</li>
+            <li><strong>系統數據</strong> — 網站統計資訊</li>
+            <li><strong>視覺主題</strong> — 8 種濾鏡，非會員可用 闇夜 / 卷宗</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="tut-step" data-step="3">
+        <div class="tut-tag">模組 02</div>
+        <div class="tut-title">右邊欄 · 通訊<em>頻道</em></div>
+        <div class="tut-body">
+          <p>點擊右上角 <strong>≡</strong> 按鈕開啟。</p>
+          <ul class="tut-list">
+            <li><strong>全部卷宗</strong> — 前往案件列表頁</li>
+            <li><strong>近期攔截訊息</strong> — 最新更新的 5 篇故事</li>
+            <li><strong>留言</strong> — 向作者傳遞加密訊息</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="tut-step" data-step="4">
+        <div class="tut-tag">模組 03</div>
+        <div class="tut-title">閱讀器 · 異象<em>卷宗</em></div>
+        <div class="tut-body">
+          <p>點擊任意故事進入閱讀器。</p>
+          <ul class="tut-list">
+            <li><strong>頂部進度條</strong> — 即時追蹤閱讀位置</li>
+            <li><strong>書籤 ☑</strong> — 在卷宗列表標記已讀</li>
+            <li><strong>金幣系統</strong> — 閱讀完畢自動獲得獎勵</li>
+            <li><strong>前後導覽</strong> — 在卷宗之間快速切換</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Step 5 -->
+      <div class="tut-step" data-step="5">
+        <div class="tut-tag">存取等級：升級</div>
+        <div class="tut-title">觀測者身份 · 解鎖<em>全權限</em></div>
+        <div class="tut-body">
+          <ul class="tut-list tut-list-check">
+            <li>解鎖 <strong>限制級</strong> / <strong>最高機密</strong> 卷宗</li>
+            <li>使用全部 <strong>8 種</strong> 視覺主題</li>
+            <li>跨設備同步閱讀進度與金幣</li>
+            <li>付費專區優先存取</li>
+            <li>異象關聯圖完整瀏覽</li>
+          </ul>
+          <a href="/sign-up" class="tut-cta">[ 免費申請觀測者身份 → ]</a>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <div class="tutorial-nav">
+        <button class="tut-btn-prev" id="tutPrevBtn">← 上一步</button>
+        <div class="tut-dots" id="tutDots">
+          <span class="tut-dot on"></span>
+          <span class="tut-dot"></span>
+          <span class="tut-dot"></span>
+          <span class="tut-dot"></span>
+          <span class="tut-dot"></span>
+        </div>
+        <button class="tut-btn-next" id="tutNextBtn">下一步 →</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ─── Newsletter ─── -->
   <section class="newsletter-section">
     <div class="newsletter-inner">
@@ -560,26 +674,6 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
       if (tEl) tEl.textContent = fmtN(totalTokens);
     }
 
-    // ─── Pure text mode toggle ──────────────────────────────
-    const plainBtn    = document.getElementById('sbPlainBtn');
-    const plainStatus = document.getElementById('sbPlainStatus');
-    let plainMode = sGet('hz-plain') === '1';
-
-    function updatePlainBtn() {
-      if (!plainStatus) return;
-      plainStatus.textContent = plainMode ? '開' : '關';
-      plainBtn?.classList.toggle('on', plainMode);
-    }
-    updatePlainBtn();
-
-    plainBtn?.addEventListener('click', () => {
-      plainMode = !plainMode;
-      sSet('hz-plain', plainMode ? '1' : '0');
-      if (plainMode) document.documentElement.setAttribute('data-plain', '1');
-      else document.documentElement.removeAttribute('data-plain');
-      updatePlainBtn();
-    }, { signal: sig });
-
     // ─── Sidebar theme buttons ──────────────────────────────
     document.querySelectorAll<HTMLButtonElement>('.sb-theme-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -606,13 +700,60 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
     document.getElementById('closeModalBtn')?.addEventListener('click', closeModal, { signal: sig });
     document.getElementById('skipLoginBtn')?.addEventListener('click', () => {
       closeModal();
-      if (plainMode && storyHref.match(/^\/stories\/[^/]+$/)) {
-        window.location.href = storyHref + '/plain';
-      } else {
-        window.location.href = storyHref;
-      }
+      window.location.href = storyHref;
     }, { signal: sig });
     unlockModal?.addEventListener('click', (e) => { if (e.target === unlockModal) closeModal(); }, { signal: sig });
+
+    // ─── Tutorial modal ─────────────────────────────────────
+    const tutorialModal = document.getElementById('tutorialModal');
+    let tutStep = 1;
+    const TOTAL_STEPS = 5;
+
+    function updateTutorial() {
+      document.querySelectorAll<HTMLElement>('.tut-step').forEach(s => {
+        s.style.display = s.dataset.step === String(tutStep) ? 'block' : 'none';
+      });
+      const lbl = document.getElementById('tutStepLbl');
+      if (lbl) lbl.textContent = `[ 0${tutStep} / 0${TOTAL_STEPS} ]`;
+      document.querySelectorAll<HTMLElement>('.tut-dot').forEach((d, i) => {
+        d.classList.toggle('on', i + 1 === tutStep);
+      });
+      const prev = document.getElementById('tutPrevBtn') as HTMLButtonElement | null;
+      const next = document.getElementById('tutNextBtn') as HTMLButtonElement | null;
+      if (prev) prev.style.visibility = tutStep === 1 ? 'hidden' : '';
+      if (next) next.textContent = tutStep === TOTAL_STEPS ? '完成 ✓' : '下一步 →';
+    }
+
+    function openTutorial() {
+      tutStep = 1;
+      updateTutorial();
+      tutorialModal?.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeTutorial() {
+      tutorialModal?.classList.remove('open');
+      document.body.style.overflow = '';
+      sSet('hz-tutorial-done', '1');
+    }
+
+    document.getElementById('tutorialBtn')?.addEventListener('click', openTutorial, { signal: sig });
+    document.getElementById('tutSkipBtn')?.addEventListener('click', closeTutorial, { signal: sig });
+    document.getElementById('tutPrevBtn')?.addEventListener('click', () => {
+      if (tutStep > 1) { tutStep--; updateTutorial(); }
+    }, { signal: sig });
+    document.getElementById('tutNextBtn')?.addEventListener('click', () => {
+      if (tutStep < TOTAL_STEPS) { tutStep++; updateTutorial(); }
+      else closeTutorial();
+    }, { signal: sig });
+    tutorialModal?.addEventListener('click', (e) => {
+      if (e.target === tutorialModal) closeTutorial();
+    }, { signal: sig });
+
+    // Auto-open on first visit
+    if (!sGet('hz-tutorial-done')) {
+      // Slight delay so page settles first
+      setTimeout(openTutorial, 600);
+    }
 
     // ─── Close sidebar when clicking in-page anchor links ───
     document.querySelectorAll<HTMLAnchorElement>('.sb-link[href^="#"]').forEach(link => {
@@ -1297,32 +1438,192 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
     letter-spacing: .04em;
   }
 
-  /* ─── Plain text toggle button ───────────────────── */
-  .sb-plain-btn {
+  /* ─── Locked theme (non-member) ──────────────────── */
+  a.sb-theme-locked {
+    text-decoration: none;
+    opacity: 0.45;
+    position: relative;
+    cursor: pointer;
+  }
+  a.sb-theme-locked:hover { opacity: 0.7; border-color: var(--border); }
+  .sb-theme-lock {
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    letter-spacing: 0;
+    margin-top: -2px;
+  }
+
+  /* ─── Tutorial button ─────────────────────────────── */
+  .rsb-tutorial-btn {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     width: 100%;
     background: var(--surface);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: all 0.18s;
+    touch-action: manipulation;
+  }
+  .rsb-tutorial-btn:hover { background: var(--accent-dim); }
+  .rsb-tutorial-icon { font-size: 0.9rem; font-weight: bold; width: 18px; text-align: center; }
+  .rsb-tutorial-lbl { flex: 1; text-align: left; }
+  .rsb-tutorial-arrow { opacity: 0.6; }
+
+  /* ─── Tutorial modal ─────────────────────────────── */
+  .tutorial-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+    padding: 16px;
+  }
+  .tutorial-overlay.open { opacity: 1; pointer-events: all; }
+  .tutorial-box {
+    background: var(--bg);
+    border: 1px solid var(--accent);
+    max-width: 480px;
+    width: 100%;
+    padding: 28px 28px 20px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .tutorial-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .tutorial-step-lbl {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--text-muted);
+    letter-spacing: 0.15em;
+  }
+  .tutorial-skip {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: all 0.18s;
+    touch-action: manipulation;
+  }
+  .tutorial-skip:hover { border-color: var(--text-dim); color: var(--text-dim); }
+  .tut-step { display: none; }
+  .tut-tag {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.22em;
+    color: var(--bg);
+    background: var(--accent);
+    display: inline-block;
+    padding: 3px 12px;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+  }
+  .tut-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 1.15rem;
+    font-weight: 900;
+    color: var(--text);
+    line-height: 1.3;
+    margin-bottom: 14px;
+    letter-spacing: 0.04em;
+  }
+  .tut-title em { color: var(--accent); font-style: normal; }
+  .tut-body p {
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    line-height: 1.7;
+    margin-bottom: 8px;
+  }
+  .tut-hint {
+    font-family: 'Share Tech Mono', monospace !important;
+    font-size: 0.68rem !important;
+    color: var(--text-muted) !important;
+    letter-spacing: 0.04em;
+  }
+  .tut-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .tut-list li {
+    font-family: 'Noto Sans TC', sans-serif;
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    line-height: 1.5;
+    padding-left: 16px;
+    position: relative;
+  }
+  .tut-list li::before { content: '›'; position: absolute; left: 0; color: var(--accent); }
+  .tut-list-check li::before { content: '✓'; color: var(--accent); }
+  .tut-cta {
+    display: block;
+    margin-top: 16px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    text-decoration: none;
+    border: 1px solid var(--accent);
+    padding: 12px;
+    text-align: center;
+    transition: background 0.18s;
+  }
+  .tut-cta:hover { background: var(--accent-dim); }
+  .tutorial-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 4px;
+    border-top: 1px solid var(--border);
+    margin-top: 4px;
+  }
+  .tut-btn-prev, .tut-btn-next {
+    background: none;
     border: 1px solid var(--border);
     color: var(--text-dim);
     font-family: 'Share Tech Mono', monospace;
-    font-size: 0.88rem;
-    padding: 10px 12px;
-    cursor: pointer;
+    font-size: 0.68rem;
     letter-spacing: 0.08em;
-    transition: all 0.2s;
-    margin-top: 10px;
+    padding: 7px 14px;
+    cursor: pointer;
+    transition: all 0.18s;
+    touch-action: manipulation;
   }
-  .sb-plain-btn:hover, .sb-plain-btn.on { border-color: var(--accent); color: var(--accent); }
-  .sb-plain-btn .sb-plain-lbl { flex: 1; text-align: left; }
-  .sb-plain-status {
-    font-size: 0.62rem;
-    padding: 2px 7px;
+  .tut-btn-prev:hover, .tut-btn-next:hover { border-color: var(--accent); color: var(--accent); }
+  .tut-dots { display: flex; gap: 6px; align-items: center; }
+  .tut-dot {
+    width: 6px; height: 6px;
     border: 1px solid var(--border);
-    letter-spacing: 0.1em;
+    background: transparent;
+    border-radius: 50%;
+    transition: all 0.2s;
   }
-  .sb-plain-btn.on .sb-plain-status { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .tut-dot.on { background: var(--accent); border-color: var(--accent); }
 
   /* ─── Unlock modal ───────────────────────────────── */
   .modal-overlay {
