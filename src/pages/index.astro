@@ -8,12 +8,7 @@ import { SignedIn, SignedOut, UserButton, SignInButton } from '@clerk/astro/comp
 import { getCollection } from 'astro:content';
 
 const allStories = await getCollection('stories', ({ data }) => data.published);
-const stories = allStories.sort((a, b) => {
-  // Featured first, then by date descending
-  if (a.data.featured && !b.data.featured) return -1;
-  if (!a.data.featured && b.data.featured) return 1;
-  return b.data.date.localeCompare(a.data.date);
-});
+const stories = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date));
 
 const categories = ['全部', '記憶科技', '地下城市', 'AI社會', '生態復育', '情感科技', '🔍 彩蛋'];
 
@@ -1248,9 +1243,11 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
   .sec-title::after  { content: ' ]'; color: var(--accent); }
   .see-all { font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; color: var(--text-muted); text-decoration: none; letter-spacing: 0.1em; transition: color 0.2s; }
   .see-all:hover { color: var(--accent); }
-  .tags-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
-  .tag-btn { background: var(--surface); border: 1px solid var(--border); color: var(--text-muted); font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; letter-spacing: 0.1em; padding: 6px 14px; cursor: pointer; transition: all 0.2s; }
-  .tag-btn:hover, .tag-btn.on { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .tags-row { display: flex; flex-direction: column; gap: 2px; margin-bottom: 24px; }
+  .tag-btn { display: flex; align-items: center; gap: 8px; background: none; border: none; border-left: 2px solid var(--border); color: var(--text-muted); font-family: 'Share Tech Mono', monospace; font-size: 0.72rem; letter-spacing: 0.08em; padding: 7px 12px; cursor: pointer; transition: all 0.18s; text-align: left; width: 100%; }
+  .tag-btn::before { content: '▷'; font-size: 0.55rem; flex-shrink: 0; }
+  .tag-btn:hover, .tag-btn.on { border-left-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .tag-btn.on::before { content: '▶'; }
   .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
   .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 
