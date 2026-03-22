@@ -1,5 +1,5 @@
 import { config, fields, collection } from '@keystatic/core';
-import { TAG_OPTIONS } from './src/content/tags';
+import { STORY_TAGS } from './src/content/tags';
 
 export default config({
   storage: import.meta.env.PROD
@@ -27,10 +27,14 @@ export default config({
         fileNum: fields.text({ label: '檔案編號' }),
         date: fields.text({ label: '案發日期' }),
         readTime: fields.text({ label: '預估閱讀時間' }),
-        tags: fields.multiselect({
-          label: '分類標籤',
-          options: TAG_OPTIONS,
-        }),
+        tags: fields.array(
+          fields.text({ label: '標籤' }),
+          {
+            label: '分類標籤',
+            description: `現有分類（點＋新增後直接貼上）：${STORY_TAGS.join('　／　')}`,
+            itemLabel: (props) => props.value,
+          }
+        ),
         level: fields.select({
           label: '機密等級',
           options: [

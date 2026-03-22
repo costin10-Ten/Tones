@@ -15,6 +15,3 @@ export const STORY_TAGS = [
 ] as const;
 
 export type StoryTag = (typeof STORY_TAGS)[number];
-
-/** 給 Keystatic multiselect 用的格式 */
-export const TAG_OPTIONS = STORY_TAGS.map((t) => ({ label: t, value: t }));
