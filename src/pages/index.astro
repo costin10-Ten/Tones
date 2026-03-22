@@ -551,8 +551,8 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
       } catch(_) {}
       const vEl = document.getElementById('sbTotalViews');
       const tEl = document.getElementById('sbTotalTokens');
-      if (vEl) vEl.textContent = isLoggedIn ? fmtN(totalViews) : '∞';
-      if (tEl) tEl.textContent = isLoggedIn ? fmtN(totalTokens) : '∞';
+      if (vEl) vEl.textContent = fmtN(totalViews);
+      if (tEl) tEl.textContent = fmtN(totalTokens);
     }
 
     // ─── Pure text mode toggle ──────────────────────────────
