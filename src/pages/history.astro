@@ -1,21 +1,12 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import ThemeSwitcher from '../components/ThemeSwitcher.astro';
+import PageHeader from '../components/PageHeader.astro';
 
 export const prerender = true;
 ---
 
 <Layout title="網站發展史 — 弦音異象" description="弦音異象的建立歷程與版本更新紀錄">
-  <header>
-    <a href="/" class="logo-text-btn">弦音<em>異象</em></a>
-    <nav class="top-nav">
-      <a class="nav-a" href="/">首頁</a>
-      <a class="nav-a" href="/stories">全部卷宗</a>
-      <a class="nav-a" href="/about">關於</a>
-      <a class="nav-a on" href="/history">發展史</a>
-    </nav>
-    <ThemeSwitcher />
-  </header>
+  <PageHeader active="history" />
 
   <main>
     <div class="hist-wrap">
@@ -119,17 +110,6 @@ export const prerender = true;
 </Layout>
 
 <style>
-  header {
-    position: sticky; top: 0; z-index: 100; height: 56px;
-    display: flex; align-items: center; gap: 16px; padding: 0 20px;
-    background: var(--bg); border-bottom: 1px solid var(--border);
-  }
-  a.logo-text-btn { font-family: 'Noto Serif TC', serif; font-weight: 900; font-size: 1.05rem; color: var(--text); text-decoration: none; letter-spacing: 0.1em; flex-shrink: 0; }
-  a.logo-text-btn em { color: var(--accent); font-style: normal; }
-  .top-nav { display: flex; gap: 4px; flex: 1; justify-content: center; }
-  .nav-a { font-family: 'Share Tech Mono', monospace; font-size: 0.72rem; letter-spacing: 0.08em; color: var(--text-dim); text-decoration: none; padding: 5px 8px; border: 1px solid transparent; transition: all 0.2s; }
-  .nav-a:hover, .nav-a.on { border-color: var(--accent); color: var(--accent); }
-
   main { max-width: 760px; margin: 0 auto; padding: 60px 24px 80px; }
   .hist-wrap {}
   .hist-eyebrow { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; letter-spacing: 0.3em; color: var(--text-muted); margin-bottom: 16px; }

@@ -1,0 +1,71 @@
+---
+import ThemeSwitcher from './ThemeSwitcher.astro';
+import { SignedIn, UserButton } from '@clerk/astro/components';
+
+interface Props {
+  active?: 'home' | 'stories' | 'about' | 'history';
+}
+const { active } = Astro.props;
+---
+
+<header>
+  <a href="/" class="logo-back" aria-label="返回首頁">
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"
+         stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 4L6 10l6 6"/>
+    </svg>
+  </a>
+  <nav class="top-nav">
+    <a class={`nav-a${active === 'home' ? ' on' : ''}`} href="/">首頁</a>
+    <a class={`nav-a${active === 'stories' ? ' on' : ''}`} href="/stories">全部卷宗</a>
+    <a class={`nav-a${active === 'about' ? ' on' : ''}`} href="/about">關於</a>
+    <a class={`nav-a${active === 'history' ? ' on' : ''}`} href="/history">發展史</a>
+  </nav>
+  <ThemeSwitcher />
+  <SignedIn>
+    <UserButton afterSignOutUrl="/" />
+  </SignedIn>
+</header>
+
+<style>
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 16px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+  .logo-back {
+    display: flex;
+    align-items: center;
+    color: var(--text-muted);
+    transition: color 0.2s;
+    flex-shrink: 0;
+  }
+  .logo-back:hover { color: var(--accent); }
+  .logo-back svg { width: 18px; height: 18px; }
+  .top-nav {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+  .nav-a {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    text-decoration: none;
+    padding: 5px 10px;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .nav-a:hover, .nav-a.on { border-color: var(--border); color: var(--text); }
+</style>

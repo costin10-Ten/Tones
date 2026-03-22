@@ -1,7 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import ThemeSwitcher from '../components/ThemeSwitcher.astro';
-import { SignedIn, SignedOut, UserButton } from '@clerk/astro/components';
+import PageHeader from '../components/PageHeader.astro';
+import { SignedIn, SignedOut } from '@clerk/astro/components';
 import { getCollection } from 'astro:content';
 
 export const prerender = false;
@@ -17,15 +17,7 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
 
 <Layout title="會員登入 — 弦音異象" description="你的觀測者身份資料與閱讀紀錄">
   <!-- ─── Header ─── -->
-  <header>
-    <a href="/" class="ctrl-btn back-btn" title="返回首頁">&lt;</a>
-    <a href="/" class="rdr-logo">弦音<em>異象</em></a>
-    <div class="rdr-ttl">觀測者身份核實</div>
-    <ThemeSwitcher />
-    <SignedIn>
-      <UserButton afterSignOutUrl="/" />
-    </SignedIn>
-  </header>
+  <PageHeader />
 
   <main class="member-main">
     <div class="member-wrap">
@@ -369,61 +361,6 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
 </script>
 
 <style>
-  /* ─── Header ────────────────────────────────────── */
-  header {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    height: 56px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 0 16px;
-    background: var(--bg);
-    border-bottom: 1px solid var(--border);
-  }
-  .back-btn {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: .9rem;
-    padding: 5px 9px;
-    min-width: 30px;
-    justify-content: center;
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--text-muted);
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    text-decoration: none;
-    flex-shrink: 0;
-    transition: all .2s;
-  }
-  .back-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .rdr-logo {
-    font-family: 'Noto Serif TC', serif;
-    font-weight: 900;
-    font-size: 1rem;
-    color: var(--text);
-    text-decoration: none;
-    letter-spacing: 0.08em;
-    flex-shrink: 0;
-    white-space: nowrap;
-  }
-  .rdr-logo em { color: var(--accent); font-style: normal; }
-  .rdr-logo:hover { color: var(--text); }
-  .rdr-ttl {
-    flex: 1;
-    font-family: 'Noto Serif TC', serif;
-    font-size: .85rem;
-    font-weight: 700;
-    color: var(--text);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    text-align: center;
-    letter-spacing: .04em;
-  }
-
   /* ─── Member main ────────────────────────────────── */
   .member-main {
     min-height: 100vh;
@@ -893,6 +830,5 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
     .track-right { display: none; }
     .id-body { flex-direction: column; text-align: center; }
     .badges-grid { grid-template-columns: repeat(3, 1fr); }
-    .rdr-ttl { display: none; }
   }
 </style>

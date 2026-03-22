@@ -197,15 +197,7 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
       <button class="sb-close" id="rightSidebarCloseBtn">[X]</button>
     </div>
     <div class="sb-body">
-      <div class="sb-section">作者通訊頻道</div>
-      <div class="msg-box">
-        <p style="font-size:0.75rem;color:var(--text-dim);margin-bottom:12px;">
-          // 如果你發現了系統漏洞，或者想對作者說些什麼，請在這裡留言。訊號可能會被攔截，但我會看到的。
-        </p>
-        <textarea id="authorMsg" class="msg-textarea" rows="4" placeholder="請輸入加密訊息..."></textarea>
-        <button class="msg-btn" id="sendMsgBtn">[ 發送訊號 ]</button>
-        <div id="msgStatus" class="msg-status"></div>
-      </div>
+      <a href="/stories" class="rsb-more">[ 全部卷宗 → ]</a>
 
       <div class="sb-section" style="margin-top:20px">近期攔截訊息</div>
       <div class="rsb-list">
@@ -216,7 +208,16 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
           </a>
         ))}
       </div>
-      <a href="/stories" class="rsb-more">[ 更多文章 → ]</a>
+
+      <div class="sb-section" style="margin-top:20px">留言</div>
+      <div class="msg-box">
+        <p style="font-size:0.75rem;color:var(--text-dim);margin-bottom:12px;">
+          // 如果你發現了系統漏洞，或者想對作者說些什麼，請在這裡留言。訊號可能會被攔截，但我會看到的。
+        </p>
+        <textarea id="authorMsg" class="msg-textarea" rows="4" placeholder="請輸入加密訊息..."></textarea>
+        <button class="msg-btn" id="sendMsgBtn">[ 發送訊號 ]</button>
+        <div id="msgStatus" class="msg-status"></div>
+      </div>
     </div>
   </div>
 

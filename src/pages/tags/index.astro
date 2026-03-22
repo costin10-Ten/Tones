@@ -1,6 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import ThemeSwitcher from '../../components/ThemeSwitcher.astro';
+import PageHeader from '../../components/PageHeader.astro';
 import { getCollection } from 'astro:content';
 
 export const prerender = true;
@@ -22,12 +22,7 @@ const tags = [...tagMap.entries()]
 ---
 
 <Layout title="標籤索引 — 弦音異象" description="依異常分類瀏覽所有卷宗">
-  <header>
-    <a href="/" class="rdr-logo">弦音<em>異象</em></a>
-    <div class="rdr-ttl">標籤索引</div>
-    <ThemeSwitcher />
-    <a href="/" class="nav-a">← 返回大廳</a>
-  </header>
+  <PageHeader />
 
   <main class="tags-main">
     <div class="tags-wrap">
@@ -66,28 +61,6 @@ const tags = [...tagMap.entries()]
 </Layout>
 
 <style>
-  header {
-    position: sticky; top: 0; z-index: 100;
-    height: 56px; display: flex; align-items: center; gap: 12px;
-    padding: 0 16px; background: var(--bg); border-bottom: 1px solid var(--border);
-  }
-  .rdr-logo {
-    font-family: 'Noto Serif TC', serif; font-weight: 900; font-size: 1rem;
-    color: var(--text); text-decoration: none; letter-spacing: .08em; flex-shrink: 0;
-  }
-  .rdr-logo em { color: var(--accent); font-style: normal; }
-  .rdr-ttl {
-    flex: 1; font-family: 'Noto Serif TC', serif; font-size: .85rem; font-weight: 700;
-    color: var(--text); text-align: center; letter-spacing: .04em;
-  }
-  .nav-a {
-    font-family: 'Share Tech Mono', monospace; font-size: .72rem;
-    color: var(--text-dim); text-decoration: none; letter-spacing: .08em;
-    border: 1px solid var(--border); padding: 5px 10px; white-space: nowrap;
-    transition: all .18s; flex-shrink: 0;
-  }
-  .nav-a:hover { color: var(--text); border-color: var(--text); }
-
   .tags-main { min-height: 100vh; background: var(--bg); }
   .tags-wrap { max-width: 720px; margin: 0 auto; padding: 48px 24px 100px; }
 
