@@ -217,7 +217,11 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
         <span class="rsb-tutorial-arrow">→</span>
       </button>
 
-      <a href="/stories" class="rsb-more" style="margin-top:12px">[ 全部卷宗 → ]</a>
+      <a href="/stories" class="rsb-all-btn" style="margin-top:12px">
+        <span class="rsb-all-icon">▣</span>
+        <span class="rsb-all-lbl">全部卷宗</span>
+        <span class="rsb-all-count">{stories.length} 件</span>
+      </a>
 
       <div class="sb-section" style="margin-top:20px">近期攔截訊息</div>
       <div class="rsb-list">
@@ -1311,6 +1315,31 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
   .rsb-item:hover .rsb-title { color: var(--accent); }
   .rsb-title { font-family: 'Noto Serif TC', serif; font-size: 0.8rem; color: var(--text); margin-bottom: 3px; letter-spacing: 0.05em; transition: color 0.2s; }
   .rsb-tags { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; color: var(--text-muted); letter-spacing: 0.05em; }
+  .rsb-all-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    background: var(--accent-dim);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    padding: 11px 14px;
+    transition: all 0.18s;
+  }
+  .rsb-all-btn:hover { background: var(--accent); color: var(--bg); }
+  .rsb-all-icon { font-size: 0.75rem; }
+  .rsb-all-lbl { flex: 1; }
+  .rsb-all-count {
+    font-size: 0.6rem;
+    border: 1px solid currentColor;
+    padding: 1px 6px;
+    opacity: 0.75;
+    letter-spacing: 0;
+  }
+
   .rsb-more {
     display: block;
     margin-top: 16px;
