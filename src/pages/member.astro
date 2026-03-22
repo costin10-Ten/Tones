@@ -232,6 +232,14 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
   // Load stats from Supabase
   loadStats();
 
+  // Render badges immediately from localStorage (no API needed)
+  // This ensures badges show instantly; applyStats will re-render with full data later
+  {
+    const readCount   = Object.keys(localStorage).filter(k => k.startsWith('hz-progress:')).length;
+    const totalStories = document.querySelectorAll('.track-item').length;
+    renderBadges({ readCount, bookmarkCount: 0, tokenCount: 0, totalStories });
+  }
+
   // Load Clerk user info for display
   window.addEventListener('load', async () => {
     try {
