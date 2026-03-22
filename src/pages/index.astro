@@ -8,7 +8,7 @@ import { getCollection } from 'astro:content';
 const allStories = await getCollection('stories', ({ data }) => data.published);
 const stories = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date));
 
-const categories = ['全部', '記憶科技', '地下城市', 'AI社會', '生態復育', '情感科技', '🔍 彩蛋'];
+const categories = ['全部', '★ 精選', '記憶科技', '地下城市', 'AI社會', '生態復育', '情感科技', '🔍 彩蛋'];
 
 // For stats: compute inaccessible story count (restricted/top-secret/paid)
 const inaccessibleCount = stories.filter(s =>
@@ -623,7 +623,7 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
       let visible = 0;
       document.querySelectorAll<HTMLElement>('.story-card').forEach(card => {
         const tags = card.dataset.tags?.split(',') ?? [];
-        const show = cat === '全部' || tags.includes(cat);
+        const show = cat === '全部' || tags.includes(cat) || (cat === '★ 精選' && card.classList.contains('featured'));
         card.style.display = show ? 'block' : 'none';
         if (show) visible++;
       });
