@@ -10,7 +10,7 @@ export const GET: APIRoute = async ({ params }) => {
 
   const { data, error } = await supabase
     .from('reading_lists')
-    .select('id, name, slugs, user_id, created_at')
+    .select('id, name, slugs, created_at')
     .eq('share_token', token)
     .eq('is_public', true)
     .single();

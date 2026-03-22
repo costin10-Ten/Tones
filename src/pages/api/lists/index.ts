@@ -15,7 +15,7 @@ export const GET: APIRoute = async ({ locals }) => {
     .eq('user_id', userId)
     .order('created_at', { ascending: true });
 
-  if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+  if (error) return new Response(JSON.stringify({ error: '操作失敗，請稍後再試' }), { status: 500 });
 
   return new Response(JSON.stringify(data ?? []), {
     headers: { 'Content-Type': 'application/json' },
@@ -33,7 +33,10 @@ export const POST: APIRoute = async ({ locals, request }) => {
   const name = (body.name ?? '').trim().slice(0, 60);
   if (!name) return new Response(JSON.stringify({ error: '清單名稱不能為空' }), { status: 400 });
 
-  const slugs = Array.isArray(body.slugs) ? body.slugs : [];
+  const SLUG_RE = /^[a-z0-9-]+$/;
+  const slugs = Array.isArray(body.slugs)
+    ? body.slugs.filter((s): s is string => typeof s === 'string' && SLUG_RE.test(s))
+    : [];
 
   const { data, error } = await supabase
     .from('reading_lists')
@@ -41,7 +44,7 @@ export const POST: APIRoute = async ({ locals, request }) => {
     .select('id, name, slugs, is_public, share_token, created_at, updated_at')
     .single();
 
-  if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+  if (error) return new Response(JSON.stringify({ error: '操作失敗，請稍後再試' }), { status: 500 });
 
   return new Response(JSON.stringify(data), {
     status: 201,

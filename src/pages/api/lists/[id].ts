@@ -46,16 +46,17 @@ export const PUT: APIRoute = async ({ locals, request, params }) => {
   }
 
   // Slug mutations
+  const SLUG_RE = /^[a-z0-9-]+$/;
   let slugs: string[] = existing.slugs ?? [];
   if (Array.isArray(body.slugs)) {
-    slugs = body.slugs;
+    slugs = body.slugs.filter((s): s is string => typeof s === 'string' && SLUG_RE.test(s));
   } else {
     if (Array.isArray(body.add)) {
-      const toAdd = body.add.filter(s => !slugs.includes(s));
+      const toAdd = body.add.filter((s): s is string => typeof s === 'string' && SLUG_RE.test(s) && !slugs.includes(s));
       slugs = [...slugs, ...toAdd];
     }
     if (Array.isArray(body.remove)) {
-      const removeSet = new Set(body.remove);
+      const removeSet = new Set(body.remove.filter((s): s is string => typeof s === 'string'));
       slugs = slugs.filter(s => !removeSet.has(s));
     }
   }
@@ -78,7 +79,7 @@ export const PUT: APIRoute = async ({ locals, request, params }) => {
     .select('id, name, slugs, is_public, share_token, updated_at')
     .single();
 
-  if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+  if (error) return new Response(JSON.stringify({ error: '更新失敗，請稍後再試' }), { status: 500 });
 
   return new Response(JSON.stringify(data), {
     headers: { 'Content-Type': 'application/json' },
@@ -99,7 +100,7 @@ export const DELETE: APIRoute = async ({ locals, params }) => {
     .eq('id', id)
     .eq('user_id', userId);
 
-  if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+  if (error) return new Response(JSON.stringify({ error: '刪除失敗，請稍後再試' }), { status: 500 });
 
   return new Response(null, { status: 204 });
 };
