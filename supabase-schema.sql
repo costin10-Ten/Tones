@@ -125,3 +125,69 @@ create table if not exists user_unlocks (
   primary key (user_id, story_slug)
 );
 alter table user_unlocks enable row level security;
+
+-- ============================================================
+-- 閱讀清單（登入用戶自訂書單，可分享）
+-- ============================================================
+create table if not exists reading_lists (
+  id           uuid default gen_random_uuid() primary key,
+  user_id      text not null,
+  name         text not null check (char_length(name) >= 1 and char_length(name) <= 60),
+  slugs        text[] not null default '{}',
+  is_public    boolean not null default false,
+  share_token  text unique,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now()
+);
+create index if not exists reading_lists_user_idx on reading_lists (user_id);
+alter table reading_lists enable row level security;
+
+-- ============================================================
+-- RLS Policies
+-- 所有 API routes 使用 service_role key（繞過 RLS）
+-- 以下 policy 用途：防止直接使用 anon key 存取敏感資料
+-- ============================================================
+
+-- story_stats：公開可讀（顯示瀏覽數），不允許 anon 寫入
+create policy "story_stats_public_read"
+  on story_stats for select using (true);
+
+-- user_tokens：拒絕所有 anon 存取
+create policy "user_tokens_deny_anon"
+  on user_tokens using (false);
+
+-- reading_progress：拒絕所有 anon 存取
+create policy "reading_progress_deny_anon"
+  on reading_progress using (false);
+
+-- bookmarks：拒絕所有 anon 存取
+create policy "bookmarks_deny_anon"
+  on bookmarks using (false);
+
+-- comments：允許公開讀取，拒絕 anon 寫入
+create policy "comments_public_read"
+  on comments for select using (true);
+create policy "comments_deny_anon_write"
+  on comments for insert with check (false);
+create policy "comments_deny_anon_update"
+  on comments for update using (false);
+create policy "comments_deny_anon_delete"
+  on comments for delete using (false);
+
+-- email_subscribers：拒絕所有 anon 存取
+create policy "email_subscribers_deny_anon"
+  on email_subscribers using (false);
+
+-- user_unlocks：拒絕所有 anon 存取
+create policy "user_unlocks_deny_anon"
+  on user_unlocks using (false);
+
+-- reading_lists：公開清單可讀，拒絕 anon 寫入
+create policy "reading_lists_public_read"
+  on reading_lists for select using (is_public = true);
+create policy "reading_lists_deny_anon_write"
+  on reading_lists for insert with check (false);
+create policy "reading_lists_deny_anon_update"
+  on reading_lists for update using (false);
+create policy "reading_lists_deny_anon_delete"
+  on reading_lists for delete using (false);
