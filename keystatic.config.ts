@@ -9,6 +9,7 @@ export default config({
           owner: 'costin10-Ten',
           name: 'Tones',
         },
+        branchPrefix: 'content/',
       }
     : { kind: 'local' },
 
