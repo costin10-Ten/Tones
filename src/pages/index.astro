@@ -1,5 +1,5 @@
 ---
-export const prerender = false;
+export const prerender = true;
 
 import Layout from '../layouts/Layout.astro';
 import StoryCard from '../components/StoryCard.astro';
@@ -22,10 +22,6 @@ const inaccessibleCount = stories.filter(s =>
   s.data.level === 'restricted' || s.data.level === 'top-secret' || s.data.level === 'paid'
 ).length;
 const totalStories = stories.length;
-
-// Check server-side auth to pass isLoggedIn flag to client
-const userId = Astro.locals.auth?.()?.userId ?? null;
-const isLoggedIn = !!userId;
 
 // Minimal story map for client-side resume card
 const storiesMapJson = JSON.stringify(
@@ -408,7 +404,7 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
 
   <!-- Server-side variables for client script (avoids define:vars inline-script re-evaluation) -->
   <div id="hp-meta"
-       data-logged-in={String(isLoggedIn)}
+       data-logged-in="false"
        data-total={String(totalStories)}
        data-inaccessible={String(inaccessibleCount)}
        data-stories-map={storiesMapJson}
@@ -494,19 +490,6 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
       })
       .catch(() => {});
 
-    // 未解之謎只對登入者顯示個人化數字
-    if (isLoggedIn) {
-      fetch('/api/member/stats')
-        .then(r => r.ok ? r.json() : Promise.reject())
-        .then(data => {
-          const mystEl = document.getElementById('statMysteries');
-          if (mystEl) {
-            const tokened = (data.tokenedSlugs ?? []).length;
-            mystEl.textContent = String(Math.max(0, totalStories - tokened - inaccessibleCount));
-          }
-        })
-        .catch(() => {});
-    }
   }
   updateHeroStats();
 
@@ -961,7 +944,7 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
     } catch (_) { el.innerHTML = ''; }
   }
 
-  // Check Clerk login state then load lists
+  // Check Clerk login state then load lists + member stats
   async function maybeSbLists() {
     try {
       await new Promise<void>(res => {
@@ -973,7 +956,23 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
         }, 200);
       });
       // @ts-ignore
-      if (await window.Clerk?.user) loadSbLists();
+      if (!(await window.Clerk?.user)) return;
+      // Mark logged-in so other client code can read it
+      const meta = document.getElementById('hp-meta');
+      if (meta) meta.dataset.loggedIn = 'true';
+      loadSbLists();
+      // Fetch member-specific stats (未解之謎)
+      const { totalStories, inaccessibleCount } = getHpMeta();
+      fetch('/api/member/stats')
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(data => {
+          const mystEl = document.getElementById('statMysteries');
+          if (mystEl) {
+            const tokened = (data.tokenedSlugs ?? []).length;
+            mystEl.textContent = String(Math.max(0, totalStories - tokened - inaccessibleCount));
+          }
+        })
+        .catch(() => {});
     } catch (_) {}
   }
   maybeSbLists();
