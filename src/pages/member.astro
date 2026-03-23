@@ -232,35 +232,41 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
     renderBadges({ readCount, bookmarkCount: 0, tokenCount: 0, totalStories });
   }
 
-  // Load Clerk user info for display
-  window.addEventListener('load', async () => {
-    try {
+  // Load Clerk user info — wait for Clerk to be fully initialized
+  function loadMemberName() {
+    function applyName() {
+      try {
+        // @ts-ignore
+        const user = window.Clerk?.user;
+        if (user) {
+          const name = user.fullName || user.primaryEmailAddress?.emailAddress || '觀測者';
+          const nameEl = document.getElementById('memberName');
+          if (nameEl) nameEl.textContent = name;
+          return true;
+        }
+      } catch(_) {}
+      return false;
+    }
+
+    // @ts-ignore
+    if (window.Clerk?.loaded) { applyName(); return; }
+
+    let retries = 0;
+    const t = setInterval(() => {
       // @ts-ignore
-      const user = await window.Clerk?.user;
-      if (user) {
-        const name = user.fullName || user.primaryEmailAddress?.emailAddress || '觀測者';
-        const nameEl = document.getElementById('memberName');
-        if (nameEl) nameEl.textContent = name;
+      if (window.Clerk?.loaded || ++retries > 25) {
+        clearInterval(t);
+        if (!applyName()) {
+          const nameEl = document.getElementById('memberName');
+          if (nameEl && nameEl.textContent === '載入中…') nameEl.textContent = '已驗證觀測者';
+        }
       }
-    } catch(e) {}
+    }, 200);
+  }
 
-    // Try to show user name from Clerk metadata in DOM
-    const clerkUser = document.querySelector('[data-clerk-user-button]');
-    if (clerkUser) {
-      const nameEl = document.getElementById('memberName');
-      if (nameEl && nameEl.textContent === '載入中…') {
-        nameEl.textContent = '已驗證觀測者';
-      }
-    }
-  });
-
-  // Fallback: if name still loading after 1s
-  setTimeout(() => {
-    const nameEl = document.getElementById('memberName');
-    if (nameEl && nameEl.textContent === '載入中…') {
-      nameEl.textContent = '已驗證觀測者';
-    }
-  }, 1500);
+  loadMemberName();
+  // Re-run on ViewTransitions navigation
+  document.addEventListener('astro:page-load', loadMemberName);
 
   function renderBadges({ readCount, bookmarkCount, tokenCount, totalStories }: { readCount: number; bookmarkCount: number; tokenCount: number; totalStories: number }) {
     const grid = document.getElementById('badgesGrid');

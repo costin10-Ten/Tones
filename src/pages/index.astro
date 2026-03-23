@@ -1,4 +1,6 @@
 ---
+export const prerender = false;
+
 import Layout from '../layouts/Layout.astro';
 import StoryCard from '../components/StoryCard.astro';
 import ThemeSwitcher from '../components/ThemeSwitcher.astro';
@@ -946,7 +948,10 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
       try {
         // @ts-ignore
         const clerk = window.Clerk;
-        isMember = !!(clerk?.user);
+        // Only update isMember when Clerk is fully loaded; otherwise keep last known value
+        if (clerk?.loaded) {
+          isMember = !!(clerk?.user);
+        }
       } catch(_) {}
     }
 

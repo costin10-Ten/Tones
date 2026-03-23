@@ -3,7 +3,7 @@ import Layout from '../../layouts/Layout.astro';
 import PageHeader from '../../components/PageHeader.astro';
 import { getCollection } from 'astro:content';
 
-export const prerender = true;
+export const prerender = false;
 
 const allStories = await getCollection('stories', ({ data }) => data.published);
 const stories = allStories.sort((a, b) => b.data.fileNum.localeCompare(a.data.fileNum));
