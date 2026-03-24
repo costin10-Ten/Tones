@@ -8,5 +8,15 @@
     "label": "深度驚悚",
     "icon": "⊕",
     "slugs": ["file-047", "file-014", "file-012", "file-006", "file-005"]
+  },
+  "ecology": {
+    "label": "生態復育",
+    "icon": "◉",
+    "slugs": ["file-007", "file-015", "file-045", "file-008"]
+  },
+  "emotion": {
+    "label": "情感科技",
+    "icon": "◎",
+    "slugs": ["file-009", "file-005", "file-014", "file-010"]
   }
 }

@@ -38,6 +38,8 @@ const _publishedSlugs = new Set(stories.map(s => s.slug));
 const curatedLists = [
   { id: 'starter',  label: curatedData.starter.label,  icon: curatedData.starter.icon,  slugs: curatedData.starter.slugs.filter(s => s && _publishedSlugs.has(s)) },
   { id: 'thriller', label: curatedData.thriller.label, icon: curatedData.thriller.icon, slugs: curatedData.thriller.slugs.filter(s => s && _publishedSlugs.has(s)) },
+  { id: 'ecology',  label: curatedData.ecology.label,  icon: curatedData.ecology.icon,  slugs: curatedData.ecology.slugs.filter(s => s && _publishedSlugs.has(s)) },
+  { id: 'emotion',  label: curatedData.emotion.label,  icon: curatedData.emotion.icon,  slugs: curatedData.emotion.slugs.filter(s => s && _publishedSlugs.has(s)) },
 ];
 const paidStories = stories.filter(s => s.data.level === 'paid');
 ---

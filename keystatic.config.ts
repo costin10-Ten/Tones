@@ -154,6 +154,22 @@ export default config({
             { label: '故事清單', itemLabel: (props) => props.value ?? '（未選擇）' }
           ),
         }, { label: '深度驚悚' }),
+        ecology: fields.object({
+          label: fields.text({ label: '清單名稱', defaultValue: '生態復育' }),
+          icon: fields.text({ label: '圖示符號', defaultValue: '◉' }),
+          slugs: fields.array(
+            fields.relationship({ label: '故事', collection: 'stories' }),
+            { label: '故事清單', itemLabel: (props) => props.value ?? '（未選擇）' }
+          ),
+        }, { label: '生態復育' }),
+        emotion: fields.object({
+          label: fields.text({ label: '清單名稱', defaultValue: '情感科技' }),
+          icon: fields.text({ label: '圖示符號', defaultValue: '◎' }),
+          slugs: fields.array(
+            fields.relationship({ label: '故事', collection: 'stories' }),
+            { label: '故事清單', itemLabel: (props) => props.value ?? '（未選擇）' }
+          ),
+        }, { label: '情感科技' }),
       },
     }),
   },

@@ -53,9 +53,13 @@ const prevStory = currentIndex < sorted.length - 1 ? sorted[currentIndex + 1] : 
 const nextStory = currentIndex > 0 ? sorted[currentIndex - 1] : null;
 // All stories data for client-side list navigation
 const allStoriesData = sorted.map(s => ({ slug: s.slug, tags: s.data.tags, title: s.data.title }));
+import curatedData from '../../data/curated-lists.json';
+const _publishedSlugsSet = new Set(sorted.map(s => s.slug));
 const curatedListsData = [
-  { id: 'starter',  slugs: sorted.filter(s => s.data.level === 'public').slice(0, 5).map(s => s.slug) },
-  { id: 'thriller', slugs: sorted.filter(s => s.data.tags.some((t: string) => ['記憶科技','AI社會'].includes(t))).slice(0, 6).map(s => s.slug) },
+  { id: 'starter',  slugs: curatedData.starter.slugs.filter(s => s && _publishedSlugsSet.has(s)) },
+  { id: 'thriller', slugs: curatedData.thriller.slugs.filter(s => s && _publishedSlugsSet.has(s)) },
+  { id: 'ecology',  slugs: curatedData.ecology.slugs.filter(s => s && _publishedSlugsSet.has(s)) },
+  { id: 'emotion',  slugs: curatedData.emotion.slugs.filter(s => s && _publishedSlugsSet.has(s)) },
 ];
 
 // ─── Series navigation ───────────────────────────────────────
