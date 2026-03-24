@@ -9,7 +9,7 @@ export const prerender = true;
 <Layout title="關於作者 — 弦音異象" description="弦音異象的世界觀與創作歷程">
   <PageHeader active="about" />
 
-  <main style="padding-top: 56px;">
+  <main style="padding-top: 56px; overflow-x: hidden;">
     <div class="about-content">
       <div class="about-intro">
         <h2>深淵的凝視，<br><em class="hl">從未停止</em></h2>
@@ -118,9 +118,5 @@ export const prerender = true;
     font-size: 0.88rem;
     color: var(--text-dim);
     line-height: 1.8;
-  }
-  @media (max-width: 600px) {
-    .top-nav { display: none; }
-    header { padding: 0 10px; }
   }
 </style>

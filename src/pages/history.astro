@@ -108,7 +108,7 @@ export const prerender = true;
 </Layout>
 
 <style>
-  main { max-width: 760px; margin: 0 auto; padding: 60px 24px 80px; }
+  main { max-width: 760px; margin: 0 auto; padding: 60px 24px 80px; overflow-x: hidden; }
   .hist-wrap {}
   .hist-eyebrow { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; letter-spacing: 0.3em; color: var(--text-muted); margin-bottom: 16px; }
   h1 { font-family: 'Noto Serif TC', serif; font-size: clamp(1.8rem, 5vw, 2.8rem); font-weight: 900; color: var(--text); letter-spacing: 0.05em; margin-bottom: 12px; }
@@ -133,8 +133,4 @@ export const prerender = true;
   .redacted { background: var(--text-dim); color: transparent; cursor: pointer; border-radius: 2px; transition: all 0.3s; user-select: none; }
   .redacted:hover { background: transparent; color: var(--text-dim); }
 
-  @media (max-width: 480px) {
-    .top-nav { display: none; }
-    header { padding: 0 12px; }
-  }
 </style>

@@ -39,6 +39,7 @@ const { active } = Astro.props;
     padding: 0 16px;
     background: var(--bg);
     border-bottom: 1px solid var(--border);
+    overflow-x: hidden;
   }
   .logo-back {
     display: flex;
@@ -68,4 +69,9 @@ const { active } = Astro.props;
     white-space: nowrap;
   }
   .nav-a:hover, .nav-a.on { border-color: var(--border); color: var(--text); }
+
+  @media (max-width: 600px) {
+    header { padding: 0 12px; gap: 8px; }
+    .top-nav { display: none; }
+  }
 </style>
