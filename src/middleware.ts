@@ -11,8 +11,8 @@ export const onRequest = clerkMiddleware((auth, context) => {
 
   const { userId } = auth();
 
-  // Protect /member — must be logged in
-  if (pathname.startsWith('/member') && !userId) {
+  // Protect /member and /admin — must be logged in
+  if ((pathname.startsWith('/member') || pathname.startsWith('/admin')) && !userId) {
     return context.redirect('/sign-in?redirect_url=' + encodeURIComponent(pathname));
   }
 

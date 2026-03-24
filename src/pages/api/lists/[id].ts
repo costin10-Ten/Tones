@@ -56,7 +56,7 @@ export const PUT: APIRoute = async ({ locals, request, params }) => {
       slugs = [...slugs, ...toAdd];
     }
     if (Array.isArray(body.remove)) {
-      const removeSet = new Set(body.remove.filter((s): s is string => typeof s === 'string'));
+      const removeSet = new Set(body.remove.filter((s): s is string => typeof s === 'string' && SLUG_RE.test(s)));
       slugs = slugs.filter(s => !removeSet.has(s));
     }
   }

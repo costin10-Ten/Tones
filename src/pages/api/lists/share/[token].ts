@@ -4,9 +4,12 @@ import { supabase } from '../../../../lib/supabase';
 export const prerender = false;
 
 // ─── GET: 公開讀取分享清單（無需登入）──────────────────────
+// base64url chars only, 8 chars (randomBytes(6).toString('base64url'))
+const TOKEN_RE = /^[A-Za-z0-9_-]{8}$/;
+
 export const GET: APIRoute = async ({ params }) => {
   const { token } = params;
-  if (!token) return new Response('Not found', { status: 404 });
+  if (!token || !TOKEN_RE.test(token)) return new Response('Not found', { status: 404 });
 
   const { data, error } = await supabase
     .from('reading_lists')

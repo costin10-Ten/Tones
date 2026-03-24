@@ -344,10 +344,6 @@ const storyId = `story:${slug}`;
     };
   }
 
-  // ─── View counter ─────────────────────────────────────────
-  function sGet(k) { try { return localStorage.getItem(k); } catch(e) { return null; } }
-  function sSet(k, v) { try { localStorage.setItem(k, v); } catch(e) {} }
-
   // ─── List-context-aware prev/next ────────────────────────
   function resolvePool() {
     var params = new URLSearchParams(location.search);
