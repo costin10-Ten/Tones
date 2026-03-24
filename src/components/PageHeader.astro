@@ -3,7 +3,7 @@ import ThemeSwitcher from './ThemeSwitcher.astro';
 import { SignedIn, UserButton } from '@clerk/astro/components';
 
 interface Props {
-  active?: 'home' | 'stories' | 'about' | 'history';
+  active?: 'home' | 'stories' | 'about' | 'history' | 'investigate';
 }
 const { active } = Astro.props;
 ---
@@ -23,6 +23,7 @@ const { active } = Astro.props;
   </nav>
   <ThemeSwitcher />
   <SignedIn>
+    <a class={`nav-a${active === 'investigate' ? ' on' : ''}`} href="/investigate">調查室</a>
     <UserButton afterSignOutUrl="/" />
   </SignedIn>
 </header>
