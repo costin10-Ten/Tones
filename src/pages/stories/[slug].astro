@@ -500,14 +500,24 @@ const storyId = `story:${slug}`;
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ slug: currentSlug, action }),
     })
-      .then(r => r.json())
+      .then(r => {
+        // 401 on remove = anonymous user; revert the optimistic update
+        if (r.status === 401 && action === 'remove') {
+          liked = true;
+          globalTokens = Math.max(0, globalTokens + 1);
+          sSet('hz-liked:' + currentSlug, '1');
+          updateTokenUI();
+          return null;
+        }
+        return r.json();
+      })
       .then(data => {
-        if (data.tokens !== undefined) {
+        if (data && data.tokens !== undefined) {
           globalTokens = data.tokens;
           updateTokenUI();
         }
       })
-      .catch(() => {}); // keep optimistic update on error
+      .catch(() => {}); // keep optimistic update on network error
   });
 
   // ─── Reading progress bar + save ──────────────────────────
