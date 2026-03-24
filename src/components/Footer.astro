@@ -1,0 +1,68 @@
+---
+interface Props {
+  active?: 'home' | 'stories' | 'tags' | 'member';
+}
+const { active } = Astro.props;
+---
+
+<footer>
+  <div class="ft-logo">弦音<em>異象</em></div>
+  <nav class="ft-nav">
+    <a href="/" class={active === 'home' ? 'on' : ''}>首頁</a>
+    <span class="ft-sep">·</span>
+    <a href="/stories" class={active === 'stories' ? 'on' : ''}>卷宗</a>
+    <span class="ft-sep">·</span>
+    <a href="/tags" class={active === 'tags' ? 'on' : ''}>標籤</a>
+    <span class="ft-sep">·</span>
+    <a href="/member" class={active === 'member' ? 'on' : ''} data-astro-reload>會員</a>
+  </nav>
+  <div class="ft-txt">ANOMALY ARCHIVES · CLASSIFIED<br />一切皆為虛構，除非你相信。</div>
+</footer>
+
+<style>
+  footer {
+    text-align: center;
+    padding: 48px 24px;
+    border-top: 1px solid var(--border);
+  }
+  .ft-logo {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 1.2rem;
+    font-weight: 900;
+    color: var(--text);
+    letter-spacing: .1em;
+    margin-bottom: 14px;
+  }
+  .ft-logo em { color: var(--accent); font-style: normal; }
+  .ft-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .ft-nav a {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .65rem;
+    letter-spacing: .1em;
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 4px 8px;
+    transition: color .15s;
+    text-transform: uppercase;
+  }
+  .ft-nav a:hover, .ft-nav a.on { color: var(--accent); }
+  .ft-sep {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .6rem;
+    color: var(--border);
+  }
+  .ft-txt {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .65rem;
+    color: var(--text-muted);
+    letter-spacing: .1em;
+    line-height: 1.8;
+  }
+</style>
