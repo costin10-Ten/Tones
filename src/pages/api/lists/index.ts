@@ -1,7 +1,5 @@
 import type { APIRoute } from 'astro';
 import { supabase } from '../../../lib/supabase';
-import { randomBytes } from 'crypto';
-
 export const prerender = false;
 
 // ─── GET: 取得使用者所有清單 ──────────────────────────────
