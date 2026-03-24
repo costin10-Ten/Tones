@@ -770,18 +770,6 @@ img {
   border-radius: 3px;
 }
 
-.clues-badge {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 0.6rem;
-  padding: 0.15rem 0.45rem;
-  letter-spacing: 0.12em;
-  font-weight: 700;
-  background: rgba(91, 160, 200, 0.12);
-  color: #5ba0c8;
-  border: 1px solid rgba(91, 160, 200, 0.3);
-  border-radius: 3px;
-}
-
 .story-card.featured {
   border-color: rgba(212, 160, 23, 0.4);
   box-shadow: 0 0 0 1px rgba(212, 160, 23, 0.12);

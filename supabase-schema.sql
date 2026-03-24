@@ -143,33 +143,6 @@ create index if not exists reading_lists_user_idx on reading_lists (user_id);
 alter table reading_lists enable row level security;
 
 -- ============================================================
--- 線索系統（調查遊戲機制）
--- ============================================================
-
--- 線索發現紀錄（用戶閱讀故事後解鎖的線索）
-create table if not exists clue_discoveries (
-  clue_id       text not null,
-  user_id       text not null,
-  story_slug    text not null,
-  discovered_at timestamptz not null default now(),
-  primary key (clue_id, user_id)
-);
-create index if not exists clue_discoveries_user_idx on clue_discoveries (user_id);
-alter table clue_discoveries enable row level security;
-
--- 假設推理進度（用戶對每個跨故事假設的置信度）
-create table if not exists hypothesis_progress (
-  hypothesis_id text not null,
-  user_id       text not null,
-  confidence    integer not null default 0 check (confidence >= 0 and confidence <= 100),
-  status        text not null default 'locked' check (status in ('locked', 'partial', 'significant', 'confirmed')),
-  updated_at    timestamptz not null default now(),
-  primary key (hypothesis_id, user_id)
-);
-create index if not exists hypothesis_progress_user_idx on hypothesis_progress (user_id);
-alter table hypothesis_progress enable row level security;
-
--- ============================================================
 -- RLS Policies
 -- 所有 API routes 使用 service_role key（繞過 RLS）
 -- 以下 policy 用途：防止直接使用 anon key 存取敏感資料
@@ -218,11 +191,3 @@ create policy "reading_lists_deny_anon_update"
   on reading_lists for update using (false);
 create policy "reading_lists_deny_anon_delete"
   on reading_lists for delete using (false);
-
--- clue_discoveries：拒絕所有 anon 存取
-create policy "clue_discoveries_deny_anon"
-  on clue_discoveries using (false);
-
--- hypothesis_progress：拒絕所有 anon 存取
-create policy "hypothesis_progress_deny_anon"
-  on hypothesis_progress using (false);

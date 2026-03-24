@@ -118,45 +118,6 @@ export default config({
         featured: fields.checkbox({ label: '精選置頂', defaultValue: false }),
         series: fields.text({ label: '系列名稱（選填）' }),
         seriesOrder: fields.integer({ label: '系列順序（選填）' }),
-        clues: fields.array(
-          fields.object({
-            id: fields.text({ label: '線索 ID（格式：FILExxx-A01）' }),
-            type: fields.select({
-              label: '線索類型',
-              options: [
-                { label: '物證（Artifact）— 具體物品/數字/地點', value: 'artifact' },
-                { label: '證詞（Testimony）— 角色引語/對話', value: 'testimony' },
-                { label: '數位（Digital）— 檔案編號/系統日誌/時間戳', value: 'digital' },
-                { label: '文件（Documentary）— 官方文件/法規/報告', value: 'documentary' },
-              ],
-              defaultValue: 'artifact',
-            }),
-            content: fields.text({ label: '線索內容（玩家看到的敘述）', multiline: true }),
-            weight: fields.select({
-              label: '重要性權重',
-              options: [
-                { label: '1 — 次要細節', value: '1' },
-                { label: '2 — 重要線索', value: '2' },
-                { label: '3 — 關鍵證據', value: '3' },
-              ],
-              defaultValue: '1',
-            }),
-            isRedHerring: fields.checkbox({ label: '紅鯡魚（誤導線索）', defaultValue: false }),
-            linkedClues: fields.array(
-              fields.text({ label: '相關線索 ID' }),
-              { label: '關聯線索', itemLabel: (props) => props.value || '（未填）' }
-            ),
-            confirmsHypothesis: fields.array(
-              fields.text({ label: '假設 ID（如 HYPO-001）' }),
-              { label: '支持的假設', itemLabel: (props) => props.value || '（未填）' }
-            ),
-          }, { layout: [6, 6, 12, 4, 4, 12, 12] }),
-          {
-            label: '線索清單',
-            description: '每篇故事至少設定 2 條線索（1 條具體物證/文件 + 1 條需解讀的證詞/數位）。紅鯡魚比例建議 1/5。',
-            itemLabel: (props) => `[${props.fields.type.value.toUpperCase()}] ${props.fields.id.value || '新線索'}`,
-          }
-        ),
         content: fields.markdoc({
           label: '內容',
           extension: 'md',

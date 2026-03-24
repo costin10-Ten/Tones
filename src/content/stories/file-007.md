@@ -10,42 +10,6 @@ author: "弦音觀測者"
 vis: "v1"
 icon: "⊡"
 published: true
-clues:
-  - id: FILE007-A01
-    type: artifact
-    content: "第七區植物根系與人體神經系統教學圖像的相似度達 93.6%，且吻合樣本指向一份特定的醫學院解剖學教學檔案。"
-    weight: 3
-    isRedHerring: false
-    linkedClues:
-      - FILE003-A01
-    confirmsHypothesis:
-      - HYPO-003
-  - id: FILE007-D01
-    type: documentary
-    content: "2038-2041 年間的土地調查附錄記載：「地下層含有機殘留物，性質待確認，建議後續監測。」監測記錄在移植工程開始後即告中斷。"
-    weight: 2
-    isRedHerring: false
-    linkedClues:
-      - FILE007-A01
-    confirmsHypothesis:
-      - HYPO-003
-      - HYPO-004
-  - id: FILE007-C01
-    type: digital
-    content: "失蹤人口資料庫顯示該行政區在廢棄地時期有 13 起未結案失蹤案，其中兩起的最後位置定位點落在第七區範圍內。"
-    weight: 2
-    isRedHerring: false
-    linkedClues:
-      - FILE007-A01
-    confirmsHypothesis:
-      - HYPO-003
-  - id: FILE007-B01
-    type: testimony
-    content: "挖掘許可在申請後兩天內即獲核准，速度之快讓林怡如覺得奇怪——彷彿有人已經在等待這個申請。"
-    weight: 1
-    isRedHerring: true
-    linkedClues: []
-    confirmsHypothesis: []
 ---
 
 > 第七區植物根系掃描報告已封存。建議暫緩進一步挖掘，保持現有植株正常生長。——台北生態復育局，內部備忘錄

@@ -12,40 +12,6 @@ vis: v4
 icon: ○
 published: true
 featured: false
-clues:
-  - id: FILE001-D01
-    type: documentary
-    content: "神經連結使用條款第十七條附件C第四款明文規定：用戶之高情感指數記憶片段，可被授權予第三方平台進行匿名播送，並歸類為服務費用的一部分。"
-    weight: 3
-    isRedHerring: false
-    linkedClues: []
-    confirmsHypothesis:
-      - HYPO-002
-  - id: FILE001-A01
-    type: artifact
-    content: "林志翔的通勤記憶被評定為「A+級情感商品」，累計出租次數 8,423 次——全程在他不知情的狀況下發生。"
-    weight: 2
-    isRedHerring: false
-    linkedClues:
-      - FILE001-D01
-    confirmsHypothesis:
-      - HYPO-002
-  - id: FILE001-B01
-    type: testimony
-    content: "撤回授權時，系統主動提示：「您的情感品質評級為業界前 3%，撤回後將失去每月六百元的記憶紅利。」這是一道設計過的心理壓力。"
-    weight: 1
-    isRedHerring: false
-    linkedClues:
-      - FILE001-D01
-    confirmsHypothesis:
-      - HYPO-002
-  - id: FILE001-C01
-    type: digital
-    content: "「記憶市集」標籤頁存在於所有神經連結用戶的儀表板最底部，但需要主動滾動才能看見——介面設計讓大多數用戶永遠不會發現它。"
-    weight: 1
-    isRedHerring: true
-    linkedClues: []
-    confirmsHypothesis: []
 ---
 林志翔第一次發現這件事，是在公司的洗手間裡。
 

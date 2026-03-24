@@ -100,13 +100,7 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
       <!-- ─── Sign Out ─── -->
       <div class="signout-section">
         <a href="/" class="btn-ghost">[ 返回大廳 ]</a>
-        <a href="/investigate" class="btn-ghost">[ 調查室 ]</a>
         <div id="signOutBtn" class="btn-ghost danger">[ 登出系統 ]</div>
-      </div>
-
-      <!-- ─── Author Tools ─── -->
-      <div class="author-tools">
-        <a href="/keystatic" class="author-cms-link" target="_blank" rel="noopener">⊞ 後台 CMS</a>
       </div>
 
     </div>
@@ -598,22 +592,6 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
   }
   .btn-ghost:hover { border-color: var(--text); color: var(--bg); background: var(--text); }
   .btn-ghost.danger:hover { border-color: var(--danger); color: var(--danger); background: transparent; }
-
-  /* ─── Author tools ─── */
-  .author-tools {
-    margin-top: 24px;
-    text-align: right;
-  }
-  .author-cms-link {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: .6rem;
-    letter-spacing: .1em;
-    color: var(--text-muted);
-    text-decoration: none;
-    padding: 4px 10px;
-    border: 1px solid var(--border);
-  }
-  .author-cms-link:hover { color: var(--text); border-color: var(--text-muted); }
 
   /* ─── Hide-read button ─── */
   .hide-read-btn {

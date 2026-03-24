@@ -13,7 +13,6 @@ interface Props {
   views?: number;
   tokens?: number;
   featured?: boolean;
-  hasClues?: boolean;
 }
 
 const {
@@ -30,7 +29,6 @@ const {
   views = 0,
   tokens = 0,
   featured = false,
-  hasClues = false,
 } = Astro.props;
 
 const levelLabel: Record<string, string> = {
@@ -57,7 +55,6 @@ const levelClass: Record<string, string> = {
         {levelLabel[level] ?? level}
       </span>
       {featured && <span class="featured-badge">★ 精選</span>}
-      {hasClues && <span class="clues-badge" title="此故事含有調查線索">🔍 線索</span>}
     </div>
     <span class="card-icon" aria-hidden="true">{icon}</span>
   </div>
