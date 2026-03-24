@@ -514,6 +514,38 @@ const storyId = `story:${slug}`;
   let progressSaveTimer = null;
   let lastSavedPct = parseInt(sGet('hz-progress:' + currentSlug) || '0', 10);
 
+  // Clue discovery: triggered once per story per session when ≥60% read
+  const clueDiscoverKey = 'hz-clues-discovered:' + currentSlug;
+  let clueDiscovered = sGet(clueDiscoverKey) === '1';
+
+  function showClueToast(count: number) {
+    const toast = document.createElement('div');
+    toast.className = 'clue-toast';
+    toast.innerHTML = `🔍 發現 <strong>${count}</strong> 條線索 — <a href="/investigate">前往調查室</a>`;
+    document.body.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('visible'));
+    setTimeout(() => {
+      toast.classList.remove('visible');
+      setTimeout(() => toast.remove(), 400);
+    }, 5000);
+  }
+
+  function discoverClues() {
+    if (clueDiscovered) return;
+    clueDiscovered = true;
+    sSet(clueDiscoverKey, '1');
+    fetch('/api/clues/discover', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug: currentSlug }),
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.discovered > 0) showClueToast(data.discovered);
+      })
+      .catch(() => {});
+  }
+
   function saveProgress(pct) {
     sSet('hz-progress:' + currentSlug, String(pct));
     // Fire-and-forget for logged-in users; 401 for anonymous is silently ignored
@@ -522,11 +554,20 @@ const storyId = `story:${slug}`;
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ slug: currentSlug, pct }),
     }).catch(() => {});
+    // Trigger clue discovery at 60% progress
+    if (pct >= 60) discoverClues();
   }
+
+  // If already read past 60% in a previous session, discover immediately
+  if (lastSavedPct >= 60) discoverClues();
 
   window.addEventListener('scroll', () => {
     const docH = document.documentElement.scrollHeight - window.innerHeight;
     const pct = docH > 0 ? Math.round(window.scrollY / docH * 100) : 0;
+
+    // Update visual progress bar
+    const progressEl = document.getElementById('progress');
+    if (progressEl) progressEl.style.width = pct + '%';
 
     if (Math.abs(pct - lastSavedPct) >= 5) {
       clearTimeout(progressSaveTimer);
@@ -1451,4 +1492,36 @@ const storyId = `story:${slug}`;
     transition: all .18s;
   }
   .comment-login-btn:hover { background: var(--accent); color: var(--bg); }
+
+  /* ─── Clue discovery toast ─── */
+  .clue-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-left: 3px solid var(--accent);
+    padding: 12px 20px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .75rem;
+    color: var(--text);
+    letter-spacing: .06em;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity .3s ease, transform .3s ease;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .clue-toast.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+  }
+  .clue-toast a {
+    color: var(--accent);
+    text-decoration: none;
+    margin-left: 4px;
+  }
+  .clue-toast a:hover { text-decoration: underline; }
 </style>

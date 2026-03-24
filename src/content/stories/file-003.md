@@ -10,6 +10,35 @@ author: "弦音觀測者"
 vis: "v1"
 icon: "◎"
 published: true
+clues:
+  - id: FILE003-C01
+    type: digital
+    content: "B17層工單在系統中有效執行，但任務完成後，所有相關記錄從工單系統中完全消失——不是標記為已完成，是徹底不存在。"
+    weight: 3
+    isRedHerring: false
+    linkedClues:
+      - FILE003-A01
+    confirmsHypothesis:
+      - HYPO-001
+      - HYPO-004
+  - id: FILE003-A01
+    type: artifact
+    content: "B17層軌道的鋼軌光澤度顯示近一兩年才鋪設，但其軌距寬度與台北現有捷運系統完全不相容——是為另一種未知車輛設計的。"
+    weight: 3
+    isRedHerring: false
+    linkedClues:
+      - FILE003-C01
+    confirmsHypothesis:
+      - HYPO-001
+      - HYPO-003
+  - id: FILE003-B01
+    type: testimony
+    content: "謝建宏在異常報告欄位留白，選擇不記錄任何異常——一個在系統中工作了十一年的老員工，做出了沉默的選擇。"
+    weight: 1
+    isRedHerring: false
+    linkedClues: []
+    confirmsHypothesis:
+      - HYPO-004
 ---
 
 > 工單資料已確認，B17層：有效。——台北地下城捷運維修派遣系統，自動回覆

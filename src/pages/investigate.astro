@@ -1,0 +1,627 @@
+---
+import Layout from '../layouts/Layout.astro';
+import PageHeader from '../components/PageHeader.astro';
+
+export const prerender = false;
+
+const userId = Astro.locals.auth?.()?.userId ?? null;
+if (!userId) {
+  return Astro.redirect('/sign-in?redirect_url=/investigate');
+}
+---
+
+<Layout
+  title="調查室 — 弦音異象"
+  description="整理你發現的線索，推演世界背後的真相。"
+>
+  <PageHeader />
+
+  <main class="inv-main">
+    <div class="inv-wrap">
+
+      <!-- ─── Header ─── -->
+      <div class="inv-header">
+        <div class="inv-tag">INVESTIGATION BOARD · CLASSIFIED</div>
+        <h1 class="inv-title">觀測者調查室</h1>
+        <p class="inv-subtitle">每讀一篇故事，便解鎖一批線索。交叉比對，才能看見真相的輪廓。</p>
+      </div>
+
+      <!-- ─── Stats bar ─── -->
+      <div class="inv-stats-bar">
+        <div class="inv-stat">
+          <span class="inv-stat-num skeleton" id="statClues">—</span>
+          <span class="inv-stat-lbl">已發現線索</span>
+        </div>
+        <div class="inv-stat">
+          <span class="inv-stat-num skeleton" id="statHypo">—</span>
+          <span class="inv-stat-lbl">推進中假設</span>
+        </div>
+        <div class="inv-stat">
+          <span class="inv-stat-num skeleton" id="statConfirmed">—</span>
+          <span class="inv-stat-lbl">已確認假設</span>
+        </div>
+      </div>
+
+      <!-- ─── Hypotheses ─── -->
+      <div class="sec-hd"><div class="sec-title">推理假設</div></div>
+      <div class="hypo-grid" id="hypoGrid">
+        <!-- Rendered by JS -->
+        <div class="hypo-loading">載入調查資料中…</div>
+      </div>
+
+      <!-- ─── Clue Board ─── -->
+      <div class="sec-hd" style="margin-top:48px">
+        <div class="sec-title">已發現線索</div>
+        <div class="clue-filter-tabs" id="clueFilterTabs">
+          <button class="filter-tab active" data-filter="all">全部</button>
+          <button class="filter-tab" data-filter="artifact">物證</button>
+          <button class="filter-tab" data-filter="testimony">證詞</button>
+          <button class="filter-tab" data-filter="digital">數位</button>
+          <button class="filter-tab" data-filter="documentary">文件</button>
+        </div>
+      </div>
+      <div class="clue-grid" id="clueGrid">
+        <!-- Rendered by JS -->
+        <div class="clue-empty" id="clueEmpty" style="display:none">
+          尚未發現任何線索。繼續閱讀故事，線索將逐一出現。
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer>
+    <div class="ft-logo">弦音<em>異象</em></div>
+    <nav class="ft-nav">
+      <a href="/">首頁</a>
+      <span class="ft-sep">·</span>
+      <a href="/stories">卷宗</a>
+      <span class="ft-sep">·</span>
+      <a href="/investigate">調查室</a>
+      <span class="ft-sep">·</span>
+      <a href="/member">會員</a>
+    </nav>
+    <div class="ft-txt">ANOMALY ARCHIVES · CLASSIFIED<br>一切皆為虛構，除非你相信。</div>
+  </footer>
+</Layout>
+
+<script>
+  const TYPE_LABEL: Record<string, string> = {
+    artifact:    '物證',
+    testimony:   '證詞',
+    digital:     '數位',
+    documentary: '文件',
+  };
+  const TYPE_ICON: Record<string, string> = {
+    artifact:    '◈',
+    testimony:   '◉',
+    digital:     '⊡',
+    documentary: '⊞',
+  };
+
+  let currentFilter = 'all';
+  let allClues: unknown[] = [];
+
+  async function loadProgress() {
+    let data: {
+      discoveredClues: Array<{
+        id: string; type: string; content: string; weight: number;
+        isRedHerring: boolean; sourceFile: string; storyTitle: string;
+        storySlug: string; discoveredAt: string;
+      }>;
+      totalDiscovered: number;
+      hypotheses: Array<{
+        id: string; title: string; description: string; type: string;
+        confidence: number; status: string;
+        thresholds: { partial: number; significant: number; confirmed: number };
+        rewardOnConfirm: string; rewardId: string | null; updatedAt: string | null;
+      }>;
+    };
+
+    try {
+      const r = await fetch('/api/clues/progress');
+      if (!r.ok) throw new Error(String(r.status));
+      data = await r.json();
+    } catch (_) {
+      document.getElementById('hypoGrid')!.innerHTML =
+        '<div class="hypo-loading">無法載入資料，請重新整理頁面。</div>';
+      return;
+    }
+
+    allClues = data.discoveredClues;
+
+    // ── Stats bar ──
+    const activeHypo = data.hypotheses.filter(h => h.confidence > 0 && h.status !== 'confirmed').length;
+    const confirmed  = data.hypotheses.filter(h => h.status === 'confirmed').length;
+
+    const elClues     = document.getElementById('statClues');
+    const elHypo      = document.getElementById('statHypo');
+    const elConfirmed = document.getElementById('statConfirmed');
+    if (elClues)     { elClues.textContent     = String(data.totalDiscovered); elClues.classList.remove('skeleton'); }
+    if (elHypo)      { elHypo.textContent      = String(activeHypo);           elHypo.classList.remove('skeleton'); }
+    if (elConfirmed) { elConfirmed.textContent = String(confirmed);             elConfirmed.classList.remove('skeleton'); }
+
+    renderHypotheses(data.hypotheses);
+    renderClues(data.discoveredClues);
+  }
+
+  function statusLabel(status: string, confidence: number): string {
+    if (status === 'confirmed')   return '確認';
+    if (status === 'significant') return '顯著';
+    if (status === 'partial')     return '部分吻合';
+    if (confidence > 0)           return '追蹤中';
+    return '未啟動';
+  }
+
+  function renderHypotheses(hypotheses: Array<{
+    id: string; title: string; description: string; type: string;
+    confidence: number; status: string;
+    thresholds: { partial: number; significant: number; confirmed: number };
+    rewardOnConfirm: string; rewardId: string | null;
+  }>) {
+    const grid = document.getElementById('hypoGrid');
+    if (!grid) return;
+
+    if (hypotheses.length === 0) {
+      grid.innerHTML = '<div class="hypo-loading">還沒有假設資料。</div>';
+      return;
+    }
+
+    grid.innerHTML = hypotheses.map(h => {
+      const isMain      = h.type === 'main';
+      const isConfirmed = h.status === 'confirmed';
+      const label       = statusLabel(h.status, h.confidence);
+
+      const barClass = isConfirmed ? 'confirmed' :
+                       h.status === 'significant' ? 'significant' :
+                       h.status === 'partial' ? 'partial' : '';
+
+      const markers = [
+        { pct: h.thresholds.partial,     label: '部分' },
+        { pct: h.thresholds.significant, label: '顯著' },
+        { pct: h.thresholds.confirmed,   label: '確認' },
+      ];
+
+      const markerHtml = markers.map(m =>
+        `<div class="conf-marker" style="left:${m.pct}%">
+           <div class="conf-marker-line"></div>
+           <div class="conf-marker-lbl">${m.label}</div>
+         </div>`
+      ).join('');
+
+      const rewardHtml = isConfirmed && h.rewardId
+        ? `<div class="hypo-reward">⊛ 已解鎖：${h.rewardOnConfirm === 'badge' ? '特殊徽章' : '隱藏故事'}</div>`
+        : '';
+
+      return `<div class="hypo-card${isConfirmed ? ' confirmed' : ''}${!isMain ? ' sub' : ''}">
+        <div class="hypo-head">
+          <span class="hypo-type-badge">${isMain ? '主線' : '支線'}</span>
+          <span class="hypo-status ${barClass}">${label}</span>
+        </div>
+        <div class="hypo-title">${h.title}</div>
+        <div class="hypo-desc">${h.description}</div>
+        <div class="conf-wrap">
+          <div class="conf-track">
+            <div class="conf-bar ${barClass}" style="width:${h.confidence}%"></div>
+            ${markerHtml}
+          </div>
+          <div class="conf-pct">${h.confidence}<span class="conf-pct-unit">%</span></div>
+        </div>
+        ${rewardHtml}
+        ${!isMain ? `<div class="hypo-sub-note">支線謎題 — 可自由詮釋，置信度達 100% 時解鎖獎勵</div>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  function renderClues(clues: Array<{
+    id: string; type: string; content: string; weight: number;
+    isRedHerring: boolean; sourceFile: string; storyTitle: string;
+    storySlug: string; discoveredAt: string;
+  }>, filter = 'all') {
+    const grid  = document.getElementById('clueGrid');
+    const empty = document.getElementById('clueEmpty');
+    if (!grid || !empty) return;
+
+    const filtered = filter === 'all' ? clues : clues.filter(c => c.type === filter);
+
+    if (filtered.length === 0) {
+      grid.innerHTML = '';
+      empty.style.display = '';
+      return;
+    }
+
+    empty.style.display = 'none';
+    grid.innerHTML = filtered.map(c => {
+      const stars  = '◆'.repeat(c.weight) + '◇'.repeat(3 - c.weight);
+      const isRed  = c.isRedHerring;
+      const date   = new Date(c.discoveredAt).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' });
+
+      return `<div class="clue-card${isRed ? ' red-herring' : ''}" data-type="${c.type}">
+        <div class="clue-head">
+          <span class="clue-type-badge" data-type="${c.type}">${TYPE_ICON[c.type] ?? '◇'} ${TYPE_LABEL[c.type] ?? c.type}</span>
+          <span class="clue-weight" title="重要性">${stars}</span>
+        </div>
+        <div class="clue-content">${c.content}</div>
+        <div class="clue-foot">
+          <a href="/stories/${c.storySlug}" class="clue-source">${c.sourceFile} — ${c.storyTitle}</a>
+          <span class="clue-date">${date}</span>
+        </div>
+        ${isRed ? '<div class="clue-red-flag">⚠ 存疑線索</div>' : ''}
+      </div>`;
+    }).join('');
+  }
+
+  // ── Filter tabs ──
+  document.getElementById('clueFilterTabs')?.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.filter-tab');
+    if (!btn) return;
+    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter ?? 'all';
+    renderClues(allClues as Parameters<typeof renderClues>[0], currentFilter);
+  });
+
+  loadProgress();
+</script>
+
+<style>
+  /* ─── Layout ─────────────────────────────────────── */
+  .inv-main {
+    min-height: 100vh;
+    background: var(--bg);
+  }
+  .inv-wrap {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 48px 24px 100px;
+  }
+
+  /* ─── Header ─── */
+  .inv-header {
+    margin-bottom: 40px;
+  }
+  .inv-tag {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .6rem;
+    letter-spacing: .25em;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  .inv-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 1.6rem;
+    font-weight: 900;
+    color: var(--text);
+    margin: 0 0 10px;
+    letter-spacing: .04em;
+  }
+  .inv-subtitle {
+    font-size: .85rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  /* ─── Stats bar ─── */
+  .inv-stats-bar {
+    display: flex;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin-bottom: 40px;
+  }
+  .inv-stat {
+    flex: 1;
+    background: var(--surface);
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .inv-stat-num {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.6rem;
+    color: var(--accent);
+    font-weight: bold;
+  }
+  .inv-stat-lbl {
+    font-size: .65rem;
+    letter-spacing: .15em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-family: 'Share Tech Mono', monospace;
+  }
+  .skeleton {
+    animation: skeletonPulse 1.4s infinite;
+    color: transparent !important;
+    background: var(--border);
+    border-radius: 2px;
+    user-select: none;
+    min-width: 2ch;
+    display: inline-block;
+  }
+  @keyframes skeletonPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .4; }
+  }
+
+  /* ─── Section header ─── */
+  .sec-hd {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .sec-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .65rem;
+    letter-spacing: .25em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+
+  /* ─── Hypotheses ─── */
+  .hypo-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .hypo-loading {
+    color: var(--text-muted);
+    font-size: .85rem;
+    padding: 24px 0;
+  }
+  .hypo-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border);
+    padding: 20px 24px;
+    transition: border-color .2s;
+  }
+  .hypo-card.confirmed {
+    border-left-color: var(--accent);
+  }
+  .hypo-card.sub {
+    opacity: .9;
+  }
+  .hypo-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .hypo-type-badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .55rem;
+    letter-spacing: .15em;
+    padding: 3px 8px;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+  .hypo-status {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .6rem;
+    letter-spacing: .1em;
+    color: var(--text-muted);
+  }
+  .hypo-status.confirmed   { color: var(--accent); }
+  .hypo-status.significant { color: #c8a84b; }
+  .hypo-status.partial     { color: #7aaa7a; }
+
+  .hypo-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+    letter-spacing: .03em;
+  }
+  .hypo-desc {
+    font-size: .8rem;
+    color: var(--text-muted);
+    line-height: 1.65;
+    margin-bottom: 16px;
+  }
+
+  /* Confidence bar */
+  .conf-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .conf-track {
+    flex: 1;
+    height: 6px;
+    background: var(--bg2);
+    position: relative;
+    overflow: visible;
+  }
+  .conf-bar {
+    height: 100%;
+    background: var(--border);
+    transition: width .6s ease;
+  }
+  .conf-bar.partial     { background: #7aaa7a; }
+  .conf-bar.significant { background: #c8a84b; }
+  .conf-bar.confirmed   { background: var(--accent); }
+
+  .conf-marker {
+    position: absolute;
+    top: -4px;
+    transform: translateX(-50%);
+  }
+  .conf-marker-line {
+    width: 1px;
+    height: 14px;
+    background: var(--border);
+    margin: 0 auto;
+  }
+  .conf-marker-lbl {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .48rem;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: 2px;
+    white-space: nowrap;
+    transform: translateX(-50%);
+    position: absolute;
+    left: 0;
+  }
+  .conf-pct {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .9rem;
+    color: var(--text);
+    min-width: 3.5ch;
+    text-align: right;
+  }
+  .conf-pct-unit { font-size: .6rem; color: var(--text-muted); }
+
+  .hypo-reward {
+    margin-top: 14px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .65rem;
+    color: var(--accent);
+    letter-spacing: .1em;
+  }
+  .hypo-sub-note {
+    margin-top: 10px;
+    font-size: .7rem;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  /* ─── Clue filter tabs ─── */
+  .clue-filter-tabs {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .filter-tab {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 5px 14px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .6rem;
+    letter-spacing: .1em;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .filter-tab:hover { border-color: var(--text-muted); color: var(--text); }
+  .filter-tab.active { border-color: var(--accent); color: var(--accent); background: var(--surface); }
+
+  /* ─── Clue grid ─── */
+  .clue-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+  }
+  .clue-empty {
+    grid-column: 1 / -1;
+    color: var(--text-muted);
+    font-size: .85rem;
+    padding: 32px 0;
+    text-align: center;
+  }
+  .clue-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 16px;
+    position: relative;
+    transition: border-color .15s;
+  }
+  .clue-card:hover { border-color: var(--text-muted); }
+  .clue-card.red-herring {
+    opacity: .7;
+    border-style: dashed;
+  }
+  .clue-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .clue-type-badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .55rem;
+    letter-spacing: .1em;
+    padding: 3px 8px;
+    border: 1px solid var(--border);
+  }
+  .clue-type-badge[data-type="artifact"]    { color: #c8a84b; border-color: #c8a84b44; }
+  .clue-type-badge[data-type="testimony"]   { color: #9b7fd4; border-color: #9b7fd444; }
+  .clue-type-badge[data-type="digital"]     { color: #5ba0c8; border-color: #5ba0c844; }
+  .clue-type-badge[data-type="documentary"] { color: #7aaa7a; border-color: #7aaa7a44; }
+
+  .clue-weight {
+    font-size: .6rem;
+    letter-spacing: .05em;
+    color: var(--accent);
+    font-family: 'Share Tech Mono', monospace;
+  }
+  .clue-content {
+    font-size: .82rem;
+    line-height: 1.65;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+  .clue-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+  }
+  .clue-source {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .58rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    letter-spacing: .05em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .clue-source:hover { color: var(--accent); }
+  .clue-date {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .55rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+  .clue-red-flag {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .5rem;
+    color: #c87a5b;
+    letter-spacing: .05em;
+  }
+
+  /* ─── Footer ─── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 48px 24px 40px;
+    text-align: center;
+    max-width: 820px;
+    margin: 0 auto;
+  }
+  .ft-logo { font-family: 'Noto Serif TC', serif; font-size: .9rem; font-weight: 900; margin-bottom: 16px; color: var(--text); }
+  .ft-logo em { color: var(--accent); font-style: normal; }
+  .ft-nav { display: flex; justify-content: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .ft-nav a { font-size: .75rem; color: var(--text-muted); text-decoration: none; }
+  .ft-nav a:hover { color: var(--text); }
+  .ft-sep { color: var(--border); font-size: .75rem; }
+  .ft-txt { font-size: .65rem; color: var(--text-muted); letter-spacing: .1em; line-height: 1.8; font-family: 'Share Tech Mono', monospace; }
+
+  @media (max-width: 480px) {
+    .inv-stats-bar { flex-direction: column; gap: 0; }
+    .inv-stat { padding: 14px 16px; }
+    .hypo-card { padding: 16px; }
+  }
+</style>

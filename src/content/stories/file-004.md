@@ -10,6 +10,34 @@ author: "弦音觀測者"
 vis: "v1"
 icon: "◇"
 published: true
+clues:
+  - id: FILE004-A01
+    type: artifact
+    content: "大樓房屋謄本顯示每層樓面積，比實際走廊測量多出約 15 平方公尺——這段空間在任何官方文件中都沒有使用記錄。"
+    weight: 2
+    isRedHerring: false
+    linkedClues:
+      - FILE003-A01
+    confirmsHypothesis:
+      - HYPO-001
+      - HYPO-003
+  - id: FILE004-D01
+    type: documentary
+    content: "管委會紀錄顯示，大樓設計原規劃每層 A 至 F 共六個單位，施工中途以「結構優化」為由將 F 戶打除，所有 F 戶圖紙已移除且未留存。"
+    weight: 3
+    isRedHerring: false
+    linkedClues:
+      - FILE003-C01
+    confirmsHypothesis:
+      - HYPO-001
+      - HYPO-004
+  - id: FILE004-B01
+    type: testimony
+    content: "空白租約的「房東名稱欄」手寫了「自己」兩字，用橡皮擦擦去的壓痕文字寫著：「我一直都住在這裡。」"
+    weight: 1
+    isRedHerring: false
+    linkedClues: []
+    confirmsHypothesis: []
 ---
 
 > 空間不曾消失。只是不再對所有人開放。——台北市建築謄本異常案件備查資料
