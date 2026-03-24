@@ -1068,12 +1068,13 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
       }
     }
 
-    // Retry until Clerk is available
+    // Retry until Clerk is available AND auth state is resolved (user !== undefined)
     let authRetries = 0;
     function waitForClerk() {
       // @ts-ignore
-      if (window.Clerk?.loaded) { applyAuthState(); return; }
-      if (authRetries++ < 20) setTimeout(waitForClerk, 300);
+      const c = window.Clerk;
+      if (c?.loaded && c.user !== undefined) { applyAuthState(); return; }
+      if (authRetries++ < 30) setTimeout(waitForClerk, 200);
     }
     waitForClerk();
   }
@@ -1104,16 +1105,16 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
   // Check Clerk login state then load lists + member stats
   async function maybeSbLists() {
     try {
+      // Wait for Clerk loaded AND auth state resolved (user !== undefined means session is known)
       await new Promise<void>(res => {
         // @ts-ignore
-        if (window.Clerk?.loaded) { res(); return; }
-        let n = 0; const t = setInterval(() => {
-          // @ts-ignore
-          if (window.Clerk?.loaded || ++n > 20) { clearInterval(t); res(); }
-        }, 200);
+        const check = () => { const c = window.Clerk; if (c?.loaded && c.user !== undefined) res(); };
+        check();
+        // @ts-ignore
+        let n = 0; const t = setInterval(() => { check(); if (++n > 30) { clearInterval(t); res(); } }, 200);
       });
       // @ts-ignore
-      if (!(await window.Clerk?.user)) return;
+      if (!window.Clerk?.user) return; // null = not signed in
       // Mark logged-in so other client code can read it
       const meta = document.getElementById('hp-meta');
       if (meta) meta.dataset.loggedIn = 'true';

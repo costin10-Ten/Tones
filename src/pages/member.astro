@@ -249,12 +249,14 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
     }
 
     // @ts-ignore
-    if (window.Clerk?.loaded) { applyName(); return; }
+    const c0 = window.Clerk;
+    if (c0?.loaded && c0.user !== undefined) { applyName(); return; }
 
     let retries = 0;
     const t = setInterval(() => {
       // @ts-ignore
-      if (window.Clerk?.loaded || ++retries > 25) {
+      const c = window.Clerk;
+      if ((c?.loaded && c.user !== undefined) || ++retries > 30) {
         clearInterval(t);
         if (!applyName()) {
           const nameEl = document.getElementById('memberName');
