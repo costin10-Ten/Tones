@@ -4,9 +4,9 @@ fileNum: FILE-102
 date: 2036.3.22
 readTime: 7分鐘
 tags:
+  - 情感科技
   - 心理驚悚
   - 親情
-  - 情感科技
 level: public
 excerpt: 他在雨中反覆繞路，油箱見底也不熄火。他不是迷路，只要車子不停，他就能假裝這場夢不必醒。
 author: 弦音觀測者
