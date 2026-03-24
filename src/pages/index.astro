@@ -330,6 +330,7 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
             icon={story.data.icon}
             slug={story.slug}
             featured={story.data.featured}
+            hasClues={story.data.clues.length > 0}
           />
         ))}
       </div>

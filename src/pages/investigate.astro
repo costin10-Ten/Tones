@@ -49,6 +49,60 @@ if (!userId) {
         <div class="hypo-loading">載入調查資料中…</div>
       </div>
 
+      <!-- ─── Onboarding Guide (shown until first clue discovered) ─── -->
+      <div class="onboard-guide" id="onboardGuide">
+        <div class="onboard-head">
+          <span class="onboard-tag">GETTING STARTED · 調查指引</span>
+          <h2 class="onboard-title">如何開始調查？</h2>
+        </div>
+        <div class="onboard-steps">
+          <div class="onboard-step">
+            <span class="step-num">01</span>
+            <div class="step-body">
+              <div class="step-title">閱讀含有線索的故事</div>
+              <div class="step-desc">以下卷宗包含可分析的線索，閱讀至 60% 進度時線索自動解鎖</div>
+              <div class="story-links">
+                <a href="/stories/file-001" class="story-link">
+                  <span class="story-link-file">FILE-001</span>
+                  <span class="story-link-title">通勤記憶出租記</span>
+                  <span class="story-link-badge">4 條線索</span>
+                </a>
+                <a href="/stories/file-003" class="story-link">
+                  <span class="story-link-file">FILE-003</span>
+                  <span class="story-link-title">B17層的維修員</span>
+                  <span class="story-link-badge">3 條線索</span>
+                </a>
+                <a href="/stories/file-004" class="story-link">
+                  <span class="story-link-file">FILE-004</span>
+                  <span class="story-link-title">錯誤的門號</span>
+                  <span class="story-link-badge">3 條線索</span>
+                </a>
+                <a href="/stories/file-007" class="story-link">
+                  <span class="story-link-file">FILE-007</span>
+                  <span class="story-link-title">仿生根系</span>
+                  <span class="story-link-badge">4 條線索</span>
+                </a>
+              </div>
+            </div>
+          </div>
+          <div class="onboard-step">
+            <span class="step-num">02</span>
+            <div class="step-body">
+              <div class="step-title">回到調查室，比對線索</div>
+              <div class="step-desc">解鎖的線索會出現在下方線索板。不同故事的線索可能互相印證，也可能是誤導。</div>
+            </div>
+          </div>
+          <div class="onboard-step">
+            <span class="step-num">03</span>
+            <div class="step-body">
+              <div class="step-title">推演假設，達成確認</div>
+              <div class="step-desc">累積足夠線索後，假設置信度提升至 100% 將解鎖隱藏獎勵。主線謎題有固定解答，支線謎題開放詮釋。</div>
+            </div>
+          </div>
+        </div>
+        <div class="onboard-note">⊡ 提示：出現「🔍 線索」標記的故事卡片，代表含有可分析的調查線索。</div>
+      </div>
+
       <!-- ─── Clue Board ─── -->
       <div class="sec-hd" style="margin-top:48px">
         <div class="sec-title">已發現線索</div>
@@ -129,6 +183,12 @@ if (!userId) {
     }
 
     allClues = data.discoveredClues;
+
+    // ── Onboarding: hide guide once user has clues ──
+    if (data.totalDiscovered > 0) {
+      const guide = document.getElementById('onboardGuide');
+      if (guide) guide.style.display = 'none';
+    }
 
     // ── Stats bar ──
     const activeHypo = data.hypotheses.filter(h => h.confidence > 0 && h.status !== 'confirmed').length;
@@ -491,6 +551,112 @@ if (!userId) {
     font-size: .7rem;
     color: var(--text-muted);
     font-style: italic;
+  }
+
+  /* ─── Onboarding Guide ─── */
+  .onboard-guide {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    padding: 28px 28px 24px;
+    margin-bottom: 48px;
+  }
+  .onboard-head {
+    margin-bottom: 24px;
+  }
+  .onboard-tag {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .55rem;
+    letter-spacing: .2em;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 8px;
+  }
+  .onboard-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0;
+    letter-spacing: .03em;
+  }
+  .onboard-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+  .onboard-step {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  .step-num {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .65rem;
+    color: var(--accent);
+    letter-spacing: .1em;
+    flex-shrink: 0;
+    padding-top: 2px;
+    min-width: 2.5ch;
+  }
+  .step-title {
+    font-size: .88rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+    letter-spacing: .02em;
+  }
+  .step-desc {
+    font-size: .78rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+  .story-links {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 12px;
+  }
+  .story-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    text-decoration: none;
+    transition: border-color .15s;
+  }
+  .story-link:hover { border-color: var(--accent); }
+  .story-link-file {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .6rem;
+    color: var(--text-muted);
+    letter-spacing: .08em;
+    min-width: 7ch;
+  }
+  .story-link-title {
+    font-size: .82rem;
+    color: var(--text);
+    flex: 1;
+  }
+  .story-link-badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .55rem;
+    color: #5ba0c8;
+    letter-spacing: .05em;
+    background: rgba(91,160,200,.1);
+    border: 1px solid rgba(91,160,200,.25);
+    padding: 2px 7px;
+  }
+  .onboard-note {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .62rem;
+    color: var(--text-muted);
+    letter-spacing: .08em;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
   }
 
   /* ─── Clue filter tabs ─── */
