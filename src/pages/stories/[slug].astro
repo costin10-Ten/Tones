@@ -490,6 +490,8 @@ const storyId = `story:${slug}`;
 
   document.getElementById('tokenBtn')?.addEventListener('click', () => {
     const action = liked ? 'remove' : 'add';
+    const prevLiked = liked;
+    const prevTokens = globalTokens;
     liked = !liked;
     globalTokens = Math.max(0, globalTokens + (liked ? 1 : -1));
     sSet('hz-liked:' + currentSlug, liked ? '1' : '0');
@@ -501,11 +503,11 @@ const storyId = `story:${slug}`;
       body: JSON.stringify({ slug: currentSlug, action }),
     })
       .then(r => {
-        // 401 on remove = anonymous user; revert the optimistic update
+        // 401 on remove = anonymous user; restore exact pre-click state
         if (r.status === 401 && action === 'remove') {
-          liked = true;
-          globalTokens = Math.max(0, globalTokens + 1);
-          sSet('hz-liked:' + currentSlug, '1');
+          liked = prevLiked;
+          globalTokens = prevTokens;
+          sSet('hz-liked:' + currentSlug, liked ? '1' : '0');
           updateTokenUI();
           return null;
         }

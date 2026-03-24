@@ -1,50 +1,14 @@
 import type { APIRoute } from 'astro';
 import { supabase } from '../../../lib/supabase';
+import { createRateLimiter } from '../../../lib/rate-limit';
 
 export const prerender = false;
 
 const VALID_ACTIONS = new Set(['add', 'remove']);
 const SLUG_RE = /^[a-z0-9-]+$/;
 
-// Per-IP rate limit for anonymous token actions: max 20 per minute
-const ANON_TOKEN_LIMIT = 20;
-const ANON_TOKEN_WINDOW_MS = 60_000;
-const anonTokenTimestamps = new Map<string, number[]>();
-
-function isAnonRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const cutoff = now - ANON_TOKEN_WINDOW_MS;
-  const times = (anonTokenTimestamps.get(ip) ?? []).filter(t => t > cutoff);
-  if (times.length >= ANON_TOKEN_LIMIT) return true;
-  times.push(now);
-  anonTokenTimestamps.set(ip, times);
-  if (anonTokenTimestamps.size > 1000) {
-    for (const [k, ts] of anonTokenTimestamps) {
-      if (!ts.some(t => t > cutoff)) anonTokenTimestamps.delete(k);
-    }
-  }
-  return false;
-}
-
-// Per-user rate limit for authenticated token actions: max 30 per minute
-const AUTH_TOKEN_LIMIT = 30;
-const AUTH_TOKEN_WINDOW_MS = 60_000;
-const authTokenTimestamps = new Map<string, number[]>();
-
-function isAuthRateLimited(userId: string): boolean {
-  const now = Date.now();
-  const cutoff = now - AUTH_TOKEN_WINDOW_MS;
-  const times = (authTokenTimestamps.get(userId) ?? []).filter(t => t > cutoff);
-  if (times.length >= AUTH_TOKEN_LIMIT) return true;
-  times.push(now);
-  authTokenTimestamps.set(userId, times);
-  if (authTokenTimestamps.size > 500) {
-    for (const [k, ts] of authTokenTimestamps) {
-      if (!ts.some(t => t > cutoff)) authTokenTimestamps.delete(k);
-    }
-  }
-  return false;
-}
+const { isLimited: isAnonRateLimited } = createRateLimiter(20, 60_000, 1000);
+const { isLimited: isAuthRateLimited } = createRateLimiter(30, 60_000);
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
@@ -59,7 +23,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const userId = locals.auth?.()?.userId ?? null;
 
   if (userId) {
-    // Logged-in: track in user_tokens + update global count
     if (isAuthRateLimited(userId))
       return new Response(JSON.stringify({ error: '操作過於頻繁，請稍後再試' }), { status: 429, headers: JSON_HEADERS });
 
@@ -112,6 +75,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
     .single();
 
   return new Response(JSON.stringify({ tokens: data?.tokens ?? 0 }), {
-    headers: { 'Content-Type': 'application/json' },
+    headers: JSON_HEADERS,
   });
 };
