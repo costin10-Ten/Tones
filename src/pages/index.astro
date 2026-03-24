@@ -11,14 +11,7 @@ import curatedData from '../data/curated-lists.json';
 const allStories = await getCollection('stories', ({ data }) => data.published);
 const stories = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date));
 
-// System date: latest git commit date (real date, dot-separated)
-let sysDate = '—';
-try {
-  const { execSync } = await import('child_process');
-  const raw = execSync('git log -1 --format=%ci', { encoding: 'utf-8' }).trim().slice(0, 10);
-  const [y, m, d] = raw.split('-');
-  sysDate = `${y}.${m}.${d}`;
-} catch { /* fallback to — */ }
+const latestStoryDate = stories[0]?.data.date ?? '—';
 
 const categories = ['全部', '★ 精選', '記憶科技', '地下城市', 'AI社會', '生態復育', '情感科技', '🔍 彩蛋'];
 
@@ -81,7 +74,7 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
       <a href="/sign-in" class="nav-a" style="border-color:var(--accent);color:var(--accent)">登入</a>
     </SignedOut>
     <SignedIn>
-      <a href="/member" class="nav-a" style="white-space:nowrap" data-astro-reload>會員資料</a>
+      <a href="/member" class="nav-a member-nav-link" style="white-space:nowrap" data-astro-reload>會員資料</a>
       <UserButton afterSignOutUrl="/" />
     </SignedIn>
 
@@ -159,15 +152,15 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
         <span class="sb-stat-val">{stories.length}</span>
       </div>
       <div class="sb-stat-box">
-        <span class="sb-stat-lbl">最新更新</span>
-        <span class="sb-stat-val" style="font-size:.8rem">{sysDate}</span>
+        <span class="sb-stat-lbl">最新卷宗日期</span>
+        <span class="sb-stat-val" style="font-size:.8rem">{latestStoryDate}</span>
       </div>
       <div class="sb-stat-box">
-        <span class="sb-stat-lbl">累積瀏覽次數</span>
+        <span class="sb-stat-lbl">個人瀏覽次數</span>
         <span class="sb-stat-val" id="sbTotalViews">—</span>
       </div>
       <div class="sb-stat-box">
-        <span class="sb-stat-lbl">累積金幣</span>
+        <span class="sb-stat-lbl">個人金幣</span>
         <span class="sb-stat-val" id="sbTotalTokens">—</span>
       </div>
 
@@ -288,8 +281,8 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
     </div>
     <div class="hero-stats">
       <div class="stat"><span class="stat-num">{stories.length}</span><div class="stat-label">已歸檔案件</div></div>
-      <div class="stat"><span class="stat-num" id="statViewers">∞</span><div class="stat-label">目擊者數量</div></div>
-      <div class="stat"><span class="stat-num" id="statCoins">∞</span><div class="stat-label">金幣總量</div></div>
+      <div class="stat"><span class="stat-num" id="statViewers">∞</span><div class="stat-label">全站瀏覽數</div></div>
+      <div class="stat"><span class="stat-num" id="statCoins">∞</span><div class="stat-label">全站金幣數</div></div>
       <div class="stat"><span class="stat-num" id="statMysteries">∞</span><div class="stat-label">未解之謎</div></div>
     </div>
   </section>
@@ -1187,6 +1180,7 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
     background: var(--bg);
     border-bottom: 1px solid var(--border);
     gap: 10px;
+    overflow-x: hidden;
   }
   button.logo-icon {
     background: none;
@@ -1872,6 +1866,9 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
     .top-nav { display: none; }
     .hero-stats { gap: 24px; }
     .cards-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 600px) {
+    .member-nav-link { display: none; }
   }
   @media (max-width: 480px) {
     .stat-num { font-size: 1.4rem; }
