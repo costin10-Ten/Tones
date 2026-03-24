@@ -532,18 +532,21 @@ const storyId = `story:${slug}`;
 
   function discoverClues() {
     if (clueDiscovered) return;
-    clueDiscovered = true;
-    sSet(clueDiscoverKey, '1');
+    clueDiscovered = true; // prevent parallel calls
     fetch('/api/clues/discover', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ slug: currentSlug }),
     })
-      .then(r => r.ok ? r.json() : null)
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(data => {
+        sSet(clueDiscoverKey, '1'); // only persist on success
         if (data?.discovered > 0) showClueToast(data.discovered);
       })
-      .catch(() => {});
+      .catch((err) => {
+        clueDiscovered = false; // allow retry on next page load
+        console.warn('[Tones] clue discover failed:', err);
+      });
   }
 
   function saveProgress(pct) {
@@ -554,8 +557,6 @@ const storyId = `story:${slug}`;
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ slug: currentSlug, pct }),
     }).catch(() => {});
-    // Trigger clue discovery at 60% progress
-    if (pct >= 60) discoverClues();
   }
 
   // If already read past 60% in a previous session, discover immediately
@@ -568,6 +569,9 @@ const storyId = `story:${slug}`;
     // Update visual progress bar
     const progressEl = document.getElementById('progress');
     if (progressEl) progressEl.style.width = pct + '%';
+
+    // Trigger clue discovery immediately at 60% (no debounce)
+    if (pct >= 60) discoverClues();
 
     if (Math.abs(pct - lastSavedPct) >= 5) {
       clearTimeout(progressSaveTimer);
