@@ -1,29 +1,13 @@
 import type { APIRoute } from 'astro';
 import { supabase } from '../../lib/supabase';
+import { createRateLimiter } from '../../lib/rate-limit';
 
 export const prerender = false;
 
 const MAX_LEN = 2000;
 
 // Per-IP rate limit: max 3 contact submissions per 10 minutes
-const CONTACT_LIMIT = 3;
-const CONTACT_WINDOW_MS = 10 * 60_000;
-const contactTimestamps = new Map<string, number[]>();
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const cutoff = now - CONTACT_WINDOW_MS;
-  const times = (contactTimestamps.get(ip) ?? []).filter(t => t > cutoff);
-  if (times.length >= CONTACT_LIMIT) return true;
-  times.push(now);
-  contactTimestamps.set(ip, times);
-  if (contactTimestamps.size > 500) {
-    for (const [k, ts] of contactTimestamps) {
-      if (!ts.some(t => t > cutoff)) contactTimestamps.delete(k);
-    }
-  }
-  return false;
-}
+const { isLimited: isRateLimited } = createRateLimiter(3, 10 * 60_000);
 
 export const POST: APIRoute = async ({ request, locals }) => {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';

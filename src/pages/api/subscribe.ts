@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { supabase } from '../../lib/supabase';
+import { createRateLimiter } from '../../lib/rate-limit';
 
 export const prerender = false;
 
@@ -7,24 +8,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_EMAIL_LEN = 254; // RFC 5321
 
 // Per-IP rate limit: max 3 subscriptions per 10 minutes
-const SUB_LIMIT = 3;
-const SUB_WINDOW_MS = 10 * 60_000;
-const subTimestamps = new Map<string, number[]>();
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const cutoff = now - SUB_WINDOW_MS;
-  const times = (subTimestamps.get(ip) ?? []).filter(t => t > cutoff);
-  if (times.length >= SUB_LIMIT) return true;
-  times.push(now);
-  subTimestamps.set(ip, times);
-  if (subTimestamps.size > 500) {
-    for (const [k, ts] of subTimestamps) {
-      if (!ts.some(t => t > cutoff)) subTimestamps.delete(k);
-    }
-  }
-  return false;
-}
+const { isLimited: isRateLimited } = createRateLimiter(3, 10 * 60_000);
 
 export const POST: APIRoute = async ({ request }) => {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';

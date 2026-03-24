@@ -67,7 +67,7 @@ export function PaymentGateway({ storyTitle, storySlug, previewContent }: Paymen
     );
   }
 
-  if (step === 'checkout') {
+  if (step === 'checkout' || step === 'processing') {
     return (
       <div className="access-gate">
         {previewContent && (

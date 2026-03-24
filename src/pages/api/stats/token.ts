@@ -26,6 +26,8 @@ function isAnonRateLimited(ip: string): boolean {
   return false;
 }
 
+const JSON_HEADERS = { 'Content-Type': 'application/json' };
+
 export const POST: APIRoute = async ({ request, locals }) => {
   let body: unknown;
   try { body = await request.json(); } catch { return new Response('Bad request', { status: 400 }); }
@@ -44,11 +46,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
         .insert({ user_id: userId, story_slug: slug });
 
       if (insertErr && insertErr.code !== '23505') {
-        return new Response(JSON.stringify({ error: insertErr.message }), { status: 500 });
+        return new Response(JSON.stringify({ error: '操作失敗，請稍後再試' }), { status: 500, headers: JSON_HEADERS });
       }
       if (!insertErr) {
         const { error: rpcErr } = await supabase.rpc('increment_token', { p_slug: slug });
-        if (rpcErr) return new Response(JSON.stringify({ error: rpcErr.message }), { status: 500 });
+        if (rpcErr) return new Response(JSON.stringify({ error: '操作失敗，請稍後再試' }), { status: 500, headers: JSON_HEADERS });
       }
     } else {
       const { error: delErr } = await supabase
@@ -57,19 +59,19 @@ export const POST: APIRoute = async ({ request, locals }) => {
         .eq('user_id', userId)
         .eq('story_slug', slug);
 
-      if (delErr) return new Response(JSON.stringify({ error: delErr.message }), { status: 500 });
+      if (delErr) return new Response(JSON.stringify({ error: '操作失敗，請稍後再試' }), { status: 500, headers: JSON_HEADERS });
 
       const { error: rpcErr } = await supabase.rpc('decrement_token', { p_slug: slug });
-      if (rpcErr) return new Response(JSON.stringify({ error: rpcErr.message }), { status: 500 });
+      if (rpcErr) return new Response(JSON.stringify({ error: '操作失敗，請稍後再試' }), { status: 500, headers: JSON_HEADERS });
     }
   } else {
     // Anonymous: rate-limit by IP, then update global count only
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
     if (isAnonRateLimited(ip))
-      return new Response(JSON.stringify({ error: '操作過於頻繁，請稍後再試' }), { status: 429 });
+      return new Response(JSON.stringify({ error: '操作過於頻繁，請稍後再試' }), { status: 429, headers: JSON_HEADERS });
     const rpc = action === 'add' ? 'increment_token' : 'decrement_token';
     const { error: rpcErr } = await supabase.rpc(rpc, { p_slug: slug });
-    if (rpcErr) return new Response(JSON.stringify({ error: rpcErr.message }), { status: 500 });
+    if (rpcErr) return new Response(JSON.stringify({ error: '操作失敗，請稍後再試' }), { status: 500, headers: JSON_HEADERS });
   }
 
   const { data } = await supabase

@@ -37,16 +37,15 @@ export const PUT: APIRoute = async ({ locals, request, params }) => {
   };
   try { body = await request.json(); } catch (_) { body = {}; }
 
-  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  const SLUG_RE = /^[a-z0-9-]+$/;
 
+  // Validate name early so we can bail out before building patch
   if (typeof body.name === 'string') {
-    const name = body.name.trim().slice(0, 60);
-    if (!name) return new Response(JSON.stringify({ error: '清單名稱不能為空' }), { status: 400 });
-    patch.name = name;
+    const trimmed = body.name.trim().slice(0, 60);
+    if (!trimmed) return new Response(JSON.stringify({ error: '清單名稱不能為空' }), { status: 400 });
   }
 
   // Slug mutations
-  const SLUG_RE = /^[a-z0-9-]+$/;
   let slugs: string[] = existing.slugs ?? [];
   if (Array.isArray(body.slugs)) {
     slugs = body.slugs.filter((s): s is string => typeof s === 'string' && SLUG_RE.test(s));
@@ -60,17 +59,24 @@ export const PUT: APIRoute = async ({ locals, request, params }) => {
       slugs = slugs.filter(s => !removeSet.has(s));
     }
   }
-  patch.slugs = slugs;
 
-  // Public / share token
-  if (typeof body.is_public === 'boolean') {
-    patch.is_public = body.is_public;
-    if (body.is_public && !existing.share_token) {
-      patch.share_token = randomBytes(6).toString('base64url');
-    } else if (!body.is_public) {
-      patch.share_token = null;
-    }
-  }
+  // Share token logic
+  const shareTokenPatch =
+    typeof body.is_public === 'boolean'
+      ? body.is_public && !existing.share_token
+        ? { share_token: randomBytes(6).toString('base64url') }
+        : !body.is_public
+          ? { share_token: null }
+          : {}
+      : {};
+
+  const patch = {
+    updated_at: new Date().toISOString(),
+    slugs,
+    ...(typeof body.name === 'string' && { name: body.name.trim().slice(0, 60) }),
+    ...(typeof body.is_public === 'boolean' && { is_public: body.is_public }),
+    ...shareTokenPatch,
+  };
 
   const { data, error } = await supabase
     .from('reading_lists')
