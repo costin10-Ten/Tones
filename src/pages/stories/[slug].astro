@@ -408,7 +408,7 @@ if (isPublic) {
      aria-label="下一卷宗">›</a>
 </Layout>
 
-<script define:vars={{ storyId, currentSlug: slug, allStoriesData, curatedListsData, storyTitle: entry.data.title }}>
+<script define:vars={{ storyId, currentSlug: slug, allStoriesData, curatedListsData, storyTitle: entry.data.title }} nonce={Astro.locals.nonce || undefined}>
   // ─── ViewTransitions cleanup ──────────────────────────────
   // define:vars scripts re-run on every page swap — clean up window listeners
   var _pageCtrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
@@ -910,19 +910,25 @@ if (isPublic) {
     }
 
     // ── Client-side auth check for public (edge-cached) stories ──
+    // Use window.Clerk.user directly instead of an API call — faster, no
+    // dependency on server-side JWT validity, same polling pattern as index.astro.
     if (isPublicStory) {
-      var form = document.getElementById('commentForm');
-      var prompt = document.getElementById('commentLoginPrompt');
-      fetch('/api/auth-check')
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-          if (data.authed) {
-            if (form) form.style.display = '';
-            if (prompt) prompt.style.display = 'none';
+      var _authChecks = 0;
+      function _checkClerkUser() {
+        var c = window.Clerk;
+        if (c && c.loaded && c.user !== undefined) {
+          if (c.user) {
+            var f = document.getElementById('commentForm');
+            var p = document.getElementById('commentLoginPrompt');
+            if (f) f.style.display = '';
+            if (p) p.style.display = 'none';
             section.dataset.authed = '1';
           }
-        })
-        .catch(function() {});
+          return;
+        }
+        if (++_authChecks < 40) setTimeout(_checkClerkUser, 100);
+      }
+      _checkClerkUser();
     }
 
     var form = document.getElementById('commentForm');
