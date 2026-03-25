@@ -421,7 +421,10 @@ if (isPublic) {
       var list = p.get('list') || 'all';
       if (ref === 'home')   { location.href = '/#stories'; return; }
       if (ref === 'member') { location.href = '/member';   return; }
-      if (ref === 'tags')   { location.href = '/tags';     return; }
+      if (ref === 'tags') {
+        location.href = list.startsWith('cat:') ? '/tags#tag-' + encodeURIComponent(list.slice(4)) : '/tags';
+        return;
+      }
       if (list.startsWith('cat:'))     { location.href = '/stories?cat='     + encodeURIComponent(list.slice(4)); return; }
       if (list.startsWith('curated:')) { location.href = '/stories?curated=' + encodeURIComponent(list.slice(8)); return; }
       location.href = '/stories';
