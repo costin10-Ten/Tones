@@ -42,7 +42,35 @@ const curatedLists = [
 const paidStories = stories.filter(s => s.data.level === 'paid');
 ---
 
-<Layout>
+<Layout
+  description="弦音異象 — 台灣原創心理驚悚短篇小說，五分鐘讀完，細思極恐。每篇故事探索 AI、記憶、情感科技與生態異變的黑暗未來。"
+>
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": `${Astro.url.origin}/#website`,
+        "name": "弦音異象",
+        "url": Astro.url.origin,
+        "description": "台灣原創心理驚悚短篇小說，五分鐘讀完，細思極恐。",
+        "inLanguage": "zh-TW",
+        "publisher": { "@id": `${Astro.url.origin}/#organization` }
+      },
+      {
+        "@type": "Organization",
+        "@id": `${Astro.url.origin}/#organization`,
+        "name": "弦音異象",
+        "url": Astro.url.origin,
+        "logo": {
+          "@type": "ImageObject",
+          "url": `${Astro.url.origin}/og-default.png`,
+          "width": 1200,
+          "height": 630
+        }
+      }
+    ]
+  })} slot="head" />
   <!-- ─── Header ─── -->
   <header>
     <button class="logo-icon" id="leftSidebarBtn" aria-label="開啟導覽側欄">

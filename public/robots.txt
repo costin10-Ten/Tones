@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /keystatic/
+Disallow: /admin/
+Disallow: /sign-in
+Disallow: /sign-up
+
+Sitemap: https://tones-pi.vercel.app/sitemap.xml

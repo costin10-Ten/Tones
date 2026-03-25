@@ -114,20 +114,34 @@ if (isPublic) {
 >
   <script type="application/ld+json" set:html={JSON.stringify({
     "@context": "https://schema.org",
-    "@type": "Article",
-    "headline": entry.data.title,
-    "description": entry.data.excerpt,
-    "author": { "@type": "Person", "name": entry.data.author },
-    "datePublished": entry.data.date,
-    "image": ogImageUrl,
-    "url": Astro.url.origin + Astro.url.pathname,
-    "publisher": {
-      "@type": "Organization",
-      "name": "弦音異象",
-      "url": Astro.url.origin
-    },
-    "keywords": entry.data.tags.join(', '),
-    "inLanguage": "zh-TW"
+    "@graph": [
+      {
+        "@type": "Article",
+        "headline": entry.data.title,
+        "description": entry.data.excerpt,
+        "author": { "@type": "Person", "name": entry.data.author },
+        "datePublished": entry.data.date,
+        "image": { "@type": "ImageObject", "url": ogImageUrl, "width": 1200, "height": 630 },
+        "url": Astro.url.origin + Astro.url.pathname,
+        "publisher": {
+          "@type": "Organization",
+          "name": "弦音異象",
+          "@id": `${Astro.url.origin}/#organization`,
+          "url": Astro.url.origin
+        },
+        "keywords": entry.data.tags.join(', '),
+        "inLanguage": "zh-TW",
+        "isPartOf": { "@id": `${Astro.url.origin}/#website` }
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "弦音異象", "item": Astro.url.origin + "/" },
+          { "@type": "ListItem", "position": 2, "name": "卷宗總覽", "item": Astro.url.origin + "/stories" },
+          { "@type": "ListItem", "position": 3, "name": entry.data.title, "item": Astro.url.origin + Astro.url.pathname }
+        ]
+      }
+    ]
   })} slot="head" />
   <!-- ─── Reader Header ─── -->
   <header id="rdrHeader">
