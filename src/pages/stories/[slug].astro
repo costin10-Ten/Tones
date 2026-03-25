@@ -448,6 +448,123 @@ if (isPublic) {
   _initAgBack();
 </script>
 
+<!-- Reader controls — bundled script (wide mode, tutorial, font) so they survive ViewTransitions + CSP 'self' -->
+<script>
+  var _rcCtrl = null;
+  function _initReaderControls() {
+    if (_rcCtrl) _rcCtrl.abort();
+    _rcCtrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var sig = _rcCtrl ? _rcCtrl.signal : undefined;
+    var sigOpts = sig ? { signal: sig } : {};
+
+    function sGet(k) { try { return localStorage.getItem(k); } catch(e) { return null; } }
+    function sSet(k, v) { try { localStorage.setItem(k, v); } catch(e) {} }
+
+    // ─── Wide / Narrow toggle ─────────────────────────────────
+    var wide = sGet('hz-wide') === '1';
+    var wideLastY = window.scrollY;
+    var wideUpAccum = 0;
+    var WIDE_SHOW_PX = 48;
+
+    function setWideUiState(state) {
+      document.body.classList.toggle('ui-fade-out', state === 'out');
+      document.body.classList.toggle('ui-fade-in', state === 'in');
+    }
+
+    function applyWide() {
+      var artWrap = document.getElementById('artWrap');
+      var widthBtn = document.getElementById('widthToggle');
+      var widthLbl = document.getElementById('widthLbl');
+      if (artWrap) artWrap.classList.toggle('wide', wide);
+      document.body.classList.toggle('wide', wide);
+      if (widthLbl) widthLbl.textContent = wide ? '滿版' : '窄版';
+      if (widthBtn) {
+        widthBtn.firstChild.nodeValue = wide ? '⊞' : '⊡';
+        widthBtn.classList.toggle('on', wide);
+      }
+      if (!wide) {
+        setWideUiState('');
+      } else {
+        wideLastY = window.scrollY;
+        wideUpAccum = 0;
+        setWideUiState('in');
+      }
+    }
+    applyWide();
+
+    var widthBtn = document.getElementById('widthToggle');
+    if (widthBtn) widthBtn.addEventListener('click', function() {
+      wide = !wide;
+      sSet('hz-wide', wide ? '1' : '0');
+      applyWide();
+    }, sigOpts);
+
+    window.addEventListener('scroll', function() {
+      if (!wide) return;
+      var cy = window.scrollY;
+      var diff = cy - wideLastY;
+      if (diff > 2) { wideUpAccum = 0; setWideUiState('out'); }
+      else if (diff < -2) { wideUpAccum += Math.abs(diff); if (wideUpAccum >= WIDE_SHOW_PX) setWideUiState('in'); }
+      wideLastY = cy;
+    }, sig ? { passive: true, signal: sig } : { passive: true });
+
+    // ─── Reader Tutorial ──────────────────────────────────────
+    var tutorialKey = 'hz-reader-tutorial-seen';
+    var tutEl = document.getElementById('readerTutorial');
+
+    function showTutorial() { if (tutEl) tutEl.style.display = 'block'; }
+    function hideTutorial() { if (tutEl) tutEl.style.display = 'none'; sSet(tutorialKey, '1'); }
+
+    var tutClose = document.getElementById('tutorialClose');
+    var helpBtn = document.getElementById('helpBtn');
+    if (tutClose) tutClose.addEventListener('click', hideTutorial, sigOpts);
+    if (tutEl) tutEl.addEventListener('click', function(e) {
+      if (e.target === tutEl || (e.target && e.target.classList && e.target.classList.contains('tut-backdrop'))) hideTutorial();
+    }, sigOpts);
+    if (helpBtn) helpBtn.addEventListener('click', showTutorial, sigOpts);
+    if (!sGet(tutorialKey)) setTimeout(showTutorial, 600);
+
+    // ─── Font size ────────────────────────────────────────────
+    var fontSz = parseFloat(sGet('hz-font-sz') || '1.0');
+    var fontType = sGet('hz-font-type') || 'serif';
+
+    function applyFont() {
+      var body = document.getElementById('artBody');
+      if (!body) return;
+      body.style.fontSize = fontSz + 'rem';
+      body.style.fontFamily = fontType === 'serif' ? "'Noto Serif TC', serif" : "'Noto Sans TC', sans-serif";
+      var lh = (fontSz >= 1.0 ? Math.max(2.0, 2.18 - (fontSz - 1.0) * 0.356) : 2.18).toFixed(2);
+      body.style.lineHeight = lh;
+      var lbl = document.getElementById('fontLabel');
+      if (lbl) lbl.textContent = fontSz.toFixed(1) + '×';
+    }
+
+    function setFontType(type) {
+      fontType = type;
+      sSet('hz-font-type', type);
+      applyFont();
+      var s = document.getElementById('ftSerif');
+      var n = document.getElementById('ftSans');
+      if (s) s.classList.toggle('on', type === 'serif');
+      if (n) n.classList.toggle('on', type === 'sans');
+    }
+    setFontType(fontType);
+
+    var fontUp = document.getElementById('fontUp');
+    var fontDown = document.getElementById('fontDown');
+    var fontLabel = document.getElementById('fontLabel');
+    var ftSerif = document.getElementById('ftSerif');
+    var ftSans = document.getElementById('ftSans');
+    if (fontUp) fontUp.addEventListener('click', function() { fontSz = Math.min(1.45, +(fontSz + 0.1).toFixed(1)); sSet('hz-font-sz', String(fontSz)); applyFont(); }, sigOpts);
+    if (fontDown) fontDown.addEventListener('click', function() { fontSz = Math.max(0.78, +(fontSz - 0.1).toFixed(1)); sSet('hz-font-sz', String(fontSz)); applyFont(); }, sigOpts);
+    if (fontLabel) fontLabel.addEventListener('click', function() { fontSz = 1.0; sSet('hz-font-sz', '1.0'); applyFont(); }, sigOpts);
+    if (ftSerif) ftSerif.addEventListener('click', function() { setFontType('serif'); }, sigOpts);
+    if (ftSans) ftSans.addEventListener('click', function() { setFontType('sans'); }, sigOpts);
+  }
+  document.addEventListener('astro:page-load', _initReaderControls);
+  _initReaderControls();
+</script>
+
 <!-- Prev/next nav — bundled script, reads data from #hz-nav-data div (works via ViewTransitions + CSP 'self') -->
 <script>
   function _resolveNavPool(listParam, all, curated) {
@@ -640,29 +757,9 @@ if (isPublic) {
   }
 
   window.addEventListener('scroll', () => {
-    const currentY = window.scrollY;
-
-    // Wide mode: track scroll direction to show/hide UI
-    if (wide) {
-      const diff = currentY - wideLastY;
-      if (diff > 2) {
-        // Scrolling down → hide all UI
-        wideUpAccum = 0;
-        setWideUiState('out');
-      } else if (diff < -2) {
-        // Scrolling up → accumulate and show when threshold reached
-        wideUpAccum += Math.abs(diff);
-        if (wideUpAccum >= WIDE_SHOW_PX) {
-          setWideUiState('in');
-        }
-      }
-      wideLastY = currentY;
-    }
-
-    // Progress tracking
+    // Progress tracking only (wide-mode UI fade is handled in the bundled reader-controls script)
     const docH = document.documentElement.scrollHeight - window.innerHeight;
-    const pct = docH > 0 ? Math.round(currentY / docH * 100) : 0;
-
+    const pct = docH > 0 ? Math.round(window.scrollY / docH * 100) : 0;
     if (Math.abs(pct - lastSavedPct) >= 5) {
       clearTimeout(progressSaveTimer);
       progressSaveTimer = setTimeout(() => { saveProgress(pct); lastSavedPct = pct; }, 5000);
@@ -690,32 +787,6 @@ if (isPublic) {
   }
   document.getElementById('bookmarkBtn2')?.addEventListener('click', toggleBookmark);
 
-  // ─── Reader Tutorial ──────────────────────────────────────
-  const tutorialEl = document.getElementById('readerTutorial');
-  const tutorialKey = 'hz-reader-tutorial-seen';
-
-  function showTutorial() {
-    if (tutorialEl) tutorialEl.style.display = 'block';
-  }
-  function hideTutorial() {
-    if (tutorialEl) tutorialEl.style.display = 'none';
-    sSet(tutorialKey, '1');
-  }
-
-  document.getElementById('tutorialClose')?.addEventListener('click', hideTutorial);
-  tutorialEl?.addEventListener('click', function(e) {
-    var t = e.target;
-    if (t === tutorialEl || (t && t.classList && t.classList.contains('tut-backdrop'))) {
-      hideTutorial();
-    }
-  });
-  document.getElementById('helpBtn')?.addEventListener('click', showTutorial);
-
-  // Show on first visit
-  if (!sGet(tutorialKey)) {
-    setTimeout(showTutorial, 600);
-  }
-
   // ─── Share ─────────────────────────────────────────────────
   function copyLink(feedbackId = 'copyFeedback') {
     navigator.clipboard?.writeText(location.href).then(() => {
@@ -734,96 +805,6 @@ if (isPublic) {
 
   document.getElementById('shareBtn')?.addEventListener('click', doShare);
   document.getElementById('copyBtn')?.addEventListener('click', () => copyLink('copyFeedback'));
-
-  // ─── Wide / Narrow toggle ─────────────────────────────────
-  const artWrap = document.getElementById('artWrap');
-  const widthBtn = document.getElementById('widthToggle');
-  const widthLbl = document.getElementById('widthLbl');
-  let wide = sGet('hz-wide') === '1';
-
-  // Wide-mode UI fade state
-  let wideLastY = window.scrollY;
-  let wideUpAccum = 0;
-  const WIDE_SHOW_PX = 48; // ~2 lines
-
-  function setWideUiState(state) {
-    // state: 'out' (transparent) | 'in' (semi-visible) | '' (normal)
-    document.body.classList.toggle('ui-fade-out', state === 'out');
-    document.body.classList.toggle('ui-fade-in', state === 'in');
-  }
-
-  function applyWide() {
-    artWrap?.classList.toggle('wide', wide);
-    document.body.classList.toggle('wide', wide);
-    if (widthLbl) widthLbl.textContent = wide ? '滿版' : '窄版';
-    if (widthBtn) {
-      widthBtn.firstChild.nodeValue = wide ? '⊞' : '⊡';
-      widthBtn.classList.toggle('on', wide);
-    }
-    if (!wide) {
-      setWideUiState('');
-    } else {
-      // Enter wide mode: start semi-visible
-      wideLastY = window.scrollY;
-      wideUpAccum = 0;
-      setWideUiState('in');
-    }
-  }
-  applyWide();
-
-  widthBtn?.addEventListener('click', () => {
-    wide = !wide;
-    sSet('hz-wide', wide ? '1' : '0');
-    applyWide();
-  });
-
-  // ─── Font size ────────────────────────────────────────────
-  let fontSz = parseFloat(sGet('hz-font-sz') || '1.0');
-  let fontType = sGet('hz-font-type') || 'serif';
-
-  function applyFont() {
-    const body = document.getElementById('artBody');
-    if (!body) return;
-    body.style.fontSize = fontSz + 'rem';
-    body.style.fontFamily = fontType === 'serif'
-      ? "'Noto Serif TC', serif"
-      : "'Noto Sans TC', sans-serif";
-    const lh = (fontSz >= 1.0 ? Math.max(2.0, 2.18 - (fontSz - 1.0) * 0.356) : 2.18).toFixed(2);
-    body.style.lineHeight = lh;
-    const lbl = document.getElementById('fontLabel');
-    if (lbl) lbl.textContent = fontSz.toFixed(1) + '×';
-  }
-  applyFont();
-
-  document.getElementById('fontUp')?.addEventListener('click', () => {
-    fontSz = Math.min(1.45, +(fontSz + 0.1).toFixed(1));
-    sSet('hz-font-sz', String(fontSz));
-    applyFont();
-  });
-  document.getElementById('fontDown')?.addEventListener('click', () => {
-    fontSz = Math.max(0.78, +(fontSz - 0.1).toFixed(1));
-    sSet('hz-font-sz', String(fontSz));
-    applyFont();
-  });
-  document.getElementById('fontLabel')?.addEventListener('click', () => {
-    fontSz = 1.0;
-    sSet('hz-font-sz', '1.0');
-    applyFont();
-  });
-
-  // ─── Font type toggle ────────────────────────────────────
-  function setFontType(type) {
-    fontType = type;
-    sSet('hz-font-type', type);
-    applyFont();
-    document.getElementById('ftSerif')?.classList.toggle('on', type === 'serif');
-    document.getElementById('ftSans')?.classList.toggle('on', type === 'sans');
-  }
-  // restore saved font type
-  setFontType(fontType);
-
-  document.getElementById('ftSerif')?.addEventListener('click', () => setFontType('serif'));
-  document.getElementById('ftSans')?.addEventListener('click', () => setFontType('sans'));
 
   // ─── Comments ─────────────────────────────────────────────
   (function() {
