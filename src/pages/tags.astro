@@ -1,0 +1,249 @@
+---
+export const prerender = false;
+
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import { getCollection } from 'astro:content';
+
+const allStories = await getCollection('stories', ({ data }) => data.published);
+
+// Build tag → stories map
+const tagMap: Record<string, typeof allStories> = {};
+for (const s of allStories) {
+  for (const t of s.data.tags) {
+    if (!tagMap[t]) tagMap[t] = [];
+    tagMap[t].push(s);
+  }
+}
+
+// Ordered category list with display names
+const categories = [
+  { key: '記憶科技', label: '精神汙染',      code: 'PSY-CONT',   color: '#d90429' },
+  { key: '地下城市', label: '深淵建築',      code: 'ABYSS-ARCH', color: '#00b4d8' },
+  { key: 'AI社會',   label: '人工意識',      code: 'SYNTH-MIND', color: '#7c3aed' },
+  { key: '生態復育', label: '異變生態',      code: 'BIO-ANML',   color: '#15803d' },
+  { key: '情感科技', label: '情緒操縱',      code: 'EMO-CTRL',   color: '#ff5400' },
+  { key: '🔍 彩蛋',  label: '[ 最高機密 ]', code: 'TOP-SECRET', color: '#ffea00' },
+];
+
+// All tags not in the main categories
+const mainKeys = new Set(categories.map(c => c.key));
+const otherTags = Object.keys(tagMap)
+  .filter(t => !mainKeys.has(t))
+  .sort((a, b) => (tagMap[b]?.length ?? 0) - (tagMap[a]?.length ?? 0));
+
+const currentPath = Astro.url.pathname;
+---
+
+<Layout title="犯罪類別索引 — 弦音異象" description="按類別瀏覽異象檔案庫的所有卷宗">
+  <Header currentPath={currentPath} />
+
+  <main class="tags-page">
+    <div class="tags-hero">
+      <div class="tags-hero-tag">CLASSIFICATION INDEX · CASE FILES</div>
+      <h1 class="tags-hero-title">犯罪類別索引</h1>
+      <p class="tags-hero-desc">依照異常事件類型，瀏覽所有已歸檔卷宗</p>
+    </div>
+
+    <div class="tags-container">
+      <!-- Main categories -->
+      <div class="tags-section-title">主要類別</div>
+      <div class="cat-grid">
+        {categories.map(cat => {
+          const stories = tagMap[cat.key] ?? [];
+          return (
+            <a href={`/stories?cat=${encodeURIComponent(cat.key)}`} class="cat-card">
+              <div class="cat-code" style={`color: ${cat.color};`}>{cat.code}</div>
+              <div class="cat-label">{cat.label}</div>
+              <div class="cat-key">{cat.key}</div>
+              <div class="cat-count">
+                <span class="cat-count-num" style={`color: ${cat.color};`}>{stories.length}</span>
+                <span class="cat-count-lbl">件卷宗</span>
+              </div>
+              <div class="cat-bar">
+                <div class="cat-bar-fill" style={`width: ${Math.min(100, (stories.length / Math.max(1, allStories.length)) * 400)}%; background: ${cat.color};`}></div>
+              </div>
+              <div class="cat-preview">
+                {stories.slice(0, 2).map(s => (
+                  <div class="cat-preview-item">> {s.data.fileNum} {s.data.title}</div>
+                ))}
+                {stories.length > 2 && (
+                  <div class="cat-preview-more">還有 {stories.length - 2} 件…</div>
+                )}
+              </div>
+            </a>
+          );
+        })}
+      </div>
+
+      <!-- Other tags -->
+      {otherTags.length > 0 && (
+        <>
+          <div class="tags-section-title" style="margin-top: 48px;">其他標籤</div>
+          <div class="other-tags">
+            {otherTags.map(tag => (
+              <a href={`/stories?cat=${encodeURIComponent(tag)}`} class="other-tag-btn">
+                {tag}
+                <span class="other-tag-cnt">{tagMap[tag]?.length ?? 0}</span>
+              </a>
+            ))}
+          </div>
+        </>
+      )}
+
+      <div class="tags-footer">
+        <a href="/stories" class="tags-all-link">[ 展開全部卷宗 ]</a>
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .tags-page { min-height: 100vh; background: var(--bg); }
+
+  .tags-hero {
+    padding: 64px 32px 48px;
+    max-width: 900px;
+    margin: 0 auto;
+    border-bottom: 1px solid var(--border);
+  }
+  .tags-hero-tag {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .62rem;
+    letter-spacing: .25em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .tags-hero-title {
+    font-family: 'Noto Serif TC', serif;
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 900;
+    color: var(--text);
+    letter-spacing: .04em;
+    margin-bottom: 12px;
+  }
+  .tags-hero-desc {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .78rem;
+    color: var(--text-muted);
+    letter-spacing: .06em;
+  }
+
+  .tags-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 48px 32px 80px;
+  }
+  .tags-section-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .62rem;
+    letter-spacing: .22em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+    margin-bottom: 24px;
+  }
+
+  .cat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+  }
+  .cat-card {
+    display: block;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 24px;
+    text-decoration: none;
+    transition: border-color .2s, background .2s;
+  }
+  .cat-card:hover { border-color: var(--accent); background: var(--bg2); }
+  .cat-code {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .6rem;
+    letter-spacing: .2em;
+    margin-bottom: 8px;
+  }
+  .cat-label {
+    font-family: 'Noto Serif TC', serif;
+    font-size: 1.15rem;
+    font-weight: 900;
+    color: var(--text);
+    letter-spacing: .04em;
+    margin-bottom: 2px;
+  }
+  .cat-key {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .65rem;
+    color: var(--text-muted);
+    letter-spacing: .08em;
+    margin-bottom: 16px;
+  }
+  .cat-count { display: flex; align-items: baseline; gap: 6px; margin-bottom: 10px; }
+  .cat-count-num { font-family: 'Share Tech Mono', monospace; font-size: 1.6rem; font-weight: bold; line-height: 1; }
+  .cat-count-lbl { font-family: 'Share Tech Mono', monospace; font-size: .65rem; color: var(--text-muted); }
+  .cat-bar { height: 2px; background: var(--border); margin-bottom: 16px; }
+  .cat-bar-fill { height: 100%; transition: width .3s; }
+  .cat-preview { border-top: 1px solid var(--border); padding-top: 12px; }
+  .cat-preview-item {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .62rem;
+    color: var(--text-muted);
+    letter-spacing: .04em;
+    padding: 3px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .cat-preview-more {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .6rem;
+    color: var(--text-muted);
+    opacity: .6;
+    padding-top: 4px;
+  }
+
+  .other-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .other-tag-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .72rem;
+    letter-spacing: .08em;
+    color: var(--text-dim);
+    background: none;
+    border: 1px solid var(--border);
+    padding: 7px 14px;
+    text-decoration: none;
+    transition: all .2s;
+  }
+  .other-tag-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .other-tag-cnt {
+    font-size: .62rem;
+    color: var(--accent);
+    font-weight: bold;
+  }
+
+  .tags-footer { margin-top: 48px; text-align: center; }
+  .tags-all-link {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .78rem;
+    letter-spacing: .12em;
+    color: var(--accent);
+    text-decoration: none;
+    border: 1px solid var(--accent);
+    padding: 12px 28px;
+    display: inline-block;
+    transition: all .2s;
+  }
+  .tags-all-link:hover { background: var(--accent); color: var(--bg); }
+
+  @media (max-width: 600px) {
+    .tags-hero { padding: 40px 20px 32px; }
+    .tags-container { padding: 32px 20px 60px; }
+    .cat-grid { grid-template-columns: 1fr; }
+  }
+</style>

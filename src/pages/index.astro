@@ -9,7 +9,11 @@ import { getCollection } from 'astro:content';
 import curatedData from '../data/curated-lists.json';
 
 const allStories = await getCollection('stories', ({ data }) => data.published);
-const stories = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date));
+const stories = allStories.sort((a, b) => {
+  const aDate = a.data.uploadDate || a.data.date;
+  const bDate = b.data.uploadDate || b.data.date;
+  return bDate.localeCompare(aDate);
+});
 
 const latestStoryDate = stories[0]?.data.date ?? '—';
 
@@ -95,8 +99,8 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
     </div>
     <div class="sb-body">
       <div class="sb-section">主目錄</div>
-      <a href="#stories" class="sb-link">> 最新文章</a>
-      <a href="#stories" class="sb-link">> 犯罪類別篩選</a>
+      <a href="#stories" class="sb-link">> 全部文章</a>
+      <a href="/tags" class="sb-link">> 犯罪類別篩選</a>
       <a href="/about" class="sb-link">> 關於作者</a>
       <a href="/history" class="sb-link">> 網站發展史</a>
       <SignedIn>

@@ -1515,8 +1515,24 @@ img {
     padding: 3rem 1rem 2rem;
   }
 
+  /* Mobile header: stack nav below logo row */
+  .header-inner {
+    flex-wrap: wrap;
+    height: auto;
+    padding-top: 8px;
+    padding-bottom: 0;
+  }
+  .logo { flex: 1; }
   .nav {
-    display: none;
+    order: 3;
+    width: 100%;
+    justify-content: center;
+    border-top: 1px solid var(--border);
+    padding: 4px 0 6px;
+  }
+  .nav-link {
+    font-size: 0.78rem;
+    padding: 0.3rem 0.65rem;
   }
 
   .stats-bar {
