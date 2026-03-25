@@ -138,5 +138,31 @@ const defaultOgImage = new URL('/og-default.png', Astro.url).href;
       document.addEventListener('astro:after-swap', attachLinks);
     })();
   </script>
+
+  <script is:inline nonce={nonce}>
+    // ─── Proactive Clerk JWT refresh before ViewTransitions navigation ───
+    // Root cause of "suddenly logged out" bug:
+    //   Clerk's session JWT has a ~60-second lifetime. When the user navigates
+    //   via ViewTransitions (background fetch), the fetch may fire with an
+    //   already-expired JWT if Clerk hasn't auto-refreshed yet. The server
+    //   receives the expired token → userId = null → shows logged-out state.
+    // Fix:
+    //   Intercept astro:before-preparation (fires before the fetch is sent)
+    //   and call clerk.session.getToken() which returns the cached token or
+    //   silently fetches a fresh one from Clerk, updating the cookie BEFORE
+    //   the ViewTransitions request reaches the server.
+    document.addEventListener('astro:before-preparation', function(ev) {
+      var clerk = window.Clerk;
+      if (!clerk || !clerk.session) return; // Not signed in — nothing to do
+      var origLoader = ev.loader;
+      if (typeof origLoader !== 'function') return; // Guard for API differences
+      ev.loader = async function() {
+        try {
+          await clerk.session.getToken(); // Refresh JWT if expired; no-op if valid
+        } catch (_) {}
+        return origLoader();
+      };
+    });
+  </script>
 </body>
 </html>
