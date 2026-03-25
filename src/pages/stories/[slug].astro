@@ -406,6 +406,8 @@ if (isPublic) {
      href={nextStory ? `/stories/${nextStory.slug}` : undefined}
      style={nextStory ? '' : 'opacity:0;pointer-events:none'}
      aria-label="下一卷宗">›</a>
+  <!-- Nav data for client-side list navigation (not a script — browser ignores non-JS types) -->
+  <div id="hz-nav-data" style="display:none" data-d={JSON.stringify({ all: allStoriesData, curated: curatedListsData, slug })}></div>
 </Layout>
 
 <!-- Back button — bundled script (not define:vars) so it works through ViewTransitions with CSP 'self' -->
@@ -429,35 +431,23 @@ if (isPublic) {
   _initAgBack();
 </script>
 
-<script define:vars={{ storyId, currentSlug: slug, allStoriesData, curatedListsData, storyTitle: entry.data.title }} nonce={Astro.locals.nonce || undefined}>
-  // ─── ViewTransitions cleanup ──────────────────────────────
-  // define:vars scripts re-run on every page swap — clean up window listeners
-  var _pageCtrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
-  var _pageSig = _pageCtrl ? _pageCtrl.signal : undefined;
-  document.addEventListener('astro:before-swap', function() {
-    if (_pageCtrl) _pageCtrl.abort();
-  }, { once: true });
-
-  // ─── List-context-aware prev/next ────────────────────────
-  function resolvePool() {
-    var params = new URLSearchParams(location.search);
-    var listParam = params.get('list') || 'all';
-    if (listParam === 'all') return allStoriesData;
+<!-- Prev/next nav — bundled script, reads data from #hz-nav-data div (works via ViewTransitions + CSP 'self') -->
+<script>
+  function _resolveNavPool(listParam, all, curated) {
+    if (!listParam || listParam === 'all') return all;
     if (listParam.startsWith('cat:')) {
       var tag = listParam.slice(4);
-      var filtered = allStoriesData.filter(function(s) { return s.tags.includes(tag); });
-      return filtered.length > 0 ? filtered : allStoriesData;
+      var f = all.filter(function(s) { return s.tags.includes(tag); });
+      return f.length > 0 ? f : all;
     }
     if (listParam.startsWith('curated:')) {
       var id = listParam.slice(8);
-      var curated = curatedListsData.find(function(l) { return l.id === id; });
-      if (curated) {
-        var pool = curated.slugs
-          .map(function(sl) { return allStoriesData.find(function(s) { return s.slug === sl; }); })
-          .filter(Boolean);
-        if (pool.length > 0) return pool;
+      var cl = curated.find(function(l) { return l.id === id; });
+      if (cl) {
+        var p = cl.slugs.map(function(sl) { return all.find(function(s) { return s.slug === sl; }); }).filter(Boolean);
+        if (p.length > 0) return p;
       }
-      return allStoriesData;
+      return all;
     }
     if (listParam.startsWith('user:')) {
       var uid = listParam.slice(5);
@@ -465,65 +455,71 @@ if (isPublic) {
         var saved = sessionStorage.getItem('hz-nav-ctx-' + uid);
         if (saved) {
           var slugs = JSON.parse(saved);
-          var pool = slugs
-            .map(function(sl) { return allStoriesData.find(function(s) { return s.slug === sl; }); })
-            .filter(Boolean);
-          if (pool.length > 0) return pool;
+          var p2 = slugs.map(function(sl) { return all.find(function(s) { return s.slug === sl; }); }).filter(Boolean);
+          if (p2.length > 0) return p2;
         }
       } catch(_) {}
     }
-    return allStoriesData;
+    return all;
   }
 
-  function getAdjacent() {
+  function _initNavLinks() {
+    var el = document.getElementById('hz-nav-data');
+    if (!el) return;
+    var navData; try { navData = JSON.parse(el.getAttribute('data-d') || '{}'); } catch(_) { return; }
+    var all = navData.all || [];
+    var curated = navData.curated || [];
+    var currentSlug = navData.slug || '';
+
     var params = new URLSearchParams(location.search);
     var listParam = params.get('list') || 'all';
     var ref = params.get('ref') || '';
-    var pool = resolvePool();
+    var pool = _resolveNavPool(listParam, all, curated);
     var idx = pool.findIndex(function(s) { return s.slug === currentSlug; });
-    if (idx === -1) { pool = allStoriesData; listParam = 'all'; idx = pool.findIndex(function(s) { return s.slug === currentSlug; }); }
+    if (idx === -1) { pool = all; listParam = 'all'; idx = pool.findIndex(function(s) { return s.slug === currentSlug; }); }
+
     var suffix = '?list=' + encodeURIComponent(listParam);
     if (ref) suffix += '&ref=' + encodeURIComponent(ref);
-    return {
-      suffix: suffix,
-      prevSlug: idx < pool.length - 1 ? pool[idx + 1].slug : null,
-      nextSlug: idx > 0 ? pool[idx - 1].slug : null,
-    };
-  }
+    var prevSlug = idx < pool.length - 1 ? pool[idx + 1].slug : null;
+    var nextSlug = idx > 0 ? pool[idx - 1].slug : null;
 
-  function getStoryTitle(sl) {
-    var s = allStoriesData.find(function(s) { return s.slug === sl; });
-    return s ? s.title : '';
-  }
+    function title(sl) { var s = all.find(function(x) { return x.slug === sl; }); return s ? s.title : ''; }
 
-  function updateNavLinks() {
-    var adj = getAdjacent();
-    // ── Side buttons ──
     var btnPrev = document.getElementById('btnPrev');
     var btnNext = document.getElementById('btnNext');
     if (btnPrev) {
-      if (adj.prevSlug) { btnPrev.setAttribute('href', '/stories/' + adj.prevSlug + adj.suffix); btnPrev.style.opacity = ''; btnPrev.style.pointerEvents = ''; }
+      if (prevSlug) { btnPrev.setAttribute('href', '/stories/' + prevSlug + suffix); btnPrev.style.opacity = ''; btnPrev.style.pointerEvents = ''; }
       else { btnPrev.removeAttribute('href'); btnPrev.style.opacity = '0'; btnPrev.style.pointerEvents = 'none'; }
     }
     if (btnNext) {
-      if (adj.nextSlug) { btnNext.setAttribute('href', '/stories/' + adj.nextSlug + adj.suffix); btnNext.style.opacity = ''; btnNext.style.pointerEvents = ''; }
+      if (nextSlug) { btnNext.setAttribute('href', '/stories/' + nextSlug + suffix); btnNext.style.opacity = ''; btnNext.style.pointerEvents = ''; }
       else { btnNext.removeAttribute('href'); btnNext.style.opacity = '0'; btnNext.style.pointerEvents = 'none'; }
     }
-    // ── Bottom nav ──
     var navPrev = document.getElementById('navPrev');
     var navNext = document.getElementById('navNext');
     var navPrevTitle = document.getElementById('navPrevTitle');
     var navNextTitle = document.getElementById('navNextTitle');
     if (navPrev) {
-      if (adj.prevSlug) { navPrev.setAttribute('href', '/stories/' + adj.prevSlug + adj.suffix); navPrev.style.opacity = ''; navPrev.style.pointerEvents = ''; if (navPrevTitle) navPrevTitle.textContent = getStoryTitle(adj.prevSlug); }
+      if (prevSlug) { navPrev.setAttribute('href', '/stories/' + prevSlug + suffix); navPrev.style.opacity = ''; navPrev.style.pointerEvents = ''; if (navPrevTitle) navPrevTitle.textContent = title(prevSlug); }
       else { navPrev.removeAttribute('href'); navPrev.style.opacity = '0.25'; navPrev.style.pointerEvents = 'none'; if (navPrevTitle) navPrevTitle.textContent = ''; }
     }
     if (navNext) {
-      if (adj.nextSlug) { navNext.setAttribute('href', '/stories/' + adj.nextSlug + adj.suffix); navNext.style.opacity = ''; navNext.style.pointerEvents = ''; if (navNextTitle) navNextTitle.textContent = getStoryTitle(adj.nextSlug); }
+      if (nextSlug) { navNext.setAttribute('href', '/stories/' + nextSlug + suffix); navNext.style.opacity = ''; navNext.style.pointerEvents = ''; if (navNextTitle) navNextTitle.textContent = title(nextSlug); }
       else { navNext.removeAttribute('href'); navNext.style.opacity = '0.25'; navNext.style.pointerEvents = 'none'; if (navNextTitle) navNextTitle.textContent = ''; }
     }
   }
-  updateNavLinks();
+  document.addEventListener('astro:page-load', _initNavLinks);
+  _initNavLinks();
+</script>
+
+<script define:vars={{ storyId, currentSlug: slug, storyTitle: entry.data.title }} nonce={Astro.locals.nonce || undefined}>
+  // ─── ViewTransitions cleanup ──────────────────────────────
+  // define:vars scripts re-run on every page swap — clean up window listeners
+  var _pageCtrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  var _pageSig = _pageCtrl ? _pageCtrl.signal : undefined;
+  document.addEventListener('astro:before-swap', function() {
+    if (_pageCtrl) _pageCtrl.abort();
+  }, { once: true });
 
   function fmtN(n) { return n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(n); }
 
