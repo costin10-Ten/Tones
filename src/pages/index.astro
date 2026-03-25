@@ -4,6 +4,7 @@ export const prerender = false;
 import Layout from '../layouts/Layout.astro';
 import StoryCard from '../components/StoryCard.astro';
 import ThemeSwitcher from '../components/ThemeSwitcher.astro';
+import Footer from '../components/Footer.astro';
 import { SignedIn, SignedOut, UserButton, SignInButton } from '@clerk/astro/components';
 import { getCollection } from 'astro:content';
 import curatedData from '../data/curated-lists.json';
@@ -518,13 +519,7 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
   </section>
 
   <!-- ─── Footer ─── -->
-  <footer>
-    <div class="ft-logo">弦音<em>異象</em></div>
-    <div class="ft-txt">
-      ANOMALY ARCHIVES · CLASSIFIED<br>
-      一切皆為虛構，除非你相信。
-    </div>
-  </footer>
+  <Footer active="home" />
 
   <!-- Server-side variables for client script (avoids define:vars inline-script re-evaluation) -->
   <div id="hp-meta"

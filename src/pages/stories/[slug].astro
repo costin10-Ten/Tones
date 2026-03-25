@@ -424,15 +424,19 @@ if (isPublic) {
       var params = new URLSearchParams(location.search);
       var ref = params.get('ref') || '';
       var listParam = params.get('list') || 'all';
-      if (ref === 'home')   { window.location.href = '/';       return; }
-      if (ref === 'member') { window.location.href = '/member'; return; }
-      if (ref === 'tags')   { window.location.href = '/tags';   return; }
-      if (listParam.startsWith('cat:')) {
-        window.location.href = '/stories?cat=' + encodeURIComponent(listParam.slice(4));
-        return;
-      }
-      if (listParam.startsWith('curated:')) {
-        window.location.href = '/stories?curated=' + encodeURIComponent(listParam.slice(8));
+      if (ref === 'home')   { window.location.href = '/#stories'; return; }
+      if (ref === 'member') { window.location.href = '/member';  return; }
+      if (ref === 'tags')   { window.location.href = '/tags';    return; }
+      if (ref === 'stories' || !ref) {
+        if (listParam.startsWith('cat:')) {
+          window.location.href = '/stories?cat=' + encodeURIComponent(listParam.slice(4));
+          return;
+        }
+        if (listParam.startsWith('curated:')) {
+          window.location.href = '/stories?curated=' + encodeURIComponent(listParam.slice(8));
+          return;
+        }
+        window.location.href = '/stories';
         return;
       }
       window.location.href = '/stories';
