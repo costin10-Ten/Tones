@@ -234,7 +234,7 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
         ))}
       </div>
 
-      <div class="sb-section" style="margin-top:20px">留言</div>
+      <div class="sb-section" id="msgSection" style="margin-top:20px">留言</div>
       <div class="msg-box">
         <p style="font-size:0.75rem;color:var(--text-dim);margin-bottom:12px;">
           // 如果你發現了系統漏洞，或者想對作者說些什麼，請在這裡留言。訊號可能會被攔截，但我會看到的。
@@ -641,7 +641,12 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
 
     document.getElementById('leftSidebarBtn')?.addEventListener('click', openLeft, { signal: sig });
     document.getElementById('rightSidebarBtn')?.addEventListener('click', openRight, { signal: sig });
-    document.getElementById('contactBtn')?.addEventListener('click', openRight, { signal: sig });
+    document.getElementById('contactBtn')?.addEventListener('click', () => {
+      openRight();
+      setTimeout(() => {
+        document.getElementById('msgSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+    }, { signal: sig });
     document.getElementById('leftSidebarCloseBtn')?.addEventListener('click', closeAll, { signal: sig });
     document.getElementById('rightSidebarCloseBtn')?.addEventListener('click', closeAll, { signal: sig });
     overlay.addEventListener('click', closeAll, { signal: sig });
