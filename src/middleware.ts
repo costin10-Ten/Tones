@@ -3,6 +3,13 @@ import { clerkMiddleware } from '@clerk/astro/server';
 
 // ─── Per-request CSP nonce ───────────────────────────────────────────────────
 const nonceMW = defineMiddleware(async (context, next) => {
+  const pathname = new URL(context.request.url).pathname;
+
+  // Skip CSP for Keystatic — it manages its own scripts/styles/connections
+  if (pathname.startsWith('/keystatic') || pathname.startsWith('/api/keystatic')) {
+    return next();
+  }
+
   const nonce = crypto.randomUUID().replace(/-/g, '');
   context.locals.nonce = nonce;
 
