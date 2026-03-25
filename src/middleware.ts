@@ -12,7 +12,7 @@ const nonceMW = defineMiddleware(async (context, next) => {
   // For prerendered/static files, Vercel applies the header from astro.config.mjs.
   const csp = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://clerk.tones-pi.vercel.app https://*.clerk.accounts.dev`,
+    `script-src 'self' 'nonce-${nonce}' https://clerk.tones-pi.vercel.app https://*.clerk.accounts.dev`,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: blob: https:",
