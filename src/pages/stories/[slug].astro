@@ -641,7 +641,7 @@ const storyId = `story:${slug}`;
   const tutorialKey = 'hz-reader-tutorial-seen';
 
   function showTutorial() {
-    if (tutorialEl) tutorialEl.style.display = '';
+    if (tutorialEl) tutorialEl.style.display = 'block';
   }
   function hideTutorial() {
     if (tutorialEl) tutorialEl.style.display = 'none';
@@ -1320,6 +1320,7 @@ const storyId = `story:${slug}`;
 
   /* ─── Tutorial Overlay ───────────────────────────────────── */
   .tutorial-overlay {
+    display: none;
     position: fixed;
     inset: 0;
     z-index: 9000;

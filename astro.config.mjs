@@ -47,6 +47,7 @@ export default defineConfig({
       exclude: ['@keystatic/core'],
     },
     build: {
+      chunkSizeWarningLimit: 3000,
       rollupOptions: {
         output: {
           manualChunks(id) {
