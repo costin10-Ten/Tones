@@ -1089,13 +1089,16 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
         el.innerHTML = '<a href="/stories" class="sb-link sb-link-manage">> 建立第一個清單</a>';
         return;
       }
-      el.innerHTML = lists.slice(0, 5).map(l =>
-        `<a href="/stories" class="sb-link" data-list-id="${l.id}">
-          > ${l.name.replace(/&/g,'&amp;').replace(/</g,'&lt;')}
-          <span class="sb-list-cnt">${l.slugs.length}</span>
-        </a>`
-      ).join('') +
-        (lists.length > 5 ? `<a href="/stories" class="sb-link sb-link-manage">> 還有 ${lists.length - 5} 個清單…</a>` : '');
+      function esc(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+      }
+      el.innerHTML = lists.slice(0, 5).map(function(l) {
+        return '<a href="/stories" class="sb-link" data-list-id="' + esc(l.id) + '">' +
+          '> ' + esc(l.name) +
+          ' <span class="sb-list-cnt">' + Number(l.slugs.length) + '</span>' +
+          '</a>';
+      }).join('') +
+        (lists.length > 5 ? '<a href="/stories" class="sb-link sb-link-manage">&gt; 還有 ' + Number(lists.length - 5) + ' 個清單…</a>' : '');
     } catch (_) { el.innerHTML = ''; }
   }
 

@@ -377,6 +377,14 @@ const storyId = `story:${slug}`;
 </Layout>
 
 <script define:vars={{ storyId, currentSlug: slug, allStoriesData, curatedListsData, storyTitle: entry.data.title }}>
+  // ─── ViewTransitions cleanup ──────────────────────────────
+  // define:vars scripts re-run on every page swap — clean up window listeners
+  var _pageCtrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  var _pageSig = _pageCtrl ? _pageCtrl.signal : undefined;
+  document.addEventListener('astro:before-swap', function() {
+    if (_pageCtrl) _pageCtrl.abort();
+  }, { once: true });
+
   // ─── Back button (use .onclick so each page-swap replaces the handler) ──
   var _agBack = document.getElementById('agBack');
   if (_agBack) {
@@ -615,7 +623,7 @@ const storyId = `story:${slug}`;
       clearTimeout(progressSaveTimer);
       progressSaveTimer = setTimeout(() => { saveProgress(pct); lastSavedPct = pct; }, 5000);
     }
-  }, { passive: true });
+  }, { passive: true, signal: _pageSig });
 
   // ─── Bookmark ──────────────────────────────────────────────
   let bookmarked = sGet('hz-bookmark:' + currentSlug) === '1';

@@ -1,9 +1,13 @@
 import type { APIRoute } from 'astro';
 import { supabase } from '../../lib/supabase';
+import { createRateLimiter } from '../../lib/rate-limit';
 
 export const prerender = false;
 
 const SLUG_RE = /^[a-z0-9-]+$/;
+
+// Rate limit comment reads: 60 per minute per IP
+const readLimiter = createRateLimiter(60, 60_000);
 
 // Per-user rate limit: max 5 comment submissions per minute
 const COMMENT_LIMIT = 5;
@@ -27,9 +31,14 @@ function isRateLimited(userId: string): boolean {
 }
 
 // GET /api/comments?slug=xxx  → list latest 50 comments
-export const GET: APIRoute = async ({ url }) => {
+export const GET: APIRoute = async ({ url, request }) => {
   const slug = url.searchParams.get('slug') ?? '';
   if (!SLUG_RE.test(slug)) return new Response('Bad request', { status: 400 });
+
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  if (readLimiter.isLimited(ip)) {
+    return new Response('Too Many Requests', { status: 429, headers: { 'Retry-After': '60' } });
+  }
 
   const { data, error } = await supabase
     .from('comments')
