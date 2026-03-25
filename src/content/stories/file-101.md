@@ -4,13 +4,13 @@ fileNum: FILE-101
 date: 2036.3.18
 readTime: 10分鐘
 tags:
-  - 情感科技
   - 心理驚悚
+  - 情感科技
 level: public
 excerpt: 他曾是喧囂的火，如今是我掌心安靜的盆栽。我替他修剪記憶，用溫柔將他豢養。我把他照顧得很好。
 author: 弦音觀測者
 vis: v1
-icon: ✖
+icon: ◆
 published: true
 featured: true
 ---
