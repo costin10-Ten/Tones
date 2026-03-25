@@ -20,6 +20,8 @@ const {
   articleMeta,
 } = Astro.props;
 
+const nonce = Astro.locals.nonce || undefined;
+
 // Strip query params from canonical — ?cat= is UI state, not content
 const canonical = Astro.url.origin + Astro.url.pathname;
 const siteName = '弦音異象';
@@ -66,7 +68,7 @@ const defaultOgImage = new URL('/og-default.png', Astro.url).href;
   <slot name="head" />
   <ViewTransitions />
   <!-- Apply theme + plain mode before first paint to avoid flash -->
-  <script is:inline>
+  <script is:inline nonce={nonce}>
     (function () {
       try {
         var t = localStorage.getItem('hz-theme');
@@ -82,7 +84,7 @@ const defaultOgImage = new URL('/og-default.png', Astro.url).href;
   <div id="progress" aria-hidden="true"></div>
   <slot />
 
-  <script is:inline>
+  <script is:inline nonce={nonce}>
     // Re-apply theme + plain mode after each ViewTransitions page swap
     document.addEventListener('astro:after-swap', function () {
       try {
@@ -95,7 +97,7 @@ const defaultOgImage = new URL('/og-default.png', Astro.url).href;
     });
   </script>
 
-  <script is:inline>
+  <script is:inline nonce={nonce}>
     // Reading progress bar
     function updateProgress() {
       const el = document.getElementById('progress');
@@ -109,7 +111,7 @@ const defaultOgImage = new URL('/og-default.png', Astro.url).href;
     updateProgress();
   </script>
 
-  <script is:inline>
+  <script is:inline nonce={nonce}>
     // Global plain text mode intercept
     // Intercepts story links and redirects to /plain when mode is enabled
     (function interceptPlainMode() {

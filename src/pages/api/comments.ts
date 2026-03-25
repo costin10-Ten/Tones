@@ -30,26 +30,41 @@ function isRateLimited(userId: string): boolean {
   return false;
 }
 
-// GET /api/comments?slug=xxx  → list latest 50 comments
+const PAGE_SIZE = 20;
+
+// GET /api/comments?slug=xxx&page=N  → paginated comments (20 per page, newest first)
 export const GET: APIRoute = async ({ url, request }) => {
   const slug = url.searchParams.get('slug') ?? '';
   if (!SLUG_RE.test(slug)) return new Response('Bad request', { status: 400 });
+
+  const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10));
 
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
   if (readLimiter.isLimited(ip)) {
     return new Response('Too Many Requests', { status: 429, headers: { 'Retry-After': '60' } });
   }
 
-  const { data, error } = await supabase
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
+  const { data, error, count } = await supabase
     .from('comments')
-    .select('id, display_name, content, created_at')
+    .select('id, display_name, content, created_at', { count: 'exact' })
     .eq('story_slug', slug)
     .eq('deleted', false)
     .order('created_at', { ascending: false })
-    .limit(50);
+    .range(from, to);
 
   if (error) return new Response(JSON.stringify({ error: '操作失敗，請稍後再試' }), { status: 500 });
-  return new Response(JSON.stringify(data ?? []), {
+
+  const total = count ?? 0;
+  return new Response(JSON.stringify({
+    comments: data ?? [],
+    page,
+    pageSize: PAGE_SIZE,
+    total,
+    hasMore: from + PAGE_SIZE < total,
+  }), {
     headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
   });
 };

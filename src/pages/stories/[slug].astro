@@ -92,6 +92,17 @@ const levelLabel: Record<string, string> = {
 };
 
 const storyId = `story:${slug}`;
+
+// ─── Edge caching for public stories ─────────────────────────
+// Public stories render the same HTML for all users (comment form auth is
+// handled client-side), so we can let Vercel's edge cache the response.
+const isPublic = level === 'public';
+if (isPublic) {
+  Astro.response.headers.set(
+    'Cache-Control',
+    'public, s-maxage=3600, stale-while-revalidate=86400',
+  );
+}
 ---
 
 <Layout
@@ -314,12 +325,33 @@ const storyId = `story:${slug}`;
       )}
 
       <!-- Comments -->
-      <div class="comments-section" id="commentsSection" data-slug={slug} data-authed={userId ? '1' : '0'}>
+      <!--
+        For public stories (edge-cached): both form and prompt are rendered;
+        client-side auth check reveals the correct one.
+        For SSR stories: server knows userId, so only one branch is rendered.
+      -->
+      <div class="comments-section" id="commentsSection" data-slug={slug} data-authed={userId ? '1' : '0'} data-public={isPublic ? '1' : '0'}>
         <div class="comments-hd">[ 目擊者留言 ]</div>
         <div id="commentsList" class="comments-list">
           <div class="comments-loading">載入中…</div>
         </div>
-        {userId ? (
+        {isPublic ? (
+          <>
+            {/* Public stories: render both; JS picks the visible one after auth check */}
+            <form id="commentForm" class="comment-form" style="display:none">
+              <input type="text" id="commentName" class="comment-input" placeholder="代號（選填，預設匿名觀測者）" maxlength="30" />
+              <textarea id="commentContent" class="comment-textarea" placeholder="留下你的觀察紀錄… （上限 500 字）" maxlength="500" rows="3"></textarea>
+              <div class="comment-actions">
+                <span id="commentCharCount" class="comment-char">0 / 500</span>
+                <button type="submit" id="commentSubmit" class="comment-submit">提交觀察報告</button>
+              </div>
+              <div id="commentMsg" class="comment-msg"></div>
+            </form>
+            <div id="commentLoginPrompt" class="comment-login-prompt">
+              <a href={signInUrl} class="comment-login-btn">[ 登入後留言 ]</a>
+            </div>
+          </>
+        ) : userId ? (
           <form id="commentForm" class="comment-form">
             <input type="text" id="commentName" class="comment-input" placeholder="代號（選填，預設匿名觀測者）" maxlength="30" />
             <textarea id="commentContent" class="comment-textarea" placeholder="留下你的觀察紀錄… （上限 500 字）" maxlength="500" rows="3"></textarea>
@@ -330,7 +362,7 @@ const storyId = `story:${slug}`;
             <div id="commentMsg" class="comment-msg"></div>
           </form>
         ) : (
-          <div class="comment-login-prompt">
+          <div id="commentLoginPrompt" class="comment-login-prompt">
             <a href={signInUrl} class="comment-login-btn">[ 登入後留言 ]</a>
           </div>
         )}
@@ -786,8 +818,13 @@ const storyId = `story:${slug}`;
     var section = document.getElementById('commentsSection');
     if (!section) return;
     var slug = section.dataset.slug;
-    var authed = section.dataset.authed === '1';
+    var isPublicStory = section.dataset.public === '1';
     var list = document.getElementById('commentsList');
+
+    // ── Pagination state ──
+    var currentPage = 1;
+    var hasMore = false;
+    var loadMoreBtn = null;
 
     function fmtDate(iso) {
       var d = new Date(iso);
@@ -796,34 +833,71 @@ const storyId = `story:${slug}`;
         String(d.getDate()).padStart(2, '0');
     }
 
-    function renderComments(comments) {
-      if (!list) return;
-      if (!comments.length) {
-        list.innerHTML = '<div class="comment-empty">尚無觀測紀錄。成為第一位目擊者。</div>';
-        return;
-      }
-      list.innerHTML = comments.map(function(c) {
-        return '<div class="comment-item">' +
-          '<div class="comment-meta"><span class="comment-name">' + escHtml(c.display_name) + '</span>' +
-          '<span class="comment-date">' + fmtDate(c.created_at) + '</span></div>' +
-          '<div class="comment-body">' + escHtml(c.content) + '</div>' +
-          '</div>';
-      }).join('');
-    }
-
     function escHtml(s) {
       return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
 
-    // Lazy-load comments when section scrolls into view
+    function buildCommentEl(c) {
+      return '<div class="comment-item">' +
+        '<div class="comment-meta"><span class="comment-name">' + escHtml(c.display_name) + '</span>' +
+        '<span class="comment-date">' + fmtDate(c.created_at) + '</span></div>' +
+        '<div class="comment-body">' + escHtml(c.content) + '</div>' +
+        '</div>';
+    }
+
+    function setLoadMoreBtn(show) {
+      if (!list) return;
+      if (loadMoreBtn) loadMoreBtn.remove();
+      loadMoreBtn = null;
+      if (!show) return;
+      loadMoreBtn = document.createElement('button');
+      loadMoreBtn.className = 'comment-load-more';
+      loadMoreBtn.textContent = '載入更多留言';
+      loadMoreBtn.addEventListener('click', function() { loadPage(currentPage + 1, true); });
+      list.after(loadMoreBtn);
+    }
+
+    function renderComments(comments, append) {
+      if (!list) return;
+      if (!append) {
+        if (!comments.length) {
+          list.innerHTML = '<div class="comment-empty">尚無觀測紀錄。成為第一位目擊者。</div>';
+          return;
+        }
+        list.innerHTML = comments.map(buildCommentEl).join('');
+      } else {
+        var frag = document.createDocumentFragment();
+        comments.forEach(function(c) {
+          var el = document.createElement('div');
+          el.innerHTML = buildCommentEl(c);
+          frag.appendChild(el.firstChild);
+        });
+        list.appendChild(frag);
+      }
+    }
+
     var commentsLoaded = false;
+    function loadPage(page, append) {
+      if (loadMoreBtn) loadMoreBtn.disabled = true;
+      fetch('/api/comments?slug=' + slug + '&page=' + page)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          var comments = Array.isArray(data.comments) ? data.comments : [];
+          hasMore = !!data.hasMore;
+          currentPage = data.page || page;
+          renderComments(comments, !!append);
+          setLoadMoreBtn(hasMore);
+        })
+        .catch(function() {
+          if (!append && list) list.innerHTML = '';
+          setLoadMoreBtn(false);
+        });
+    }
+
     function loadComments() {
       if (commentsLoaded) return;
       commentsLoaded = true;
-      fetch('/api/comments?slug=' + slug)
-        .then(function(r) { return r.json(); })
-        .then(function(data) { renderComments(Array.isArray(data) ? data : []); })
-        .catch(function() { if (list) list.innerHTML = ''; });
+      loadPage(1, false);
     }
 
     if ('IntersectionObserver' in window) {
@@ -833,6 +907,22 @@ const storyId = `story:${slug}`;
       obs.observe(section);
     } else {
       loadComments();
+    }
+
+    // ── Client-side auth check for public (edge-cached) stories ──
+    if (isPublicStory) {
+      var form = document.getElementById('commentForm');
+      var prompt = document.getElementById('commentLoginPrompt');
+      fetch('/api/auth-check')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.authed) {
+            if (form) form.style.display = '';
+            if (prompt) prompt.style.display = 'none';
+            section.dataset.authed = '1';
+          }
+        })
+        .catch(function() {});
     }
 
     var form = document.getElementById('commentForm');
@@ -865,8 +955,6 @@ const storyId = `story:${slug}`;
           if (charCount) charCount.textContent = '0 / 500';
           if (nameEl) nameEl.value = '';
           if (msg) { msg.textContent = '觀察報告已提交。'; msg.className = 'comment-msg ok'; }
-          // Prepend new comment to list
-          var existing = list?.querySelectorAll('.comment-item').length ?? 0;
           var empty = list?.querySelector('.comment-empty');
           if (empty) empty.remove();
           var el = document.createElement('div');
@@ -1702,6 +1790,23 @@ const storyId = `story:${slug}`;
   .comment-submit:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
   .comment-submit:disabled { opacity: .5; cursor: not-allowed; }
   .comment-msg { font-family: 'Share Tech Mono', monospace; font-size: .68rem; }
+  .comment-load-more {
+    display: block;
+    width: 100%;
+    margin-top: 12px;
+    padding: 9px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .72rem;
+    letter-spacing: .1em;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all .18s;
+    text-align: center;
+  }
+  .comment-load-more:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .comment-load-more:disabled { opacity: .5; cursor: not-allowed; }
   .comment-msg.ok { color: var(--accent); }
   .comment-msg.err { color: var(--danger); }
   .comment-login-prompt {
