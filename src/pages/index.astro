@@ -66,10 +66,10 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
     <a href="/" class="logo-text-btn">弦音<em>異象</em></a>
 
     <nav class="top-nav">
-      <a class="nav-a" data-cat="記憶科技" href="#world">精神汙染</a>
-      <a class="nav-a" data-cat="地下城市" href="#world">深淵建築</a>
-      <a class="nav-a" data-cat="AI社會" href="#world">人工意識</a>
-      <a class="nav-a" data-cat="生態復育" href="#world">異變生態</a>
+      <a class="nav-a" data-cat="記憶科技" href="#stories">精神汙染</a>
+      <a class="nav-a" data-cat="地下城市" href="#stories">深淵建築</a>
+      <a class="nav-a" data-cat="AI社會" href="#stories">人工意識</a>
+      <a class="nav-a" data-cat="生態復育" href="#stories">異變生態</a>
     </nav>
 
     <ThemeSwitcher />
@@ -794,6 +794,15 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
 
     document.querySelectorAll<HTMLButtonElement>('.tag-btn').forEach(btn => {
       btn.addEventListener('click', () => applyFilter(btn.dataset.cat ?? '全部'), { signal: sig });
+    });
+
+    // ─── Top-nav category links → scroll to #stories and apply filter ───
+    document.querySelectorAll<HTMLAnchorElement>('.nav-a[data-cat]').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        applyFilter(link.dataset.cat ?? '全部');
+        document.getElementById('stories')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, { signal: sig });
     });
 
     // Intercept story card clicks — carry active filter as list context
