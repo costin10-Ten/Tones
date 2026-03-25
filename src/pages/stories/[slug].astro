@@ -148,20 +148,20 @@ const storyId = `story:${slug}`;
       </div>
       <div class="tut-hint tut-width">
         <div class="tut-label">滿版 / 窄版切換</div>
-        <div class="tut-arrow tut-arrow-tl">↗</div>
+        <div class="tut-arrow">↗</div>
       </div>
       <div class="tut-hint tut-help-ref">
-        <div class="tut-label">點 ? 可重看說明</div>
-        <div class="tut-arrow tut-arrow-tl tut-arrow-sm">↗</div>
+        <div class="tut-label">點此重看說明</div>
+        <div class="tut-arrow tut-arrow-sm">↑</div>
       </div>
       <!-- Side hints -->
       <div class="tut-hint tut-prev">
-        <div class="tut-arrow tut-arrow-right">←</div>
+        <div class="tut-arrow">←</div>
         <div class="tut-label">上一篇</div>
       </div>
       <div class="tut-hint tut-next">
         <div class="tut-label">下一篇</div>
-        <div class="tut-arrow tut-arrow-left">→</div>
+        <div class="tut-arrow">→</div>
       </div>
       <!-- Bottom hints -->
       <div class="tut-hint tut-fontsz">
@@ -883,28 +883,29 @@ const storyId = `story:${slug}`;
   /* ─── Back button ───────────────────────────────────────── */
   .back-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
 
-  /* ─── Floating Help Button (top-right) ─────────────────── */
+  /* ─── Floating Help Button (top-right, below header) ───── */
   .help-fab {
     position: fixed;
     top: 68px;
     right: 16px;
     z-index: 500;
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--surface);
-    border: 1px dashed var(--border);
-    color: var(--text-muted);
+    background: var(--bg2);
+    border: 1px solid var(--accent);
+    color: var(--accent);
     font-family: 'Share Tech Mono', monospace;
-    font-size: .75rem;
+    font-size: .72rem;
+    font-weight: bold;
     cursor: pointer;
-    opacity: 0.3;
-    transition: opacity .2s;
+    opacity: 0.55;
+    transition: opacity .2s, background .2s;
     border-radius: 2px;
   }
-  .help-fab:hover { opacity: 0.9; }
+  .help-fab:hover { opacity: 1; background: var(--accent); color: var(--bg); }
 
   /* ─── Header ─────────────────────────────────────────────── */
   header {
@@ -1308,29 +1309,19 @@ const storyId = `story:${slug}`;
     .ctrl-btn { padding: 6px 8px; }
   }
 
-  /* ─── Wide mode UI transparency ─────────────────────────── */
-  :global(body.wide) header,
+  /* ─── Wide mode UI transparency (FABs + side-nav only, header stays visible) ── */
   :global(body.wide) .font-sz-fab,
   :global(body.wide) .font-type-fab {
     transition: opacity 0.4s ease;
-  }
-  /* Scrolling down: fully transparent */
-  :global(body.wide.ui-fade-out) header {
-    opacity: 0;
-    pointer-events: none;
   }
   :global(body.wide.ui-fade-out) .font-sz-fab,
   :global(body.wide.ui-fade-out) .font-type-fab {
     opacity: 0;
     pointer-events: none;
   }
-  /* Scrolling up ≥ 2 lines: semi-transparent */
-  :global(body.wide.ui-fade-in) header { opacity: 0.55; }
   :global(body.wide.ui-fade-in) .font-sz-fab,
   :global(body.wide.ui-fade-in) .font-type-fab { opacity: 0.55; }
   :global(body.wide.ui-fade-in) .side-nav { opacity: 0.4; }
-  /* Hover always shows fully */
-  :global(body.wide) header:hover { opacity: 1 !important; pointer-events: all !important; }
   :global(body.wide) .font-sz-fab:hover,
   :global(body.wide) .font-type-fab:hover { opacity: 1 !important; pointer-events: all !important; }
   :global(body.wide) .side-nav:hover { opacity: 0.9 !important; }
@@ -1412,19 +1403,18 @@ const storyId = `story:${slug}`;
   }
   .tut-arrow-sm { font-size: .9rem; }
   /* Hint positions */
-  .tut-back   { top: 70px; left: 20px; flex-direction: column; align-items: flex-start; }
-  .tut-width  { top: 70px; right: 56px; flex-direction: column; align-items: flex-end; }
-  .tut-help-ref { top: 70px; right: 16px; flex-direction: column; align-items: flex-end; }
-  .tut-prev   { top: 50%; left: 28px; transform: translateY(-50%); flex-direction: row; }
-  .tut-next   { top: 50%; right: 28px; transform: translateY(-50%); flex-direction: row; }
-  .tut-fontsz   { bottom: 120px; right: 20px; flex-direction: column; align-items: flex-end; }
-  .tut-fonttype { bottom: 120px; left: 20px; flex-direction: column; align-items: flex-start; }
-  .tut-arrow-tr { align-self: flex-start; }
-  .tut-arrow-tl { align-self: flex-end; }
-  .tut-arrow-down { align-self: flex-end; }
-  @media (max-width: 680px) {
-    .tut-prev, .tut-next { display: none; }
-    .tut-width { right: 48px; }
+  .tut-back     { top: 68px; left: 20px; flex-direction: column; align-items: flex-start; }
+  .tut-width    { top: 68px; right: 130px; flex-direction: column; align-items: flex-end; }
+  .tut-help-ref { top: 112px; right: 10px; flex-direction: column; align-items: center; }
+  .tut-prev     { top: 50%; left: 30px; transform: translateY(-50%); flex-direction: column; align-items: flex-start; gap: 4px; }
+  .tut-next     { top: 50%; right: 30px; transform: translateY(-50%); flex-direction: column; align-items: flex-end; gap: 4px; }
+  .tut-fontsz   { bottom: 130px; right: 20px; flex-direction: column; align-items: flex-end; }
+  .tut-fonttype { bottom: 130px; left: 20px; flex-direction: column; align-items: flex-start; }
+  @media (max-width: 480px) {
+    .tut-width { right: 100px; }
+    .tut-prev { left: 8px; }
+    .tut-next { right: 8px; }
+    .tut-label { font-size: .6rem; }
   }
 
   /* ─── Access Gate ───────────────────────────────────────── */
