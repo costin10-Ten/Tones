@@ -3,7 +3,7 @@ import ThemeSwitcher from './ThemeSwitcher.astro';
 import { SignedIn, UserButton } from '@clerk/astro/components';
 
 interface Props {
-  active?: 'home' | 'stories' | 'about' | 'history';
+  active?: 'home' | 'stories' | 'about';
 }
 const { active } = Astro.props;
 ---
@@ -19,7 +19,6 @@ const { active } = Astro.props;
     <a class={`nav-a${active === 'home' ? ' on' : ''}`} href="/">首頁</a>
     <a class={`nav-a${active === 'stories' ? ' on' : ''}`} href="/stories">全部卷宗</a>
     <a class={`nav-a${active === 'about' ? ' on' : ''}`} href="/about">關於</a>
-    <a class={`nav-a${active === 'history' ? ' on' : ''}`} href="/history">發展史</a>
   </nav>
   <ThemeSwitcher />
   <SignedIn>
