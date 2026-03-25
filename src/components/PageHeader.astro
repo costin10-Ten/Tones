@@ -31,14 +31,13 @@ const { active } = Astro.props;
     position: sticky;
     top: 0;
     z-index: 100;
-    min-height: 56px;
+    height: 56px;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     padding: 0 16px;
     background: var(--bg);
     border-bottom: 1px solid var(--border);
-    overflow-x: hidden;
   }
   .logo-back {
     display: flex;
@@ -54,12 +53,13 @@ const { active } = Astro.props;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: 2px;
+    min-width: 0;
   }
   .nav-a {
     font-family: 'Share Tech Mono', monospace;
     font-size: 0.7rem;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     color: var(--text-dim);
     text-decoration: none;
     padding: 5px 10px;
@@ -69,26 +69,8 @@ const { active } = Astro.props;
   }
   .nav-a:hover, .nav-a.on { border-color: var(--border); color: var(--text); }
 
-  @media (max-width: 600px) {
-    header {
-      padding: 0 12px;
-      gap: 8px;
-      flex-wrap: wrap;
-      height: auto;
-      min-height: 56px;
-      padding-bottom: 4px;
-    }
-    .top-nav {
-      order: 3;
-      width: 100%;
-      justify-content: center;
-      border-top: 1px solid var(--border);
-      padding: 3px 0 4px;
-      gap: 2px;
-    }
-    .nav-a {
-      font-size: 0.68rem;
-      padding: 4px 10px;
-    }
+  @media (max-width: 480px) {
+    header { padding: 0 10px; gap: 4px; }
+    .nav-a { font-size: 0.62rem; padding: 4px 7px; letter-spacing: 0; }
   }
 </style>
