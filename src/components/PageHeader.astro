@@ -3,7 +3,7 @@ import ThemeSwitcher from './ThemeSwitcher.astro';
 import { SignedIn, UserButton } from '@clerk/astro/components';
 
 interface Props {
-  active?: 'home' | 'stories' | 'about' | 'history';
+  active?: 'home' | 'stories' | 'about';
 }
 const { active } = Astro.props;
 ---
@@ -19,7 +19,6 @@ const { active } = Astro.props;
     <a class={`nav-a${active === 'home' ? ' on' : ''}`} href="/">首頁</a>
     <a class={`nav-a${active === 'stories' ? ' on' : ''}`} href="/stories">全部卷宗</a>
     <a class={`nav-a${active === 'about' ? ' on' : ''}`} href="/about">關於</a>
-    <a class={`nav-a${active === 'history' ? ' on' : ''}`} href="/history">發展史</a>
   </nav>
   <ThemeSwitcher />
   <SignedIn>
@@ -35,7 +34,7 @@ const { active } = Astro.props;
     height: 56px;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     padding: 0 16px;
     background: var(--bg);
     border-bottom: 1px solid var(--border);
@@ -54,12 +53,13 @@ const { active } = Astro.props;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: 2px;
+    min-width: 0;
   }
   .nav-a {
     font-family: 'Share Tech Mono', monospace;
     font-size: 0.7rem;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     color: var(--text-dim);
     text-decoration: none;
     padding: 5px 10px;
@@ -68,4 +68,9 @@ const { active } = Astro.props;
     white-space: nowrap;
   }
   .nav-a:hover, .nav-a.on { border-color: var(--border); color: var(--text); }
+
+  @media (max-width: 480px) {
+    header { padding: 0 10px; gap: 4px; }
+    .nav-a { font-size: 0.62rem; padding: 4px 7px; letter-spacing: 0; }
+  }
 </style>

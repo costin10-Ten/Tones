@@ -13,6 +13,7 @@ const storiesCollection = defineCollection({
     author: z.string().default('弦音觀測者'),
     vis: z.enum(['v1', 'v2', 'v3', 'v4', 'v5']).default('v1'),
     icon: z.string().default('✖'),
+    uploadDate: z.string().optional(),
     published: z.boolean().default(true),
     featured: z.boolean().default(false),
     series: z.string().optional(),

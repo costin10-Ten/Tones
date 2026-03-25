@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import PageHeader from '../components/PageHeader.astro';
+import Footer from '../components/Footer.astro';
 import { SignedIn, SignedOut } from '@clerk/astro/components';
 import { getCollection } from 'astro:content';
 
@@ -106,19 +107,7 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
     </div>
   </main>
 
-  <footer>
-    <div class="ft-logo">弦音<em>異象</em></div>
-    <nav class="ft-nav">
-      <a href="/">首頁</a>
-      <span class="ft-sep">·</span>
-      <a href="/stories">卷宗</a>
-      <span class="ft-sep">·</span>
-      <a href="/tags">標籤</a>
-      <span class="ft-sep">·</span>
-      <a href="/member">會員</a>
-    </nav>
-    <div class="ft-txt">ANOMALY ARCHIVES · CLASSIFIED<br>一切皆為虛構，除非你相信。</div>
-  </footer>
+  <Footer active="member" />
 </Layout>
 
 <script>
@@ -373,6 +362,7 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
   .member-main {
     min-height: 100vh;
     background: var(--bg);
+    overflow-x: hidden;
   }
   .member-wrap {
     max-width: 720px;
@@ -785,53 +775,6 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
     text-transform: uppercase;
   }
   .stats-retry-btn:hover { border-color: var(--accent); color: var(--accent); }
-
-  /* ─── Footer ─────────────────────────────────────── */
-  footer {
-    text-align: center;
-    padding: 48px 24px;
-    border-top: 1px solid var(--border);
-  }
-  .ft-logo {
-    font-family: 'Noto Serif TC', serif;
-    font-size: 1.2rem;
-    font-weight: 900;
-    color: var(--text);
-    letter-spacing: .1em;
-    margin-bottom: 14px;
-  }
-  .ft-logo em { color: var(--accent); font-style: normal; }
-  .ft-nav {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    margin-bottom: 14px;
-    flex-wrap: wrap;
-  }
-  .ft-nav a {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: .65rem;
-    letter-spacing: .1em;
-    color: var(--text-muted);
-    text-decoration: none;
-    padding: 4px 8px;
-    transition: color .15s;
-    text-transform: uppercase;
-  }
-  .ft-nav a:hover { color: var(--accent); }
-  .ft-sep {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: .6rem;
-    color: var(--border);
-  }
-  .ft-txt {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: .65rem;
-    color: var(--text-muted);
-    letter-spacing: .1em;
-    line-height: 1.8;
-  }
 
   @media (max-width: 500px) {
     .stats-grid { grid-template-columns: repeat(2, 1fr); }

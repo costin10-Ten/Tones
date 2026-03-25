@@ -1,6 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import PageHeader from '../../components/PageHeader.astro';
+import Footer from '../../components/Footer.astro';
 import { getCollection } from 'astro:content';
 
 export const prerender = true;
@@ -21,7 +22,7 @@ const tags = [...tagMap.entries()]
   .sort((a, b) => b[1].length - a[1].length);
 ---
 
-<Layout title="標籤索引 — 弦音異象" description="依異常分類瀏覽所有卷宗">
+<Layout title="異常分類索引 — 弦音異象" description="依異常類別瀏覽弦音異象所有短篇卷宗：精神汙染、深淵建築、人工意識、情感科技、異變生態等。">
   <PageHeader />
 
   <main class="tags-main">
@@ -41,7 +42,7 @@ const tags = [...tagMap.entries()]
             {stories
               .sort((a, b) => b.data.date.localeCompare(a.data.date))
               .map(s => (
-                <a href={`/stories/${s.slug}?ref=tags`} class="tag-story-item">
+                <a href={`/stories/${s.slug}?list=cat:${encodeURIComponent(tag)}&ref=tags`} class="tag-story-item">
                   <span class="tsi-num">{s.data.fileNum}</span>
                   <span class="tsi-title">{s.data.title}</span>
                   <span class="tsi-date">{s.data.date}</span>
@@ -54,14 +55,11 @@ const tags = [...tagMap.entries()]
     </div>
   </main>
 
-  <footer>
-    <div class="ft-logo">弦音<em>異象</em></div>
-    <div class="ft-txt">ANOMALY ARCHIVES · CLASSIFIED</div>
-  </footer>
+  <Footer active="tags" />
 </Layout>
 
 <style>
-  .tags-main { min-height: 100vh; background: var(--bg); }
+  .tags-main { min-height: 100vh; background: var(--bg); overflow-x: hidden; }
   .tags-wrap { max-width: 720px; margin: 0 auto; padding: 48px 24px 100px; }
 
   .page-hd { margin-bottom: 40px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
@@ -114,14 +112,6 @@ const tags = [...tagMap.entries()]
     font-family: 'Share Tech Mono', monospace; font-size: .6rem;
     color: var(--text-muted); white-space: nowrap; flex-shrink: 0;
   }
-
-  footer { text-align: center; padding: 40px 24px; border-top: 1px solid var(--border); }
-  .ft-logo {
-    font-family: 'Noto Serif TC', serif; font-weight: 900;
-    font-size: 1.1rem; color: var(--text); letter-spacing: .08em; margin-bottom: 6px;
-  }
-  .ft-logo em { color: var(--accent); font-style: normal; }
-  .ft-txt { font-family: 'Share Tech Mono', monospace; font-size: .65rem; color: var(--text-muted); }
 
   @media (max-width: 500px) {
     .tsi-date { display: none; }

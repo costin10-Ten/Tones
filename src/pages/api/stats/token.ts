@@ -1,30 +1,14 @@
 import type { APIRoute } from 'astro';
 import { supabase } from '../../../lib/supabase';
+import { createRateLimiter } from '../../../lib/rate-limit';
 
 export const prerender = false;
 
 const VALID_ACTIONS = new Set(['add', 'remove']);
 const SLUG_RE = /^[a-z0-9-]+$/;
 
-// Per-IP rate limit for anonymous token actions: max 20 per minute
-const ANON_TOKEN_LIMIT = 20;
-const ANON_TOKEN_WINDOW_MS = 60_000;
-const anonTokenTimestamps = new Map<string, number[]>();
-
-function isAnonRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const cutoff = now - ANON_TOKEN_WINDOW_MS;
-  const times = (anonTokenTimestamps.get(ip) ?? []).filter(t => t > cutoff);
-  if (times.length >= ANON_TOKEN_LIMIT) return true;
-  times.push(now);
-  anonTokenTimestamps.set(ip, times);
-  if (anonTokenTimestamps.size > 1000) {
-    for (const [k, ts] of anonTokenTimestamps) {
-      if (!ts.some(t => t > cutoff)) anonTokenTimestamps.delete(k);
-    }
-  }
-  return false;
-}
+const { isLimited: isAnonRateLimited } = createRateLimiter(20, 60_000, 1000);
+const { isLimited: isAuthRateLimited } = createRateLimiter(30, 60_000);
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
@@ -39,7 +23,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const userId = locals.auth?.()?.userId ?? null;
 
   if (userId) {
-    // Logged-in: track in user_tokens + update global count
+    if (isAuthRateLimited(userId))
+      return new Response(JSON.stringify({ error: '操作過於頻繁，請稍後再試' }), { status: 429, headers: JSON_HEADERS });
+
     if (action === 'add') {
       const { error: insertErr } = await supabase
         .from('user_tokens')
@@ -53,24 +39,32 @@ export const POST: APIRoute = async ({ request, locals }) => {
         if (rpcErr) return new Response(JSON.stringify({ error: '操作失敗，請稍後再試' }), { status: 500, headers: JSON_HEADERS });
       }
     } else {
-      const { error: delErr } = await supabase
+      // Only decrement the global counter if the user actually had a token to remove.
+      // Using .select() so Supabase returns the deleted rows; an empty array means no row existed.
+      const { data: deleted, error: delErr } = await supabase
         .from('user_tokens')
         .delete()
         .eq('user_id', userId)
-        .eq('story_slug', slug);
+        .eq('story_slug', slug)
+        .select('user_id');
 
       if (delErr) return new Response(JSON.stringify({ error: '操作失敗，請稍後再試' }), { status: 500, headers: JSON_HEADERS });
 
-      const { error: rpcErr } = await supabase.rpc('decrement_token', { p_slug: slug });
-      if (rpcErr) return new Response(JSON.stringify({ error: '操作失敗，請稍後再試' }), { status: 500, headers: JSON_HEADERS });
+      if (deleted && deleted.length > 0) {
+        const { error: rpcErr } = await supabase.rpc('decrement_token', { p_slug: slug });
+        if (rpcErr) return new Response(JSON.stringify({ error: '操作失敗，請稍後再試' }), { status: 500, headers: JSON_HEADERS });
+      }
     }
   } else {
-    // Anonymous: rate-limit by IP, then update global count only
+    // Anonymous: rate-limit by IP, then only allow add (remove requires account to prevent abuse)
+    if (action === 'remove')
+      return new Response(JSON.stringify({ error: '請登入後再移除金幣' }), { status: 401, headers: JSON_HEADERS });
+
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
     if (isAnonRateLimited(ip))
       return new Response(JSON.stringify({ error: '操作過於頻繁，請稍後再試' }), { status: 429, headers: JSON_HEADERS });
-    const rpc = action === 'add' ? 'increment_token' : 'decrement_token';
-    const { error: rpcErr } = await supabase.rpc(rpc, { p_slug: slug });
+
+    const { error: rpcErr } = await supabase.rpc('increment_token', { p_slug: slug });
     if (rpcErr) return new Response(JSON.stringify({ error: '操作失敗，請稍後再試' }), { status: 500, headers: JSON_HEADERS });
   }
 
@@ -81,6 +75,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
     .single();
 
   return new Response(JSON.stringify({ tokens: data?.tokens ?? 0 }), {
-    headers: { 'Content-Type': 'application/json' },
+    headers: JSON_HEADERS,
   });
 };

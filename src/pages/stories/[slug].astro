@@ -47,7 +47,11 @@ const showPaywall = isPaid && !!userId && !isUnlocked;
 
 // Adjacent stories for prev/next navigation
 const allStories = await getCollection('stories', ({ data }) => data.published);
-const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date));
+const sorted = allStories.sort((a, b) => {
+  const aDate = a.data.uploadDate || a.data.date;
+  const bDate = b.data.uploadDate || b.data.date;
+  return bDate.localeCompare(aDate);
+});
 const currentIndex = sorted.findIndex(s => s.slug === slug);
 const prevStory = currentIndex < sorted.length - 1 ? sorted[currentIndex + 1] : null;
 const nextStory = currentIndex > 0 ? sorted[currentIndex - 1] : null;
@@ -88,6 +92,17 @@ const levelLabel: Record<string, string> = {
 };
 
 const storyId = `story:${slug}`;
+
+// ─── Edge caching for public stories ─────────────────────────
+// Public stories render the same HTML for all users (comment form auth is
+// handled client-side), so we can let Vercel's edge cache the response.
+const isPublic = level === 'public';
+if (isPublic) {
+  Astro.response.headers.set(
+    'Cache-Control',
+    'public, s-maxage=3600, stale-while-revalidate=86400',
+  );
+}
 ---
 
 <Layout
@@ -99,23 +114,37 @@ const storyId = `story:${slug}`;
 >
   <script type="application/ld+json" set:html={JSON.stringify({
     "@context": "https://schema.org",
-    "@type": "Article",
-    "headline": entry.data.title,
-    "description": entry.data.excerpt,
-    "author": { "@type": "Person", "name": entry.data.author },
-    "datePublished": entry.data.date,
-    "image": ogImageUrl,
-    "url": Astro.url.origin + Astro.url.pathname,
-    "publisher": {
-      "@type": "Organization",
-      "name": "弦音異象",
-      "url": Astro.url.origin
-    },
-    "keywords": entry.data.tags.join(', '),
-    "inLanguage": "zh-TW"
+    "@graph": [
+      {
+        "@type": "Article",
+        "headline": entry.data.title,
+        "description": entry.data.excerpt,
+        "author": { "@type": "Person", "name": entry.data.author },
+        "datePublished": entry.data.date,
+        "image": { "@type": "ImageObject", "url": ogImageUrl, "width": 1200, "height": 630 },
+        "url": Astro.url.origin + Astro.url.pathname,
+        "publisher": {
+          "@type": "Organization",
+          "name": "弦音異象",
+          "@id": `${Astro.url.origin}/#organization`,
+          "url": Astro.url.origin
+        },
+        "keywords": entry.data.tags.join(', '),
+        "inLanguage": "zh-TW",
+        "isPartOf": { "@id": `${Astro.url.origin}/#website` }
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "弦音異象", "item": Astro.url.origin + "/" },
+          { "@type": "ListItem", "position": 2, "name": "卷宗總覽", "item": Astro.url.origin + "/stories" },
+          { "@type": "ListItem", "position": 3, "name": entry.data.title, "item": Astro.url.origin + Astro.url.pathname }
+        ]
+      }
+    ]
   })} slot="head" />
   <!-- ─── Reader Header ─── -->
-  <header>
+  <header id="rdrHeader">
     <button id="agBack" class="ctrl-btn back-btn" aria-label="返回" title="返回列表">
       <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"
            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -129,6 +158,53 @@ const storyId = `story:${slug}`;
       ⊡<span class="ctrl-lbl" id="widthLbl">窄版</span>
     </button>
   </header>
+
+  <!-- ─── Floating Help Button ─── -->
+  <button id="helpBtn" class="help-fab" title="閱讀器使用說明" aria-label="閱讀器說明">?</button>
+
+  <!-- ─── Reader Tutorial Overlay ─── -->
+  <div id="readerTutorial" class="tutorial-overlay" role="dialog" aria-label="閱讀器使用說明">
+    <div class="tut-backdrop"></div>
+    <div class="tut-content">
+      <!-- Top-left hints -->
+      <div class="tut-hint tut-back">
+        <div class="tut-arrow tut-arrow-tr">↖</div>
+        <div class="tut-label">返回列表</div>
+      </div>
+      <div class="tut-hint tut-width">
+        <div class="tut-label">滿版 / 窄版切換</div>
+        <div class="tut-arrow">↗</div>
+      </div>
+      <div class="tut-hint tut-help-ref">
+        <div class="tut-label">點此重看說明</div>
+        <div class="tut-arrow tut-arrow-sm">↑</div>
+      </div>
+      <!-- Side hints -->
+      <div class="tut-hint tut-prev">
+        <div class="tut-arrow">←</div>
+        <div class="tut-label">上一篇</div>
+      </div>
+      <div class="tut-hint tut-next">
+        <div class="tut-label">下一篇</div>
+        <div class="tut-arrow">→</div>
+      </div>
+      <!-- Bottom hints -->
+      <div class="tut-hint tut-fontsz">
+        <div class="tut-arrow tut-arrow-down">↘</div>
+        <div class="tut-label">字體大小</div>
+      </div>
+      <div class="tut-hint tut-fonttype">
+        <div class="tut-label">明/黑體切換</div>
+        <div class="tut-arrow tut-arrow-down">↙</div>
+      </div>
+      <!-- Center dismiss -->
+      <div class="tut-center">
+        <div class="tut-title">閱讀器說明</div>
+        <div class="tut-desc">在滿版模式下<br>往下滑→按鈕全隱藏<br>往上滑兩行→按鈕半透明出現</div>
+        <button id="tutorialClose" class="tut-close-btn">[ 了解了，開始閱讀 ]</button>
+      </div>
+    </div>
+  </div>
 
   <!-- ─── Reading Progress Bar ─── -->
   <div id="progress" aria-hidden="true"></div>
@@ -263,12 +339,33 @@ const storyId = `story:${slug}`;
       )}
 
       <!-- Comments -->
-      <div class="comments-section" id="commentsSection" data-slug={slug} data-authed={userId ? '1' : '0'}>
+      <!--
+        For public stories (edge-cached): both form and prompt are rendered;
+        client-side auth check reveals the correct one.
+        For SSR stories: server knows userId, so only one branch is rendered.
+      -->
+      <div class="comments-section" id="commentsSection" data-slug={slug} data-authed={userId ? '1' : '0'} data-public={isPublic ? '1' : '0'}>
         <div class="comments-hd">[ 目擊者留言 ]</div>
         <div id="commentsList" class="comments-list">
           <div class="comments-loading">載入中…</div>
         </div>
-        {userId ? (
+        {isPublic ? (
+          <>
+            {/* Public stories: render both; JS picks the visible one after auth check */}
+            <form id="commentForm" class="comment-form" style="display:none">
+              <input type="text" id="commentName" class="comment-input" placeholder="代號（選填，預設匿名觀測者）" maxlength="30" />
+              <textarea id="commentContent" class="comment-textarea" placeholder="留下你的觀察紀錄… （上限 500 字）" maxlength="500" rows="3"></textarea>
+              <div class="comment-actions">
+                <span id="commentCharCount" class="comment-char">0 / 500</span>
+                <button type="submit" id="commentSubmit" class="comment-submit">提交觀察報告</button>
+              </div>
+              <div id="commentMsg" class="comment-msg"></div>
+            </form>
+            <div id="commentLoginPrompt" class="comment-login-prompt">
+              <a href={signInUrl} class="comment-login-btn">[ 登入後留言 ]</a>
+            </div>
+          </>
+        ) : userId ? (
           <form id="commentForm" class="comment-form">
             <input type="text" id="commentName" class="comment-input" placeholder="代號（選填，預設匿名觀測者）" maxlength="30" />
             <textarea id="commentContent" class="comment-textarea" placeholder="留下你的觀察紀錄… （上限 500 字）" maxlength="500" rows="3"></textarea>
@@ -279,7 +376,7 @@ const storyId = `story:${slug}`;
             <div id="commentMsg" class="comment-msg"></div>
           </form>
         ) : (
-          <div class="comment-login-prompt">
+          <div id="commentLoginPrompt" class="comment-login-prompt">
             <a href={signInUrl} class="comment-login-btn">[ 登入後留言 ]</a>
           </div>
         )}
@@ -323,51 +420,51 @@ const storyId = `story:${slug}`;
      href={nextStory ? `/stories/${nextStory.slug}` : undefined}
      style={nextStory ? '' : 'opacity:0;pointer-events:none'}
      aria-label="下一卷宗">›</a>
+  <!-- Nav data for client-side list navigation (not a script — browser ignores non-JS types) -->
+  <div id="hz-nav-data" style="display:none" data-d={JSON.stringify({ all: allStoriesData, curated: curatedListsData, slug })}></div>
 </Layout>
 
-<script define:vars={{ storyId, currentSlug: slug, allStoriesData, curatedListsData, storyTitle: entry.data.title }}>
-  // ─── Back button (use .onclick so each page-swap replaces the handler) ──
-  var _agBack = document.getElementById('agBack');
-  if (_agBack) {
-    _agBack.onclick = function() {
-      var params = new URLSearchParams(location.search);
-      var ref = params.get('ref') || '';
-      var listParam = params.get('list') || 'all';
-      if (ref === 'home')   { window.location.href = '/';       return; }
-      if (ref === 'member') { window.location.href = '/member'; return; }
-      if (ref === 'tags')   { window.location.href = '/tags';   return; }
-      if (listParam.startsWith('cat:')) {
-        window.location.href = '/stories?cat=' + encodeURIComponent(listParam.slice(4));
+<!-- Back button — bundled script (not define:vars) so it works through ViewTransitions with CSP 'self' -->
+<script>
+  function _initAgBack() {
+    var btn = document.getElementById('agBack');
+    if (!btn) return;
+    btn.onclick = function() {
+      var p = new URLSearchParams(location.search);
+      var ref = p.get('ref') || '';
+      var list = p.get('list') || 'all';
+      if (ref === 'home')   { location.href = '/#stories'; return; }
+      if (ref === 'member') { location.href = '/member';   return; }
+      if (ref === 'tags') {
+        location.href = list.startsWith('cat:') ? '/tags#tag-' + encodeURIComponent(list.slice(4)) : '/tags';
         return;
       }
-      if (listParam.startsWith('curated:')) {
-        window.location.href = '/stories?curated=' + encodeURIComponent(listParam.slice(8));
-        return;
-      }
-      window.location.href = '/stories';
+      if (list.startsWith('cat:'))     { location.href = '/stories?cat='     + encodeURIComponent(list.slice(4)); return; }
+      if (list.startsWith('curated:')) { location.href = '/stories?curated=' + encodeURIComponent(list.slice(8)); return; }
+      location.href = '/stories';
     };
   }
+  document.addEventListener('astro:page-load', _initAgBack);
+  _initAgBack();
+</script>
 
-  // ─── List-context-aware prev/next ────────────────────────
-  function resolvePool() {
-    var params = new URLSearchParams(location.search);
-    var listParam = params.get('list') || 'all';
-    if (listParam === 'all') return allStoriesData;
+<!-- Prev/next nav — bundled script, reads data from #hz-nav-data div (works via ViewTransitions + CSP 'self') -->
+<script>
+  function _resolveNavPool(listParam, all, curated) {
+    if (!listParam || listParam === 'all') return all;
     if (listParam.startsWith('cat:')) {
       var tag = listParam.slice(4);
-      var filtered = allStoriesData.filter(function(s) { return s.tags.includes(tag); });
-      return filtered.length > 0 ? filtered : allStoriesData;
+      var f = all.filter(function(s) { return s.tags.includes(tag); });
+      return f.length > 0 ? f : all;
     }
     if (listParam.startsWith('curated:')) {
       var id = listParam.slice(8);
-      var curated = curatedListsData.find(function(l) { return l.id === id; });
-      if (curated) {
-        var pool = curated.slugs
-          .map(function(sl) { return allStoriesData.find(function(s) { return s.slug === sl; }); })
-          .filter(Boolean);
-        if (pool.length > 0) return pool;
+      var cl = curated.find(function(l) { return l.id === id; });
+      if (cl) {
+        var p = cl.slugs.map(function(sl) { return all.find(function(s) { return s.slug === sl; }); }).filter(Boolean);
+        if (p.length > 0) return p;
       }
-      return allStoriesData;
+      return all;
     }
     if (listParam.startsWith('user:')) {
       var uid = listParam.slice(5);
@@ -375,65 +472,71 @@ const storyId = `story:${slug}`;
         var saved = sessionStorage.getItem('hz-nav-ctx-' + uid);
         if (saved) {
           var slugs = JSON.parse(saved);
-          var pool = slugs
-            .map(function(sl) { return allStoriesData.find(function(s) { return s.slug === sl; }); })
-            .filter(Boolean);
-          if (pool.length > 0) return pool;
+          var p2 = slugs.map(function(sl) { return all.find(function(s) { return s.slug === sl; }); }).filter(Boolean);
+          if (p2.length > 0) return p2;
         }
       } catch(_) {}
     }
-    return allStoriesData;
+    return all;
   }
 
-  function getAdjacent() {
+  function _initNavLinks() {
+    var el = document.getElementById('hz-nav-data');
+    if (!el) return;
+    var navData; try { navData = JSON.parse(el.getAttribute('data-d') || '{}'); } catch(_) { return; }
+    var all = navData.all || [];
+    var curated = navData.curated || [];
+    var currentSlug = navData.slug || '';
+
     var params = new URLSearchParams(location.search);
     var listParam = params.get('list') || 'all';
     var ref = params.get('ref') || '';
-    var pool = resolvePool();
+    var pool = _resolveNavPool(listParam, all, curated);
     var idx = pool.findIndex(function(s) { return s.slug === currentSlug; });
-    if (idx === -1) { pool = allStoriesData; listParam = 'all'; idx = pool.findIndex(function(s) { return s.slug === currentSlug; }); }
+    if (idx === -1) { pool = all; listParam = 'all'; idx = pool.findIndex(function(s) { return s.slug === currentSlug; }); }
+
     var suffix = '?list=' + encodeURIComponent(listParam);
     if (ref) suffix += '&ref=' + encodeURIComponent(ref);
-    return {
-      suffix: suffix,
-      prevSlug: idx < pool.length - 1 ? pool[idx + 1].slug : null,
-      nextSlug: idx > 0 ? pool[idx - 1].slug : null,
-    };
-  }
+    var prevSlug = idx < pool.length - 1 ? pool[idx + 1].slug : null;
+    var nextSlug = idx > 0 ? pool[idx - 1].slug : null;
 
-  function getStoryTitle(sl) {
-    var s = allStoriesData.find(function(s) { return s.slug === sl; });
-    return s ? s.title : '';
-  }
+    function title(sl) { var s = all.find(function(x) { return x.slug === sl; }); return s ? s.title : ''; }
 
-  function updateNavLinks() {
-    var adj = getAdjacent();
-    // ── Side buttons ──
     var btnPrev = document.getElementById('btnPrev');
     var btnNext = document.getElementById('btnNext');
     if (btnPrev) {
-      if (adj.prevSlug) { btnPrev.setAttribute('href', '/stories/' + adj.prevSlug + adj.suffix); btnPrev.style.opacity = ''; btnPrev.style.pointerEvents = ''; }
+      if (prevSlug) { btnPrev.setAttribute('href', '/stories/' + prevSlug + suffix); btnPrev.style.opacity = ''; btnPrev.style.pointerEvents = ''; }
       else { btnPrev.removeAttribute('href'); btnPrev.style.opacity = '0'; btnPrev.style.pointerEvents = 'none'; }
     }
     if (btnNext) {
-      if (adj.nextSlug) { btnNext.setAttribute('href', '/stories/' + adj.nextSlug + adj.suffix); btnNext.style.opacity = ''; btnNext.style.pointerEvents = ''; }
+      if (nextSlug) { btnNext.setAttribute('href', '/stories/' + nextSlug + suffix); btnNext.style.opacity = ''; btnNext.style.pointerEvents = ''; }
       else { btnNext.removeAttribute('href'); btnNext.style.opacity = '0'; btnNext.style.pointerEvents = 'none'; }
     }
-    // ── Bottom nav ──
     var navPrev = document.getElementById('navPrev');
     var navNext = document.getElementById('navNext');
     var navPrevTitle = document.getElementById('navPrevTitle');
     var navNextTitle = document.getElementById('navNextTitle');
     if (navPrev) {
-      if (adj.prevSlug) { navPrev.setAttribute('href', '/stories/' + adj.prevSlug + adj.suffix); navPrev.style.opacity = ''; navPrev.style.pointerEvents = ''; if (navPrevTitle) navPrevTitle.textContent = getStoryTitle(adj.prevSlug); }
+      if (prevSlug) { navPrev.setAttribute('href', '/stories/' + prevSlug + suffix); navPrev.style.opacity = ''; navPrev.style.pointerEvents = ''; if (navPrevTitle) navPrevTitle.textContent = title(prevSlug); }
       else { navPrev.removeAttribute('href'); navPrev.style.opacity = '0.25'; navPrev.style.pointerEvents = 'none'; if (navPrevTitle) navPrevTitle.textContent = ''; }
     }
     if (navNext) {
-      if (adj.nextSlug) { navNext.setAttribute('href', '/stories/' + adj.nextSlug + adj.suffix); navNext.style.opacity = ''; navNext.style.pointerEvents = ''; if (navNextTitle) navNextTitle.textContent = getStoryTitle(adj.nextSlug); }
+      if (nextSlug) { navNext.setAttribute('href', '/stories/' + nextSlug + suffix); navNext.style.opacity = ''; navNext.style.pointerEvents = ''; if (navNextTitle) navNextTitle.textContent = title(nextSlug); }
       else { navNext.removeAttribute('href'); navNext.style.opacity = '0.25'; navNext.style.pointerEvents = 'none'; if (navNextTitle) navNextTitle.textContent = ''; }
     }
   }
-  updateNavLinks();
+  document.addEventListener('astro:page-load', _initNavLinks);
+  _initNavLinks();
+</script>
+
+<script define:vars={{ storyId, currentSlug: slug, storyTitle: entry.data.title }} nonce={Astro.locals.nonce || undefined}>
+  // ─── ViewTransitions cleanup ──────────────────────────────
+  // define:vars scripts re-run on every page swap — clean up window listeners
+  var _pageCtrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  var _pageSig = _pageCtrl ? _pageCtrl.signal : undefined;
+  document.addEventListener('astro:before-swap', function() {
+    if (_pageCtrl) _pageCtrl.abort();
+  }, { once: true });
 
   function fmtN(n) { return n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(n); }
 
@@ -490,6 +593,8 @@ const storyId = `story:${slug}`;
 
   document.getElementById('tokenBtn')?.addEventListener('click', () => {
     const action = liked ? 'remove' : 'add';
+    const prevLiked = liked;
+    const prevTokens = globalTokens;
     liked = !liked;
     globalTokens = Math.max(0, globalTokens + (liked ? 1 : -1));
     sSet('hz-liked:' + currentSlug, liked ? '1' : '0');
@@ -500,14 +605,24 @@ const storyId = `story:${slug}`;
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ slug: currentSlug, action }),
     })
-      .then(r => r.json())
+      .then(r => {
+        // 401 on remove = anonymous user; restore exact pre-click state
+        if (r.status === 401 && action === 'remove') {
+          liked = prevLiked;
+          globalTokens = prevTokens;
+          sSet('hz-liked:' + currentSlug, liked ? '1' : '0');
+          updateTokenUI();
+          return null;
+        }
+        return r.json();
+      })
       .then(data => {
-        if (data.tokens !== undefined) {
+        if (data && data.tokens !== undefined) {
           globalTokens = data.tokens;
           updateTokenUI();
         }
       })
-      .catch(() => {}); // keep optimistic update on error
+      .catch(() => {}); // keep optimistic update on network error
   });
 
   // ─── Reading progress bar + save ──────────────────────────
@@ -525,14 +640,34 @@ const storyId = `story:${slug}`;
   }
 
   window.addEventListener('scroll', () => {
+    const currentY = window.scrollY;
+
+    // Wide mode: track scroll direction to show/hide UI
+    if (wide) {
+      const diff = currentY - wideLastY;
+      if (diff > 2) {
+        // Scrolling down → hide all UI
+        wideUpAccum = 0;
+        setWideUiState('out');
+      } else if (diff < -2) {
+        // Scrolling up → accumulate and show when threshold reached
+        wideUpAccum += Math.abs(diff);
+        if (wideUpAccum >= WIDE_SHOW_PX) {
+          setWideUiState('in');
+        }
+      }
+      wideLastY = currentY;
+    }
+
+    // Progress tracking
     const docH = document.documentElement.scrollHeight - window.innerHeight;
-    const pct = docH > 0 ? Math.round(window.scrollY / docH * 100) : 0;
+    const pct = docH > 0 ? Math.round(currentY / docH * 100) : 0;
 
     if (Math.abs(pct - lastSavedPct) >= 5) {
       clearTimeout(progressSaveTimer);
       progressSaveTimer = setTimeout(() => { saveProgress(pct); lastSavedPct = pct; }, 5000);
     }
-  }, { passive: true });
+  }, { passive: true, signal: _pageSig });
 
   // ─── Bookmark ──────────────────────────────────────────────
   let bookmarked = sGet('hz-bookmark:' + currentSlug) === '1';
@@ -554,6 +689,32 @@ const storyId = `story:${slug}`;
     }).catch(() => {});
   }
   document.getElementById('bookmarkBtn2')?.addEventListener('click', toggleBookmark);
+
+  // ─── Reader Tutorial ──────────────────────────────────────
+  const tutorialEl = document.getElementById('readerTutorial');
+  const tutorialKey = 'hz-reader-tutorial-seen';
+
+  function showTutorial() {
+    if (tutorialEl) tutorialEl.style.display = 'block';
+  }
+  function hideTutorial() {
+    if (tutorialEl) tutorialEl.style.display = 'none';
+    sSet(tutorialKey, '1');
+  }
+
+  document.getElementById('tutorialClose')?.addEventListener('click', hideTutorial);
+  tutorialEl?.addEventListener('click', function(e) {
+    var t = e.target;
+    if (t === tutorialEl || (t && t.classList && t.classList.contains('tut-backdrop'))) {
+      hideTutorial();
+    }
+  });
+  document.getElementById('helpBtn')?.addEventListener('click', showTutorial);
+
+  // Show on first visit
+  if (!sGet(tutorialKey)) {
+    setTimeout(showTutorial, 600);
+  }
 
   // ─── Share ─────────────────────────────────────────────────
   function copyLink(feedbackId = 'copyFeedback') {
@@ -580,6 +741,17 @@ const storyId = `story:${slug}`;
   const widthLbl = document.getElementById('widthLbl');
   let wide = sGet('hz-wide') === '1';
 
+  // Wide-mode UI fade state
+  let wideLastY = window.scrollY;
+  let wideUpAccum = 0;
+  const WIDE_SHOW_PX = 48; // ~2 lines
+
+  function setWideUiState(state) {
+    // state: 'out' (transparent) | 'in' (semi-visible) | '' (normal)
+    document.body.classList.toggle('ui-fade-out', state === 'out');
+    document.body.classList.toggle('ui-fade-in', state === 'in');
+  }
+
   function applyWide() {
     artWrap?.classList.toggle('wide', wide);
     document.body.classList.toggle('wide', wide);
@@ -587,6 +759,14 @@ const storyId = `story:${slug}`;
     if (widthBtn) {
       widthBtn.firstChild.nodeValue = wide ? '⊞' : '⊡';
       widthBtn.classList.toggle('on', wide);
+    }
+    if (!wide) {
+      setWideUiState('');
+    } else {
+      // Enter wide mode: start semi-visible
+      wideLastY = window.scrollY;
+      wideUpAccum = 0;
+      setWideUiState('in');
     }
   }
   applyWide();
@@ -650,8 +830,13 @@ const storyId = `story:${slug}`;
     var section = document.getElementById('commentsSection');
     if (!section) return;
     var slug = section.dataset.slug;
-    var authed = section.dataset.authed === '1';
+    var isPublicStory = section.dataset.public === '1';
     var list = document.getElementById('commentsList');
+
+    // ── Pagination state ──
+    var currentPage = 1;
+    var hasMore = false;
+    var loadMoreBtn = null;
 
     function fmtDate(iso) {
       var d = new Date(iso);
@@ -660,34 +845,71 @@ const storyId = `story:${slug}`;
         String(d.getDate()).padStart(2, '0');
     }
 
-    function renderComments(comments) {
-      if (!list) return;
-      if (!comments.length) {
-        list.innerHTML = '<div class="comment-empty">尚無觀測紀錄。成為第一位目擊者。</div>';
-        return;
-      }
-      list.innerHTML = comments.map(function(c) {
-        return '<div class="comment-item">' +
-          '<div class="comment-meta"><span class="comment-name">' + escHtml(c.display_name) + '</span>' +
-          '<span class="comment-date">' + fmtDate(c.created_at) + '</span></div>' +
-          '<div class="comment-body">' + escHtml(c.content) + '</div>' +
-          '</div>';
-      }).join('');
-    }
-
     function escHtml(s) {
       return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
 
-    // Lazy-load comments when section scrolls into view
+    function buildCommentEl(c) {
+      return '<div class="comment-item">' +
+        '<div class="comment-meta"><span class="comment-name">' + escHtml(c.display_name) + '</span>' +
+        '<span class="comment-date">' + fmtDate(c.created_at) + '</span></div>' +
+        '<div class="comment-body">' + escHtml(c.content) + '</div>' +
+        '</div>';
+    }
+
+    function setLoadMoreBtn(show) {
+      if (!list) return;
+      if (loadMoreBtn) loadMoreBtn.remove();
+      loadMoreBtn = null;
+      if (!show) return;
+      loadMoreBtn = document.createElement('button');
+      loadMoreBtn.className = 'comment-load-more';
+      loadMoreBtn.textContent = '載入更多留言';
+      loadMoreBtn.addEventListener('click', function() { loadPage(currentPage + 1, true); });
+      list.after(loadMoreBtn);
+    }
+
+    function renderComments(comments, append) {
+      if (!list) return;
+      if (!append) {
+        if (!comments.length) {
+          list.innerHTML = '<div class="comment-empty">尚無觀測紀錄。成為第一位目擊者。</div>';
+          return;
+        }
+        list.innerHTML = comments.map(buildCommentEl).join('');
+      } else {
+        var frag = document.createDocumentFragment();
+        comments.forEach(function(c) {
+          var el = document.createElement('div');
+          el.innerHTML = buildCommentEl(c);
+          frag.appendChild(el.firstChild);
+        });
+        list.appendChild(frag);
+      }
+    }
+
     var commentsLoaded = false;
+    function loadPage(page, append) {
+      if (loadMoreBtn) loadMoreBtn.disabled = true;
+      fetch('/api/comments?slug=' + slug + '&page=' + page)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          var comments = Array.isArray(data.comments) ? data.comments : [];
+          hasMore = !!data.hasMore;
+          currentPage = data.page || page;
+          renderComments(comments, !!append);
+          setLoadMoreBtn(hasMore);
+        })
+        .catch(function() {
+          if (!append && list) list.innerHTML = '';
+          setLoadMoreBtn(false);
+        });
+    }
+
     function loadComments() {
       if (commentsLoaded) return;
       commentsLoaded = true;
-      fetch('/api/comments?slug=' + slug)
-        .then(function(r) { return r.json(); })
-        .then(function(data) { renderComments(Array.isArray(data) ? data : []); })
-        .catch(function() { if (list) list.innerHTML = ''; });
+      loadPage(1, false);
     }
 
     if ('IntersectionObserver' in window) {
@@ -697,6 +919,28 @@ const storyId = `story:${slug}`;
       obs.observe(section);
     } else {
       loadComments();
+    }
+
+    // ── Client-side auth check for public (edge-cached) stories ──
+    // Use window.Clerk.user directly instead of an API call — faster, no
+    // dependency on server-side JWT validity, same polling pattern as index.astro.
+    if (isPublicStory) {
+      var _authChecks = 0;
+      function _checkClerkUser() {
+        var c = window.Clerk;
+        if (c && c.loaded && c.user !== undefined) {
+          if (c.user) {
+            var f = document.getElementById('commentForm');
+            var p = document.getElementById('commentLoginPrompt');
+            if (f) f.style.display = '';
+            if (p) p.style.display = 'none';
+            section.dataset.authed = '1';
+          }
+          return;
+        }
+        if (++_authChecks < 40) setTimeout(_checkClerkUser, 100);
+      }
+      _checkClerkUser();
     }
 
     var form = document.getElementById('commentForm');
@@ -729,8 +973,6 @@ const storyId = `story:${slug}`;
           if (charCount) charCount.textContent = '0 / 500';
           if (nameEl) nameEl.value = '';
           if (msg) { msg.textContent = '觀察報告已提交。'; msg.className = 'comment-msg ok'; }
-          // Prepend new comment to list
-          var existing = list?.querySelectorAll('.comment-item').length ?? 0;
           var empty = list?.querySelector('.comment-empty');
           if (empty) empty.remove();
           var el = document.createElement('div');
@@ -754,6 +996,30 @@ const storyId = `story:${slug}`;
 <style>
   /* ─── Back button ───────────────────────────────────────── */
   .back-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+  /* ─── Floating Help Button (top-right, below header) ───── */
+  .help-fab {
+    position: fixed;
+    top: 68px;
+    right: 16px;
+    z-index: 500;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg2);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .72rem;
+    font-weight: bold;
+    cursor: pointer;
+    opacity: 0.55;
+    transition: opacity .2s, background .2s;
+    border-radius: 2px;
+  }
+  .help-fab:hover { opacity: 1; background: var(--accent); color: var(--bg); }
 
   /* ─── Header ─────────────────────────────────────────────── */
   header {
@@ -1157,6 +1423,114 @@ const storyId = `story:${slug}`;
     .ctrl-btn { padding: 6px 8px; }
   }
 
+  /* ─── Wide mode UI transparency (FABs + side-nav only, header stays visible) ── */
+  :global(body.wide) .font-sz-fab,
+  :global(body.wide) .font-type-fab {
+    transition: opacity 0.4s ease;
+  }
+  :global(body.wide.ui-fade-out) .font-sz-fab,
+  :global(body.wide.ui-fade-out) .font-type-fab {
+    opacity: 0;
+    pointer-events: none;
+  }
+  :global(body.wide.ui-fade-in) .font-sz-fab,
+  :global(body.wide.ui-fade-in) .font-type-fab { opacity: 0.55; }
+  :global(body.wide.ui-fade-in) .side-nav { opacity: 0.4; }
+  :global(body.wide) .font-sz-fab:hover,
+  :global(body.wide) .font-type-fab:hover { opacity: 1 !important; pointer-events: all !important; }
+  :global(body.wide) .side-nav:hover { opacity: 0.9 !important; }
+
+  /* ─── Tutorial Overlay ───────────────────────────────────── */
+  .tutorial-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    pointer-events: all;
+  }
+  .tut-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.88);
+  }
+  .tut-content {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .tut-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    pointer-events: all;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+  .tut-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .65rem;
+    letter-spacing: .25em;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+  .tut-desc {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .7rem;
+    color: var(--text-muted);
+    line-height: 1.9;
+    letter-spacing: .06em;
+  }
+  .tut-close-btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .78rem;
+    letter-spacing: .1em;
+    color: var(--accent);
+    background: none;
+    border: 1px solid var(--accent);
+    padding: 10px 24px;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .tut-close-btn:hover { background: var(--accent); color: var(--bg); }
+  .tut-hint {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    pointer-events: none;
+  }
+  .tut-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .68rem;
+    color: rgba(255,255,255,0.75);
+    letter-spacing: .06em;
+    white-space: nowrap;
+  }
+  .tut-arrow {
+    font-size: 1.2rem;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .tut-arrow-sm { font-size: .9rem; }
+  /* Hint positions */
+  .tut-back     { top: 68px; left: 20px; flex-direction: column; align-items: flex-start; }
+  .tut-width    { top: 68px; right: 130px; flex-direction: column; align-items: flex-end; }
+  .tut-help-ref { top: 112px; right: 10px; flex-direction: column; align-items: center; }
+  .tut-prev     { top: 50%; left: 30px; transform: translateY(-50%); flex-direction: column; align-items: flex-start; gap: 4px; }
+  .tut-next     { top: 50%; right: 30px; transform: translateY(-50%); flex-direction: column; align-items: flex-end; gap: 4px; }
+  .tut-fontsz   { bottom: 130px; right: 20px; flex-direction: column; align-items: flex-end; }
+  .tut-fonttype { bottom: 130px; left: 20px; flex-direction: column; align-items: flex-start; }
+  @media (max-width: 480px) {
+    .tut-width { right: 100px; }
+    .tut-prev { left: 8px; }
+    .tut-next { right: 8px; }
+    .tut-label { font-size: .6rem; }
+  }
+
   /* ─── Access Gate ───────────────────────────────────────── */
   .access-gate {
     padding: 48px 0 32px;
@@ -1434,6 +1808,23 @@ const storyId = `story:${slug}`;
   .comment-submit:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
   .comment-submit:disabled { opacity: .5; cursor: not-allowed; }
   .comment-msg { font-family: 'Share Tech Mono', monospace; font-size: .68rem; }
+  .comment-load-more {
+    display: block;
+    width: 100%;
+    margin-top: 12px;
+    padding: 9px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .72rem;
+    letter-spacing: .1em;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all .18s;
+    text-align: center;
+  }
+  .comment-load-more:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  .comment-load-more:disabled { opacity: .5; cursor: not-allowed; }
   .comment-msg.ok { color: var(--accent); }
   .comment-msg.err { color: var(--danger); }
   .comment-login-prompt {

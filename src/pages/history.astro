@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import PageHeader from '../components/PageHeader.astro';
+import Footer from '../components/Footer.astro';
 
 export const prerender = true;
 ---
@@ -103,14 +104,11 @@ export const prerender = true;
     </div>
   </main>
 
-  <footer>
-    <div class="ft-logo">弦音<em>異象</em></div>
-    <div class="ft-txt">ANOMALY ARCHIVES · CLASSIFIED<br>一切皆為虛構，除非你相信。</div>
-  </footer>
+  <Footer active="history" />
 </Layout>
 
 <style>
-  main { max-width: 760px; margin: 0 auto; padding: 60px 24px 80px; }
+  main { max-width: 760px; margin: 0 auto; padding: 60px 24px 80px; overflow-x: hidden; }
   .hist-wrap {}
   .hist-eyebrow { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; letter-spacing: 0.3em; color: var(--text-muted); margin-bottom: 16px; }
   h1 { font-family: 'Noto Serif TC', serif; font-size: clamp(1.8rem, 5vw, 2.8rem); font-weight: 900; color: var(--text); letter-spacing: 0.05em; margin-bottom: 12px; }
@@ -135,13 +133,4 @@ export const prerender = true;
   .redacted { background: var(--text-dim); color: transparent; cursor: pointer; border-radius: 2px; transition: all 0.3s; user-select: none; }
   .redacted:hover { background: transparent; color: var(--text-dim); }
 
-  footer { text-align: center; padding: 48px 24px; border-top: 1px solid var(--border); }
-  .ft-logo { font-family: 'Noto Serif TC', serif; font-size: 1.2rem; font-weight: 900; color: var(--text); letter-spacing: 0.1em; margin-bottom: 10px; }
-  .ft-logo em { color: var(--accent); font-style: normal; }
-  .ft-txt { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; color: var(--text-muted); letter-spacing: 0.1em; line-height: 1.8; }
-
-  @media (max-width: 480px) {
-    .top-nav { display: none; }
-    header { padding: 0 12px; }
-  }
 </style>
