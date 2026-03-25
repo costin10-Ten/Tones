@@ -408,6 +408,27 @@ if (isPublic) {
      aria-label="下一卷宗">›</a>
 </Layout>
 
+<!-- Back button — bundled script (not define:vars) so it works through ViewTransitions with CSP 'self' -->
+<script>
+  function _initAgBack() {
+    var btn = document.getElementById('agBack');
+    if (!btn) return;
+    btn.onclick = function() {
+      var p = new URLSearchParams(location.search);
+      var ref = p.get('ref') || '';
+      var list = p.get('list') || 'all';
+      if (ref === 'home')   { location.href = '/#stories'; return; }
+      if (ref === 'member') { location.href = '/member';   return; }
+      if (ref === 'tags')   { location.href = '/tags';     return; }
+      if (list.startsWith('cat:'))     { location.href = '/stories?cat='     + encodeURIComponent(list.slice(4)); return; }
+      if (list.startsWith('curated:')) { location.href = '/stories?curated=' + encodeURIComponent(list.slice(8)); return; }
+      location.href = '/stories';
+    };
+  }
+  document.addEventListener('astro:page-load', _initAgBack);
+  _initAgBack();
+</script>
+
 <script define:vars={{ storyId, currentSlug: slug, allStoriesData, curatedListsData, storyTitle: entry.data.title }} nonce={Astro.locals.nonce || undefined}>
   // ─── ViewTransitions cleanup ──────────────────────────────
   // define:vars scripts re-run on every page swap — clean up window listeners
@@ -416,32 +437,6 @@ if (isPublic) {
   document.addEventListener('astro:before-swap', function() {
     if (_pageCtrl) _pageCtrl.abort();
   }, { once: true });
-
-  // ─── Back button (use .onclick so each page-swap replaces the handler) ──
-  var _agBack = document.getElementById('agBack');
-  if (_agBack) {
-    _agBack.onclick = function() {
-      var params = new URLSearchParams(location.search);
-      var ref = params.get('ref') || '';
-      var listParam = params.get('list') || 'all';
-      if (ref === 'home')   { window.location.href = '/#stories'; return; }
-      if (ref === 'member') { window.location.href = '/member';  return; }
-      if (ref === 'tags')   { window.location.href = '/tags';    return; }
-      if (ref === 'stories' || !ref) {
-        if (listParam.startsWith('cat:')) {
-          window.location.href = '/stories?cat=' + encodeURIComponent(listParam.slice(4));
-          return;
-        }
-        if (listParam.startsWith('curated:')) {
-          window.location.href = '/stories?curated=' + encodeURIComponent(listParam.slice(8));
-          return;
-        }
-        window.location.href = '/stories';
-        return;
-      }
-      window.location.href = '/stories';
-    };
-  }
 
   // ─── List-context-aware prev/next ────────────────────────
   function resolvePool() {
