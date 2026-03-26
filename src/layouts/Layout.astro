@@ -20,6 +20,8 @@ const {
   articleMeta,
 } = Astro.props;
 
+const nonce = Astro.locals.nonce || undefined;
+
 // Strip query params from canonical — ?cat= is UI state, not content
 const canonical = Astro.url.origin + Astro.url.pathname;
 const siteName = '弦音異象';
@@ -35,6 +37,7 @@ const defaultOgImage = new URL('/og-default.png', Astro.url).href;
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href={canonical} />
   <link rel="sitemap" href="/sitemap.xml" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <title>{title}</title>
 
   <!-- Open Graph -->
@@ -66,7 +69,7 @@ const defaultOgImage = new URL('/og-default.png', Astro.url).href;
   <slot name="head" />
   <ViewTransitions />
   <!-- Apply theme + plain mode before first paint to avoid flash -->
-  <script is:inline>
+  <script is:inline nonce={nonce}>
     (function () {
       try {
         var t = localStorage.getItem('hz-theme');
@@ -82,7 +85,7 @@ const defaultOgImage = new URL('/og-default.png', Astro.url).href;
   <div id="progress" aria-hidden="true"></div>
   <slot />
 
-  <script is:inline>
+  <script is:inline nonce={nonce}>
     // Re-apply theme + plain mode after each ViewTransitions page swap
     document.addEventListener('astro:after-swap', function () {
       try {
@@ -96,6 +99,22 @@ const defaultOgImage = new URL('/og-default.png', Astro.url).href;
   </script>
 
   <script is:inline>
+    // Clerk session keep-alive after ViewTransitions page swap.
+    // Without this, Clerk's background token refresh can stall after a client-side
+    // navigation, causing the server middleware to see an expired JWT and redirect
+    // the user to sign-in even though they are still logged in on the client.
+    document.addEventListener('astro:after-swap', function () {
+      try {
+        var c = window.Clerk;
+        if (c && c.session) {
+          c.session.getToken({ skipCache: true }).catch(function () {});
+        }
+      } catch (_) {}
+    });
+  </script>
+
+  <script is:inline>
+  <script is:inline nonce={nonce}>
     // Reading progress bar
     function updateProgress() {
       const el = document.getElementById('progress');
@@ -109,7 +128,7 @@ const defaultOgImage = new URL('/og-default.png', Astro.url).href;
     updateProgress();
   </script>
 
-  <script is:inline>
+  <script is:inline nonce={nonce}>
     // Global plain text mode intercept
     // Intercepts story links and redirects to /plain when mode is enabled
     (function interceptPlainMode() {
@@ -135,6 +154,32 @@ const defaultOgImage = new URL('/og-default.png', Astro.url).href;
       attachLinks();
       document.addEventListener('astro:after-swap', attachLinks);
     })();
+  </script>
+
+  <script is:inline nonce={nonce}>
+    // ─── Proactive Clerk JWT refresh before ViewTransitions navigation ───
+    // Root cause of "suddenly logged out" bug:
+    //   Clerk's session JWT has a ~60-second lifetime. When the user navigates
+    //   via ViewTransitions (background fetch), the fetch may fire with an
+    //   already-expired JWT if Clerk hasn't auto-refreshed yet. The server
+    //   receives the expired token → userId = null → shows logged-out state.
+    // Fix:
+    //   Intercept astro:before-preparation (fires before the fetch is sent)
+    //   and call clerk.session.getToken() which returns the cached token or
+    //   silently fetches a fresh one from Clerk, updating the cookie BEFORE
+    //   the ViewTransitions request reaches the server.
+    document.addEventListener('astro:before-preparation', function(ev) {
+      var clerk = window.Clerk;
+      if (!clerk || !clerk.session) return; // Not signed in — nothing to do
+      var origLoader = ev.loader;
+      if (typeof origLoader !== 'function') return; // Guard for API differences
+      ev.loader = async function() {
+        try {
+          await clerk.session.getToken(); // Refresh JWT if expired; no-op if valid
+        } catch (_) {}
+        return origLoader();
+      };
+    });
   </script>
 </body>
 </html>

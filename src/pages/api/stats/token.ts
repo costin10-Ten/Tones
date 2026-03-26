@@ -7,10 +7,11 @@ export const prerender = false;
 const VALID_ACTIONS = new Set(['add', 'remove']);
 const SLUG_RE = /^[a-z0-9-]+$/;
 
-const { isLimited: isAnonRateLimited } = createRateLimiter(20, 60_000, 1000);
 const { isLimited: isAuthRateLimited } = createRateLimiter(30, 60_000);
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
+// POST responses must never be cached — the returned token count is live data
+const NO_CACHE_HEADERS = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' };
 
 export const POST: APIRoute = async ({ request, locals }) => {
   let body: unknown;
@@ -26,37 +27,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (isAuthRateLimited(userId))
       return new Response(JSON.stringify({ error: '操作過於頻繁，請稍後再試' }), { status: 429, headers: JSON_HEADERS });
 
-    if (action === 'add') {
-      const { error: insertErr } = await supabase
-        .from('user_tokens')
-        .insert({ user_id: userId, story_slug: slug });
+    // Single atomic RPC: insert user_tokens + update story_stats in one transaction
+    const rpcName = action === 'add' ? 'add_user_token' : 'remove_user_token';
+    const { error } = await supabase.rpc(rpcName, { p_user_id: userId, p_slug: slug });
+    if (error)
+      return new Response(JSON.stringify({ error: '操作失敗，請稍後再試' }), { status: 500, headers: JSON_HEADERS });
 
-      if (insertErr && insertErr.code !== '23505') {
-        return new Response(JSON.stringify({ error: '操作失敗，請稍後再試' }), { status: 500, headers: JSON_HEADERS });
-      }
-      if (!insertErr) {
-        const { error: rpcErr } = await supabase.rpc('increment_token', { p_slug: slug });
-        if (rpcErr) return new Response(JSON.stringify({ error: '操作失敗，請稍後再試' }), { status: 500, headers: JSON_HEADERS });
-      }
-    } else {
-      // Only decrement the global counter if the user actually had a token to remove.
-      // Using .select() so Supabase returns the deleted rows; an empty array means no row existed.
-      const { data: deleted, error: delErr } = await supabase
-        .from('user_tokens')
-        .delete()
-        .eq('user_id', userId)
-        .eq('story_slug', slug)
-        .select('user_id');
-
-      if (delErr) return new Response(JSON.stringify({ error: '操作失敗，請稍後再試' }), { status: 500, headers: JSON_HEADERS });
-
-      if (deleted && deleted.length > 0) {
-        const { error: rpcErr } = await supabase.rpc('decrement_token', { p_slug: slug });
-        if (rpcErr) return new Response(JSON.stringify({ error: '操作失敗，請稍後再試' }), { status: 500, headers: JSON_HEADERS });
-      }
-    }
   } else {
-    // Anonymous: rate-limit by IP, then only allow add (remove requires account to prevent abuse)
+    // Anonymous: rate-limit by IP, only allow add (remove requires account to prevent abuse)
     if (action === 'remove')
       return new Response(JSON.stringify({ error: '請登入後再移除金幣' }), { status: 401, headers: JSON_HEADERS });
 
@@ -65,7 +43,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return new Response(JSON.stringify({ error: '操作過於頻繁，請稍後再試' }), { status: 429, headers: JSON_HEADERS });
 
     const { error: rpcErr } = await supabase.rpc('increment_token', { p_slug: slug });
-    if (rpcErr) return new Response(JSON.stringify({ error: '操作失敗，請稍後再試' }), { status: 500, headers: JSON_HEADERS });
+    if (rpcErr)
+      return new Response(JSON.stringify({ error: '操作失敗，請稍後再試' }), { status: 500, headers: JSON_HEADERS });
+    // Anonymous users cannot give or remove tokens — membership required
+    return new Response(JSON.stringify({ error: '請登入後才能給金幣', requiresAuth: true }), { status: 401, headers: JSON_HEADERS });
   }
 
   const { data } = await supabase
@@ -75,6 +56,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
     .single();
 
   return new Response(JSON.stringify({ tokens: data?.tokens ?? 0 }), {
-    headers: JSON_HEADERS,
+    headers: NO_CACHE_HEADERS,
   });
 };

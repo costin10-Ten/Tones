@@ -4,12 +4,17 @@ export const prerender = false;
 import Layout from '../layouts/Layout.astro';
 import StoryCard from '../components/StoryCard.astro';
 import ThemeSwitcher from '../components/ThemeSwitcher.astro';
+import Footer from '../components/Footer.astro';
 import { SignedIn, SignedOut, UserButton, SignInButton } from '@clerk/astro/components';
 import { getCollection } from 'astro:content';
 import curatedData from '../data/curated-lists.json';
 
 const allStories = await getCollection('stories', ({ data }) => data.published);
-const stories = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date));
+const stories = allStories.sort((a, b) => {
+  const aDate = a.data.uploadDate || a.data.date;
+  const bDate = b.data.uploadDate || b.data.date;
+  return bDate.localeCompare(aDate);
+});
 
 const latestStoryDate = stories[0]?.data.date ?? '—';
 
@@ -21,9 +26,9 @@ const inaccessibleCount = stories.filter(s =>
 ).length;
 const totalStories = stories.length;
 
-// Minimal story map for client-side resume card
+// Minimal story map for client-side resume card (includes tags for category filtering)
 const storiesMapJson = JSON.stringify(
-  Object.fromEntries(allStories.map(s => [s.slug, { fileNum: s.data.fileNum, title: s.data.title }]))
+  Object.fromEntries(allStories.map(s => [s.slug, { fileNum: s.data.fileNum, title: s.data.title, tags: s.data.tags }]))
 );
 
 // Site-curated lists for sidebar — edited via Keystatic > 精選清單
@@ -35,9 +40,40 @@ const curatedLists = [
   { id: 'emotion',  label: curatedData.emotion.label,  icon: curatedData.emotion.icon,  slugs: curatedData.emotion.slugs.filter(s => s && _publishedSlugs.has(s)) },
 ];
 const paidStories = stories.filter(s => s.data.level === 'paid');
+// Ordered slug array + curated list definitions for smart resume navigation
+const allSlugsJson = JSON.stringify(stories.map(s => s.slug));
+const curatedJson  = JSON.stringify(curatedLists.map(l => ({ id: l.id, slugs: l.slugs })));
 ---
 
-<Layout>
+<Layout
+  description="弦音異象 — 台灣原創心理驚悚短篇小說，五分鐘讀完，細思極恐。每篇故事探索 AI、記憶、情感科技與生態異變的黑暗未來。"
+>
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": `${Astro.url.origin}/#website`,
+        "name": "弦音異象",
+        "url": Astro.url.origin,
+        "description": "台灣原創心理驚悚短篇小說，五分鐘讀完，細思極恐。",
+        "inLanguage": "zh-TW",
+        "publisher": { "@id": `${Astro.url.origin}/#organization` }
+      },
+      {
+        "@type": "Organization",
+        "@id": `${Astro.url.origin}/#organization`,
+        "name": "弦音異象",
+        "url": Astro.url.origin,
+        "logo": {
+          "@type": "ImageObject",
+          "url": `${Astro.url.origin}/og-default.png`,
+          "width": 1200,
+          "height": 630
+        }
+      }
+    ]
+  })} slot="head" />
   <!-- ─── Header ─── -->
   <header>
     <button class="logo-icon" id="leftSidebarBtn" aria-label="開啟導覽側欄">
@@ -62,10 +98,10 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
     <a href="/" class="logo-text-btn">弦音<em>異象</em></a>
 
     <nav class="top-nav">
-      <a class="nav-a" data-cat="記憶科技" href="#world">精神汙染</a>
-      <a class="nav-a" data-cat="地下城市" href="#world">深淵建築</a>
-      <a class="nav-a" data-cat="AI社會" href="#world">人工意識</a>
-      <a class="nav-a" data-cat="生態復育" href="#world">異變生態</a>
+      <a class="nav-a" data-cat="記憶科技" href="#stories">精神汙染</a>
+      <a class="nav-a" data-cat="地下城市" href="#stories">深淵建築</a>
+      <a class="nav-a" data-cat="AI社會" href="#stories">人工意識</a>
+      <a class="nav-a" data-cat="生態復育" href="#stories">異變生態</a>
     </nav>
 
     <ThemeSwitcher />
@@ -95,10 +131,11 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
     </div>
     <div class="sb-body">
       <div class="sb-section">主目錄</div>
-      <a href="#stories" class="sb-link">> 最新文章</a>
-      <a href="#stories" class="sb-link">> 犯罪類別篩選</a>
+      <a href="#stories" class="sb-link">> 全部文章</a>
+      <a href="/tags" class="sb-link">> 犯罪類別篩選</a>
       <a href="/about" class="sb-link">> 關於作者</a>
       <a href="/history" class="sb-link">> 網站發展史</a>
+      <a href="/plan" class="sb-link sb-link-plan">> ◈ 10萬金幣企劃</a>
       <SignedIn>
         <a href="/member" class="sb-link sb-link-bold" data-astro-reload>> 會員資料</a>
       </SignedIn>
@@ -230,7 +267,7 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
         ))}
       </div>
 
-      <div class="sb-section" style="margin-top:20px">留言</div>
+      <div class="sb-section" id="msgSection" style="margin-top:20px">留言</div>
       <div class="msg-box">
         <p style="font-size:0.75rem;color:var(--text-dim);margin-bottom:12px;">
           // 如果你發現了系統漏洞，或者想對作者說些什麼，請在這裡留言。訊號可能會被攔截，但我會看到的。
@@ -514,13 +551,7 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
   </section>
 
   <!-- ─── Footer ─── -->
-  <footer>
-    <div class="ft-logo">弦音<em>異象</em></div>
-    <div class="ft-txt">
-      ANOMALY ARCHIVES · CLASSIFIED<br>
-      一切皆為虛構，除非你相信。
-    </div>
-  </footer>
+  <Footer active="home" />
 
   <!-- Server-side variables for client script (avoids define:vars inline-script re-evaluation) -->
   <div id="hp-meta"
@@ -528,6 +559,8 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
        data-total={String(totalStories)}
        data-inaccessible={String(inaccessibleCount)}
        data-stories-map={storiesMapJson}
+       data-all-slugs={allSlugsJson}
+       data-curated={curatedJson}
        hidden></div>
 </Layout>
 
@@ -546,41 +579,97 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
     };
   }
 
-  // ─── Resume button + strip: update href & show progress ───
+  // ─── Resume button + strip: smart "continue reading" logic ───
+  // Priority: 1) resume in-progress story  2) next unread in last list  3) next unread site-wide
   {
-    const lastStory = sGet('hz-last-story');
-    const resumeBtn  = document.getElementById('resumeBtn') as HTMLAnchorElement | null;
+    const meta = document.getElementById('hp-meta');
+    let storiesMap: Record<string, { fileNum: string; title: string; tags: string[] }> = {};
+    let allSlugs: string[] = [];
+    let curatedDefs: Array<{ id: string; slugs: string[] }> = [];
+    try { storiesMap  = JSON.parse(meta?.dataset.storiesMap ?? '{}'); }  catch (_) {}
+    try { allSlugs    = JSON.parse(meta?.dataset.allSlugs   ?? '[]'); }  catch (_) {}
+    try { curatedDefs = JSON.parse(meta?.dataset.curated    ?? '[]'); }  catch (_) {}
+
+    const resumeBtn  = document.getElementById('resumeBtn')  as HTMLAnchorElement | null;
     const strip      = document.getElementById('resumeStrip') as HTMLElement | null;
     const rsFileNum  = document.getElementById('rsFileNum');
     const rsTitle    = document.getElementById('rsTitle');
     const rsProgFill = document.getElementById('rsProgFill') as HTMLElement | null;
     const rsPct      = document.getElementById('rsPct');
-    const rsList     = document.getElementById('rsList') as HTMLElement | null;
+    const rsList     = document.getElementById('rsList')     as HTMLElement | null;
 
-    if (resumeBtn && lastStory) {
-      resumeBtn.href = '/stories/' + lastStory + '?ref=home';
+    const lastStory = sGet('hz-last-story');
 
-      const meta = document.getElementById('hp-meta');
-      let storiesMap: Record<string, { fileNum: string; title: string }> = {};
-      try { storiesMap = JSON.parse(meta?.dataset.storiesMap ?? '{}'); } catch (_) {}
+    if (resumeBtn && lastStory && allSlugs.length > 0) {
+      const isRead = (slug: string) =>
+        sGet('hz-read:' + slug) === '1' ||
+        parseInt(sGet('hz-progress:' + slug) || '0', 10) >= 90;
 
-      const info = storiesMap[lastStory];
-      const pct  = parseInt(sGet('hz-progress:' + lastStory) || '0', 10);
+      const nextUnread = (slugs: string[]): string | null => {
+        for (const s of slugs) { if (!isRead(s)) return s; }
+        return null;
+      };
 
+      const lastPct    = parseInt(sGet('hz-progress:' + lastStory) || '0', 10);
+      const lastIsRead = isRead(lastStory);
+
+      let targetSlug = lastStory;
+      let targetPct  = lastPct;
+      let isNext     = false;
+      let listLabel  = '';
+
+      if (lastIsRead) {
+        // Last story finished — find next unread in list context, then fall back to all
+        const lastList = sGet('hz-last-list') || 'all';
+        let listSlugs: string[] = [];
+
+        if (lastList.startsWith('curated:')) {
+          const id    = lastList.slice(8);
+          const found = curatedDefs.find(l => l.id === id);
+          if (found?.slugs?.length) listSlugs = found.slugs;
+        } else if (lastList.startsWith('cat:')) {
+          const tag = lastList.slice(4);
+          listSlugs = allSlugs.filter(s => storiesMap[s]?.tags?.includes(tag));
+        } else {
+          listSlugs = allSlugs;
+        }
+
+        let next = nextUnread(listSlugs);
+        let usedFallback = false;
+        if (!next && listSlugs !== allSlugs) {
+          next = nextUnread(allSlugs);
+          usedFallback = true;
+        }
+
+        if (next) {
+          targetSlug = next;
+          targetPct  = parseInt(sGet('hz-progress:' + next) || '0', 10);
+          isNext     = true;
+          const listCtx = usedFallback ? 'all' : lastList;
+          listLabel  = usedFallback ? '全站' : (lastList.startsWith('curated:') ? '清單' : lastList.startsWith('cat:') ? '分類' : '全站');
+          resumeBtn.href = '/stories/' + next + '?ref=home&list=' + encodeURIComponent(listCtx);
+        } else {
+          // All stories read — go back to first story
+          targetSlug = allSlugs[0] ?? lastStory;
+          targetPct  = 100;
+          listLabel  = '全部已讀';
+          resumeBtn.href = '/stories/' + targetSlug + '?ref=home';
+        }
+      } else {
+        // Resume in-progress story
+        resumeBtn.href = '/stories/' + lastStory + '?ref=home';
+      }
+
+      const info = storiesMap[targetSlug];
       if (info && strip) {
         if (rsFileNum) rsFileNum.textContent = info.fileNum;
         if (rsTitle)   rsTitle.textContent   = info.title;
-        if (rsProgFill) rsProgFill.style.width = pct + '%';
-        if (rsPct)     rsPct.textContent     = pct + '%';
-
-        try {
-          const readlist = JSON.parse(sGet('hz-readlist') ?? '[]') as string[];
-          if (readlist.length > 0 && rsList) {
-            rsList.textContent = `閱讀清單 ${readlist.length} 件`;
-            rsList.style.display = '';
-          }
-        } catch (_) {}
-
+        if (rsProgFill) rsProgFill.style.width = targetPct + '%';
+        if (rsPct)     rsPct.textContent     = isNext && targetPct === 0 ? '未讀' : targetPct + '%';
+        if (rsList) {
+          if (listLabel) { rsList.textContent = listLabel; rsList.style.display = ''; }
+          else rsList.style.display = 'none';
+        }
         strip.style.display = 'flex';
       }
     }
@@ -637,7 +726,12 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
 
     document.getElementById('leftSidebarBtn')?.addEventListener('click', openLeft, { signal: sig });
     document.getElementById('rightSidebarBtn')?.addEventListener('click', openRight, { signal: sig });
-    document.getElementById('contactBtn')?.addEventListener('click', openRight, { signal: sig });
+    document.getElementById('contactBtn')?.addEventListener('click', () => {
+      openRight();
+      setTimeout(() => {
+        document.getElementById('msgSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+    }, { signal: sig });
     document.getElementById('leftSidebarCloseBtn')?.addEventListener('click', closeAll, { signal: sig });
     document.getElementById('rightSidebarCloseBtn')?.addEventListener('click', closeAll, { signal: sig });
     overlay.addEventListener('click', closeAll, { signal: sig });
@@ -785,6 +879,15 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
 
     document.querySelectorAll<HTMLButtonElement>('.tag-btn').forEach(btn => {
       btn.addEventListener('click', () => applyFilter(btn.dataset.cat ?? '全部'), { signal: sig });
+    });
+
+    // ─── Top-nav category links → scroll to #stories and apply filter ───
+    document.querySelectorAll<HTMLAnchorElement>('.nav-a[data-cat]').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        applyFilter(link.dataset.cat ?? '全部');
+        document.getElementById('stories')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, { signal: sig });
     });
 
     // Intercept story card clicks — carry active filter as list context
@@ -1085,13 +1188,16 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
         el.innerHTML = '<a href="/stories" class="sb-link sb-link-manage">> 建立第一個清單</a>';
         return;
       }
-      el.innerHTML = lists.slice(0, 5).map(l =>
-        `<a href="/stories" class="sb-link" data-list-id="${l.id}">
-          > ${l.name.replace(/&/g,'&amp;').replace(/</g,'&lt;')}
-          <span class="sb-list-cnt">${l.slugs.length}</span>
-        </a>`
-      ).join('') +
-        (lists.length > 5 ? `<a href="/stories" class="sb-link sb-link-manage">> 還有 ${lists.length - 5} 個清單…</a>` : '');
+      function esc(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+      }
+      el.innerHTML = lists.slice(0, 5).map(function(l) {
+        return '<a href="/stories" class="sb-link" data-list-id="' + esc(l.id) + '">' +
+          '> ' + esc(l.name) +
+          ' <span class="sb-list-cnt">' + Number(l.slugs.length) + '</span>' +
+          '</a>';
+      }).join('') +
+        (lists.length > 5 ? '<a href="/stories" class="sb-link sb-link-manage">&gt; 還有 ' + Number(lists.length - 5) + ' 個清單…</a>' : '');
     } catch (_) { el.innerHTML = ''; }
   }
 
@@ -1445,6 +1551,7 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
   .sb-link-bold:hover { color: var(--accent) !important; }
   .sb-link-manage { color: var(--text-muted); font-size: .75rem; }
   .sb-link-paid { color: #d4a017 !important; }
+  .sb-link-plan { color: var(--accent) !important; font-weight: 700; }
   .sb-list-cnt {
     float: right;
     font-size: .65rem;

@@ -50,6 +50,54 @@ begin
 end;
 $$;
 
+-- 原子操作：給金幣（insert user_tokens + 遞增 story_stats.tokens 在同一 transaction）
+-- 回傳 true 若新增成功，false 若該用戶已給過（duplicate key，不重複計算）
+create or replace function add_user_token(p_user_id text, p_slug text)
+returns boolean language plpgsql as $$
+declare
+  rows_inserted integer;
+begin
+  insert into user_tokens (user_id, story_slug)
+    values (p_user_id, p_slug)
+  on conflict (user_id, story_slug) do nothing;
+
+  get diagnostics rows_inserted = row_count;
+
+  if rows_inserted > 0 then
+    insert into story_stats (story_slug, tokens)
+      values (p_slug, 1)
+    on conflict (story_slug)
+      do update set tokens = story_stats.tokens + 1, updated_at = now();
+    return true;
+  end if;
+
+  return false;
+end;
+$$;
+
+-- 原子操作：移除金幣（delete user_tokens + 遞減 story_stats.tokens 在同一 transaction）
+-- 回傳 true 若成功移除，false 若該用戶原本沒有給過金幣
+create or replace function remove_user_token(p_user_id text, p_slug text)
+returns boolean language plpgsql as $$
+declare
+  rows_deleted integer;
+begin
+  delete from user_tokens
+    where user_id = p_user_id and story_slug = p_slug;
+
+  get diagnostics rows_deleted = row_count;
+
+  if rows_deleted > 0 then
+    update story_stats
+      set tokens = greatest(0, tokens - 1), updated_at = now()
+    where story_slug = p_slug;
+    return true;
+  end if;
+
+  return false;
+end;
+$$;
+
 -- ============================================================
 -- 聯繫作者留言
 -- ============================================================

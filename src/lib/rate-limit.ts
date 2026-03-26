@@ -6,6 +6,16 @@
 export function createRateLimiter(maxRequests: number, windowMs: number, maxKeys = 500) {
   const timestamps = new Map<string, number[]>();
 
+  // Periodic cleanup every 5 min — prevents unbounded growth in warm serverless instances
+  const cleanupInterval = setInterval(() => {
+    const cutoff = Date.now() - windowMs;
+    for (const [k, ts] of timestamps) {
+      if (!ts.some(t => t > cutoff)) timestamps.delete(k);
+    }
+  }, 5 * 60_000);
+  // Allow GC if module is unloaded (e.g. test environments)
+  if (typeof cleanupInterval === 'object') (cleanupInterval as NodeJS.Timeout).unref?.();
+
   function isLimited(key: string): boolean {
     const now = Date.now();
     const cutoff = now - windowMs;
