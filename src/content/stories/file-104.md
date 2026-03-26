@@ -7,10 +7,10 @@ tags:
   - 情感科技
   - 成人愛情
 level: public
-excerpt: 我和她，在油煙與啤酒味裡肉搏，不談愛，只談餓。這關係沒有以後，只有此刻皮肉撞擊的擬音，以及一堆沒有未來的剩骨。
+excerpt: 我和她，在油煙與啤酒味裡肉搏，不談愛，只談餓。這場關係沒有以後，只有此刻皮肉撞擊的擬音，以及一堆沒有未來的剩骨。
 author: 弦音觀測者
 vis: v1
-icon: ◎
+icon: ◉
 published: true
 featured: false
 ---

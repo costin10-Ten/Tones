@@ -9,7 +9,7 @@ export const GET: APIRoute = async ({ locals }) => {
 
   // Run all 3 queries in parallel with a 7s timeout
   const abort = new AbortController();
-  const timer = setTimeout(() => abort.abort(), 7000);
+  const timer = setTimeout(() => abort.abort(), 5000);
 
   let userTokens, storyStats, bookmarkData;
   try {

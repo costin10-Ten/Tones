@@ -8,4 +8,9 @@ if (!url || !serviceKey) {
 }
 
 // Server-only client — uses service_role key, bypasses RLS safely in API routes
-export const supabase = createClient(url, serviceKey);
+// keepalive reduces TCP handshake overhead in serverless cold-start environments
+export const supabase = createClient(url, serviceKey, {
+  global: {
+    fetch: (input, init) => fetch(input, { ...init, keepalive: true }),
+  },
+});
