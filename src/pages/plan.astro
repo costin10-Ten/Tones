@@ -1,0 +1,278 @@
+---
+import Layout from '../layouts/Layout.astro';
+import PageHeader from '../components/PageHeader.astro';
+import Footer from '../components/Footer.astro';
+
+export const prerender = false;
+---
+
+<Layout title="10萬金幣企劃 — 弦音異象" description="當弦音異象積累100,000顆金幣，下一個紀元將啟動。了解各階段里程碑與目標。">
+  <PageHeader active="plan" />
+
+  <main>
+    <div class="plan-wrap">
+      <div class="plan-eyebrow">MISSION LOG · TOKEN CAMPAIGN</div>
+      <h1>10萬<em>金幣企劃</em></h1>
+      <p class="plan-sub">當弦音異象積累 100,000 顆金幣，下一個紀元將啟動。<br>每一顆金幣都是一個信號——你在凝視，我在繼續寫。</p>
+
+      <!-- ─── Live Stats Panel ─── -->
+      <div class="stats-panel">
+        <div class="stat-block">
+          <div class="stat-num" id="planTotalViews">—</div>
+          <div class="stat-lbl">全站瀏覽數</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-block stat-block-main">
+          <div class="stat-num accent" id="planTotalTokens">—</div>
+          <div class="stat-lbl">累積金幣數</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-block">
+          <div class="stat-num">100,000</div>
+          <div class="stat-lbl">目標金幣</div>
+        </div>
+      </div>
+
+      <!-- ─── Progress Bar ─── -->
+      <div class="progress-section">
+        <div class="progress-label">
+          <span class="progress-pct" id="planPct">0%</span>
+          <span class="progress-caption">距離啟動還有 <span id="planRemaining">—</span> 顆金幣</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="planFill" style="width:0%"></div>
+        </div>
+        <div class="progress-ticks">
+          <span>0</span>
+          <span>25K</span>
+          <span>50K</span>
+          <span>75K</span>
+          <span>100K</span>
+        </div>
+      </div>
+
+      <!-- ─── Milestones ─── -->
+      <div class="milestones-hd">MILESTONE LOG</div>
+      <div class="milestones" id="milestones">
+        <div class="ms-item" data-target="1000">
+          <div class="ms-dot"></div>
+          <div class="ms-body">
+            <div class="ms-num">1,000 ◈</div>
+            <div class="ms-title">解鎖作者幕後手記</div>
+            <div class="ms-desc">公開一篇不對外發布的創作日誌，記錄弦音異象世界觀的建立過程。</div>
+          </div>
+          <div class="ms-status">—</div>
+        </div>
+        <div class="ms-item" data-target="5000">
+          <div class="ms-dot"></div>
+          <div class="ms-body">
+            <div class="ms-num">5,000 ◈</div>
+            <div class="ms-title">發布限定番外短篇</div>
+            <div class="ms-desc">一篇只對達成時的弦音會員開放的番外故事，探索主線宇宙的邊緣事件。</div>
+          </div>
+          <div class="ms-status">—</div>
+        </div>
+        <div class="ms-item" data-target="20000">
+          <div class="ms-dot"></div>
+          <div class="ms-body">
+            <div class="ms-num">20,000 ◈</div>
+            <div class="ms-title">開放讀者票選下一篇主題</div>
+            <div class="ms-desc">會員可以票選三個候選主題，最高票的異象將成為下一篇正式卷宗。</div>
+          </div>
+          <div class="ms-status">—</div>
+        </div>
+        <div class="ms-item" data-target="50000">
+          <div class="ms-dot"></div>
+          <div class="ms-body">
+            <div class="ms-num">50,000 ◈</div>
+            <div class="ms-title">出版電子書</div>
+            <div class="ms-desc">精選卷宗結集成冊，以電子書形式對所有讀者免費開放下載。</div>
+          </div>
+          <div class="ms-status">—</div>
+        </div>
+        <div class="ms-item ms-item-final" data-target="100000">
+          <div class="ms-dot ms-dot-final"></div>
+          <div class="ms-body">
+            <div class="ms-num">100,000 ◈</div>
+            <div class="ms-title">啟動弦音異象 Season 2</div>
+            <div class="ms-desc">全新敘事架構、更深的世界觀、更長的系列故事。深淵的第二次凝視，正式開始。</div>
+          </div>
+          <div class="ms-status ms-status-final">TARGET</div>
+        </div>
+      </div>
+
+      <!-- ─── How to Contribute ─── -->
+      <div class="how-section">
+        <div class="how-hd">如何參與</div>
+        <div class="how-grid">
+          <div class="how-card">
+            <div class="how-icon">◈</div>
+            <div class="how-title">閱讀並給金幣</div>
+            <div class="how-desc">讀完一篇覺得值得，就在文章底部給顆金幣。需要弦音會員身份。</div>
+          </div>
+          <div class="how-card">
+            <div class="how-icon">◫</div>
+            <div class="how-title">分享卷宗</div>
+            <div class="how-desc">把你最有共鳴的故事分享給朋友。更多讀者，更多信號。</div>
+          </div>
+          <div class="how-card">
+            <div class="how-icon">◬</div>
+            <div class="how-title">成為會員</div>
+            <div class="how-desc">免費加入。會員可給金幣、留言、管理閱讀清單，以及第一個知道里程碑達成。</div>
+          </div>
+        </div>
+        <div class="how-cta">
+          <a href="/sign-up" class="cta-btn">申請觀測者身份 →</a>
+          <a href="/stories" class="cta-btn cta-btn-sec">前往異象檔案庫</a>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <Footer active="plan" />
+</Layout>
+
+<script>
+  function fmtN(n: number): string {
+    if (n >= 10000) return (n / 10000).toFixed(1) + '萬';
+    if (n >= 1000)  return (n / 1000).toFixed(1) + 'K';
+    return String(n);
+  }
+  function fmtComma(n: number): string {
+    return n.toLocaleString();
+  }
+
+  const GOAL = 100_000;
+  const MILESTONES = [1000, 5000, 20000, 50000, 100000];
+
+  function updateMilestones(tokens: number) {
+    document.querySelectorAll<HTMLElement>('.ms-item').forEach(el => {
+      const target = parseInt(el.dataset.target ?? '0', 10);
+      const dot = el.querySelector<HTMLElement>('.ms-dot');
+      const status = el.querySelector<HTMLElement>('.ms-status');
+      if (tokens >= target) {
+        el.classList.add('ms-done');
+        if (dot) dot.classList.add('ms-dot-done');
+        if (status && !el.classList.contains('ms-item-final')) status.textContent = '✓ 已達成';
+        if (status && el.classList.contains('ms-item-final')) status.textContent = '✓ 啟動！';
+      } else {
+        el.classList.remove('ms-done');
+        if (dot) dot.classList.remove('ms-dot-done');
+        if (status && !el.classList.contains('ms-item-final')) status.textContent = '—';
+        if (status && el.classList.contains('ms-item-final')) status.textContent = 'TARGET';
+      }
+    });
+  }
+
+  document.addEventListener('astro:page-load', function() {
+    fetch('/api/stats/global')
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then((data: { totalViews?: number; totalTokens?: number }) => {
+        const tokens = data.totalTokens ?? 0;
+        const views  = data.totalViews  ?? 0;
+        const pct    = Math.min(100, (tokens / GOAL) * 100);
+        const remaining = Math.max(0, GOAL - tokens);
+
+        const viewsEl     = document.getElementById('planTotalViews');
+        const tokensEl    = document.getElementById('planTotalTokens');
+        const pctEl       = document.getElementById('planPct');
+        const remainEl    = document.getElementById('planRemaining');
+        const fillEl      = document.getElementById('planFill');
+
+        if (viewsEl)  viewsEl.textContent  = fmtN(views);
+        if (tokensEl) tokensEl.textContent  = fmtComma(tokens);
+        if (pctEl)    pctEl.textContent     = pct.toFixed(1) + '%';
+        if (remainEl) remainEl.textContent  = fmtComma(remaining);
+        if (fillEl)   fillEl.style.width    = pct + '%';
+
+        updateMilestones(tokens);
+      })
+      .catch(() => {});
+  });
+</script>
+
+<style>
+  main { max-width: 760px; margin: 0 auto; padding: 60px 24px 100px; overflow-x: hidden; }
+
+  .plan-eyebrow { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; letter-spacing: 0.3em; color: var(--text-muted); margin-bottom: 16px; }
+  h1 { font-family: 'Noto Serif TC', serif; font-size: clamp(1.8rem, 5vw, 2.8rem); font-weight: 900; color: var(--text); letter-spacing: 0.05em; margin-bottom: 12px; }
+  h1 em { color: var(--accent); font-style: normal; }
+  .plan-sub { font-family: 'Share Tech Mono', monospace; font-size: 0.78rem; color: var(--text-dim); letter-spacing: 0.04em; line-height: 1.9; margin-bottom: 48px; }
+
+  /* ─── Stats Panel ─── */
+  .stats-panel {
+    display: flex; align-items: center; gap: 0;
+    border: 1px solid var(--border);
+    margin-bottom: 40px;
+    background: var(--accent-dim);
+  }
+  .stat-block { flex: 1; text-align: center; padding: 24px 16px; }
+  .stat-block-main { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+  .stat-divider { width: 1px; align-self: stretch; background: var(--border); }
+  .stat-num { font-family: 'Share Tech Mono', monospace; font-size: clamp(1.2rem, 3vw, 1.8rem); font-weight: 700; color: var(--text); letter-spacing: 0.05em; }
+  .stat-num.accent { color: var(--accent); }
+  .stat-lbl { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; color: var(--text-muted); letter-spacing: 0.15em; margin-top: 6px; }
+
+  /* ─── Progress Bar ─── */
+  .progress-section { margin-bottom: 56px; }
+  .progress-label { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+  .progress-pct { font-family: 'Share Tech Mono', monospace; font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+  .progress-caption { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; color: var(--text-muted); letter-spacing: 0.05em; }
+  .progress-track { height: 8px; background: var(--border); position: relative; overflow: hidden; }
+  .progress-fill {
+    height: 100%; background: var(--accent);
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 50%, transparent);
+  }
+  .progress-ticks { display: flex; justify-content: space-between; margin-top: 6px; }
+  .progress-ticks span { font-family: 'Share Tech Mono', monospace; font-size: 0.55rem; color: var(--text-muted); }
+
+  /* ─── Milestones ─── */
+  .milestones-hd { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; letter-spacing: 0.25em; color: var(--text-muted); padding-bottom: 10px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+  .milestones { display: flex; flex-direction: column; gap: 0; margin-bottom: 64px; padding-left: 20px; border-left: 1px solid var(--border); }
+
+  .ms-item { display: flex; align-items: flex-start; gap: 16px; padding: 20px 0; border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent); position: relative; opacity: 0.55; transition: opacity 0.3s; }
+  .ms-item.ms-done { opacity: 1; }
+  .ms-item.ms-item-final { opacity: 0.7; }
+  .ms-item.ms-item-final.ms-done { opacity: 1; }
+
+  .ms-dot { position: absolute; left: -25px; top: 24px; width: 10px; height: 10px; border-radius: 50%; background: var(--border); border: 2px solid var(--bg); flex-shrink: 0; transition: background 0.3s; }
+  .ms-dot.ms-dot-done { background: var(--accent); }
+  .ms-dot-final { background: var(--border); box-shadow: 0 0 0 2px var(--border); }
+  .ms-dot-final.ms-dot-done { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+
+  .ms-body { flex: 1; }
+  .ms-num { font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; color: var(--accent); letter-spacing: 0.1em; margin-bottom: 4px; }
+  .ms-title { font-family: 'Noto Serif TC', serif; font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .ms-desc { font-family: 'Noto Serif TC', serif; font-size: 0.82rem; color: var(--text-dim); line-height: 1.7; }
+
+  .ms-status { font-family: 'Share Tech Mono', monospace; font-size: 0.62rem; color: var(--text-muted); white-space: nowrap; padding-top: 2px; letter-spacing: 0.08em; min-width: 52px; text-align: right; }
+  .ms-item.ms-done .ms-status { color: var(--accent); }
+  .ms-status-final { color: var(--accent) !important; }
+
+  /* ─── How to ─── */
+  .how-section { }
+  .how-hd { font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; letter-spacing: 0.25em; color: var(--text-muted); padding-bottom: 10px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+  .how-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; }
+  .how-card { border: 1px solid var(--border); padding: 20px 16px; background: var(--accent-dim); }
+  .how-icon { font-size: 1.2rem; color: var(--accent); margin-bottom: 10px; }
+  .how-title { font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; color: var(--text); letter-spacing: 0.06em; margin-bottom: 8px; }
+  .how-desc { font-family: 'Noto Serif TC', serif; font-size: 0.78rem; color: var(--text-dim); line-height: 1.7; }
+
+  .how-cta { display: flex; gap: 12px; flex-wrap: wrap; }
+  .cta-btn {
+    font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; letter-spacing: 0.08em;
+    padding: 10px 20px; background: var(--accent); color: var(--bg);
+    text-decoration: none; border: 1px solid var(--accent); transition: all 0.2s;
+  }
+  .cta-btn:hover { background: transparent; color: var(--accent); }
+  .cta-btn-sec { background: transparent; color: var(--text-dim); border-color: var(--border); }
+  .cta-btn-sec:hover { color: var(--text); border-color: var(--text); }
+
+  @media (max-width: 560px) {
+    .stats-panel { flex-direction: column; }
+    .stat-divider { width: 100%; height: 1px; align-self: auto; }
+    .how-grid { grid-template-columns: 1fr; }
+  }
+</style>

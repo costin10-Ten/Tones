@@ -132,6 +132,7 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
       <a href="/tags" class="sb-link">> 犯罪類別篩選</a>
       <a href="/about" class="sb-link">> 關於作者</a>
       <a href="/history" class="sb-link">> 網站發展史</a>
+      <a href="/plan" class="sb-link sb-link-plan">> ◈ 10萬金幣企劃</a>
       <SignedIn>
         <a href="/member" class="sb-link sb-link-bold" data-astro-reload>> 會員資料</a>
       </SignedIn>
@@ -1489,6 +1490,7 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
   .sb-link-bold:hover { color: var(--accent) !important; }
   .sb-link-manage { color: var(--text-muted); font-size: .75rem; }
   .sb-link-paid { color: #d4a017 !important; }
+  .sb-link-plan { color: var(--accent) !important; font-weight: 700; }
   .sb-list-cnt {
     float: right;
     font-size: .65rem;

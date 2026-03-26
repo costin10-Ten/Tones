@@ -308,11 +308,16 @@ if (isPublic) {
           <span class="nav-arrow">←</span>
           <span class="nav-title" id="navPrevTitle">{prevStory?.data.title ?? ''}</span>
         </a>
-        <button class="token-btn" id="tokenBtn" title="給顆金幣">
-          <span id="tokenIcon">⎔</span>
-          <span id="tokenCnt">0</span>
-          <span class="token-label">給顆金幣</span>
-        </button>
+        <div class="token-wrap">
+          <button class="token-btn" id="tokenBtn" title="給顆金幣">
+            <span id="tokenIcon">⎔</span>
+            <span id="tokenCnt">0</span>
+            <span class="token-label">給顆金幣</span>
+          </button>
+          <div class="token-anon-hint" id="tokenAnonHint" style="display:none">
+            <a href="/sign-up" class="token-anon-link">加入弦音</a>才能給金幣
+          </div>
+        </div>
         <a id="navNext"
            href={nextStory ? `/stories/${nextStory.slug}` : undefined}
            class="nav-pp nav-pp-next"
@@ -646,7 +651,7 @@ if (isPublic) {
   _initNavLinks();
 </script>
 
-<script define:vars={{ storyId, currentSlug: slug, storyTitle: entry.data.title }} nonce={Astro.locals.nonce || undefined}>
+<script define:vars={{ storyId, currentSlug: slug, storyTitle: entry.data.title, isSignedIn: userId !== null }} nonce={Astro.locals.nonce || undefined}>
   // ─── ViewTransitions cleanup ──────────────────────────────
   // define:vars scripts re-run on every page swap — clean up window listeners
   var _pageCtrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
@@ -708,7 +713,21 @@ if (isPublic) {
   }
   updateTokenUI();
 
+  // Show sign-in hint for non-members; hide when signed in
+  const tokenAnonHint = document.getElementById('tokenAnonHint');
+  if (tokenAnonHint) tokenAnonHint.style.display = isSignedIn ? 'none' : 'block';
+
   document.getElementById('tokenBtn')?.addEventListener('click', () => {
+    // Non-members: flash the sign-in hint and bail out
+    if (!isSignedIn) {
+      if (tokenAnonHint) {
+        tokenAnonHint.style.animation = 'none';
+        tokenAnonHint.offsetHeight; // reflow
+        tokenAnonHint.style.animation = 'tokenHintPulse 0.4s ease';
+      }
+      return;
+    }
+
     const action = liked ? 'remove' : 'add';
     const prevLiked = liked;
     const prevTokens = globalTokens;
@@ -723,8 +742,8 @@ if (isPublic) {
       body: JSON.stringify({ slug: currentSlug, action }),
     })
       .then(r => {
-        // 401 on remove = anonymous user; restore exact pre-click state
-        if (r.status === 401 && action === 'remove') {
+        // 401 = auth required; rollback optimistic update
+        if (r.status === 401) {
           liked = prevLiked;
           globalTokens = prevTokens;
           sSet('hz-liked:' + currentSlug, liked ? '1' : '0');
@@ -1379,6 +1398,20 @@ if (isPublic) {
   .token-label { font-size: .65rem; letter-spacing: .08em; }
   .token-btn.on { background: var(--accent); color: var(--bg); }
   .token-btn:hover { background: var(--accent); color: var(--bg); }
+  .token-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .token-anon-hint {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .token-anon-link { color: var(--accent); text-decoration: underline; }
+  @keyframes tokenHintPulse {
+    0%   { color: var(--text-muted); }
+    50%  { color: var(--accent); }
+    100% { color: var(--text-muted); }
+  }
 
 
 /* ─── Reader layout adjustments ────────────────────────── */
