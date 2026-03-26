@@ -19,6 +19,25 @@ export const prerender = true;
 
         <div class="tl-item">
           <div class="tl-dot"></div>
+          <div class="tl-date">2026.03</div>
+          <div class="tl-content">
+            <div class="tl-ver">v2.2 — 安全強化 · 使用體驗</div>
+            <p>導入 CSP nonce 機制，所有 SSR 頁面以隨機 nonce 防範 XSS 注入；
+               Keystatic 後台路由獨立繞過 CSP，修復後台無法存取的問題。
+               閱讀器控制元件（滿版模式、字型大小、字型切換、? 說明鍵）從 define:vars 移植至
+               bundled script，徹底解決 ViewTransitions 換頁後按鈕失效的根本原因。
+               新增 robots.txt、SVG favicon、JSON-LD 結構化資料、sitemap，完成基礎 SEO 建設。</p>
+            <div class="tl-tags">
+              <span class="tl-tag">CSP nonce</span>
+              <span class="tl-tag">ViewTransitions 修復</span>
+              <span class="tl-tag">閱讀器穩定化</span>
+              <span class="tl-tag">SEO 基礎建設</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-dot"></div>
           <div class="tl-date">2045.03</div>
           <div class="tl-content">
             <div class="tl-ver">v2.1 — 卷宗擴充 · 精選系統</div>

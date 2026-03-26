@@ -7,7 +7,6 @@ export const prerender = false;
 const VALID_ACTIONS = new Set(['add', 'remove']);
 const SLUG_RE = /^[a-z0-9-]+$/;
 
-const { isLimited: isAnonRateLimited } = createRateLimiter(20, 60_000, 1000);
 const { isLimited: isAuthRateLimited } = createRateLimiter(30, 60_000);
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
@@ -46,6 +45,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const { error: rpcErr } = await supabase.rpc('increment_token', { p_slug: slug });
     if (rpcErr)
       return new Response(JSON.stringify({ error: '操作失敗，請稍後再試' }), { status: 500, headers: JSON_HEADERS });
+    // Anonymous users cannot give or remove tokens — membership required
+    return new Response(JSON.stringify({ error: '請登入後才能給金幣', requiresAuth: true }), { status: 401, headers: JSON_HEADERS });
   }
 
   const { data } = await supabase
