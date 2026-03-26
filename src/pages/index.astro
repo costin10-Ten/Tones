@@ -21,9 +21,9 @@ const inaccessibleCount = stories.filter(s =>
 ).length;
 const totalStories = stories.length;
 
-// Minimal story map for client-side resume card
+// Minimal story map for client-side resume card (includes tags for category filtering)
 const storiesMapJson = JSON.stringify(
-  Object.fromEntries(allStories.map(s => [s.slug, { fileNum: s.data.fileNum, title: s.data.title }]))
+  Object.fromEntries(allStories.map(s => [s.slug, { fileNum: s.data.fileNum, title: s.data.title, tags: s.data.tags }]))
 );
 
 // Site-curated lists for sidebar — edited via Keystatic > 精選清單
@@ -35,6 +35,9 @@ const curatedLists = [
   { id: 'emotion',  label: curatedData.emotion.label,  icon: curatedData.emotion.icon,  slugs: curatedData.emotion.slugs.filter(s => s && _publishedSlugs.has(s)) },
 ];
 const paidStories = stories.filter(s => s.data.level === 'paid');
+// Ordered slug array + curated list definitions for smart resume navigation
+const allSlugsJson = JSON.stringify(stories.map(s => s.slug));
+const curatedJson  = JSON.stringify(curatedLists.map(l => ({ id: l.id, slugs: l.slugs })));
 ---
 
 <Layout>
@@ -528,6 +531,8 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
        data-total={String(totalStories)}
        data-inaccessible={String(inaccessibleCount)}
        data-stories-map={storiesMapJson}
+       data-all-slugs={allSlugsJson}
+       data-curated={curatedJson}
        hidden></div>
 </Layout>
 
@@ -546,41 +551,97 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
     };
   }
 
-  // ─── Resume button + strip: update href & show progress ───
+  // ─── Resume button + strip: smart "continue reading" logic ───
+  // Priority: 1) resume in-progress story  2) next unread in last list  3) next unread site-wide
   {
-    const lastStory = sGet('hz-last-story');
-    const resumeBtn  = document.getElementById('resumeBtn') as HTMLAnchorElement | null;
+    const meta = document.getElementById('hp-meta');
+    let storiesMap: Record<string, { fileNum: string; title: string; tags: string[] }> = {};
+    let allSlugs: string[] = [];
+    let curatedDefs: Array<{ id: string; slugs: string[] }> = [];
+    try { storiesMap  = JSON.parse(meta?.dataset.storiesMap ?? '{}'); }  catch (_) {}
+    try { allSlugs    = JSON.parse(meta?.dataset.allSlugs   ?? '[]'); }  catch (_) {}
+    try { curatedDefs = JSON.parse(meta?.dataset.curated    ?? '[]'); }  catch (_) {}
+
+    const resumeBtn  = document.getElementById('resumeBtn')  as HTMLAnchorElement | null;
     const strip      = document.getElementById('resumeStrip') as HTMLElement | null;
     const rsFileNum  = document.getElementById('rsFileNum');
     const rsTitle    = document.getElementById('rsTitle');
     const rsProgFill = document.getElementById('rsProgFill') as HTMLElement | null;
     const rsPct      = document.getElementById('rsPct');
-    const rsList     = document.getElementById('rsList') as HTMLElement | null;
+    const rsList     = document.getElementById('rsList')     as HTMLElement | null;
 
-    if (resumeBtn && lastStory) {
-      resumeBtn.href = '/stories/' + lastStory + '?ref=home';
+    const lastStory = sGet('hz-last-story');
 
-      const meta = document.getElementById('hp-meta');
-      let storiesMap: Record<string, { fileNum: string; title: string }> = {};
-      try { storiesMap = JSON.parse(meta?.dataset.storiesMap ?? '{}'); } catch (_) {}
+    if (resumeBtn && lastStory && allSlugs.length > 0) {
+      const isRead = (slug: string) =>
+        sGet('hz-read:' + slug) === '1' ||
+        parseInt(sGet('hz-progress:' + slug) || '0', 10) >= 90;
 
-      const info = storiesMap[lastStory];
-      const pct  = parseInt(sGet('hz-progress:' + lastStory) || '0', 10);
+      const nextUnread = (slugs: string[]): string | null => {
+        for (const s of slugs) { if (!isRead(s)) return s; }
+        return null;
+      };
 
+      const lastPct    = parseInt(sGet('hz-progress:' + lastStory) || '0', 10);
+      const lastIsRead = isRead(lastStory);
+
+      let targetSlug = lastStory;
+      let targetPct  = lastPct;
+      let isNext     = false;
+      let listLabel  = '';
+
+      if (lastIsRead) {
+        // Last story finished — find next unread in list context, then fall back to all
+        const lastList = sGet('hz-last-list') || 'all';
+        let listSlugs: string[] = [];
+
+        if (lastList.startsWith('curated:')) {
+          const id    = lastList.slice(8);
+          const found = curatedDefs.find(l => l.id === id);
+          if (found?.slugs?.length) listSlugs = found.slugs;
+        } else if (lastList.startsWith('cat:')) {
+          const tag = lastList.slice(4);
+          listSlugs = allSlugs.filter(s => storiesMap[s]?.tags?.includes(tag));
+        } else {
+          listSlugs = allSlugs;
+        }
+
+        let next = nextUnread(listSlugs);
+        let usedFallback = false;
+        if (!next && listSlugs !== allSlugs) {
+          next = nextUnread(allSlugs);
+          usedFallback = true;
+        }
+
+        if (next) {
+          targetSlug = next;
+          targetPct  = parseInt(sGet('hz-progress:' + next) || '0', 10);
+          isNext     = true;
+          const listCtx = usedFallback ? 'all' : lastList;
+          listLabel  = usedFallback ? '全站' : (lastList.startsWith('curated:') ? '清單' : lastList.startsWith('cat:') ? '分類' : '全站');
+          resumeBtn.href = '/stories/' + next + '?ref=home&list=' + encodeURIComponent(listCtx);
+        } else {
+          // All stories read — go back to first story
+          targetSlug = allSlugs[0] ?? lastStory;
+          targetPct  = 100;
+          listLabel  = '全部已讀';
+          resumeBtn.href = '/stories/' + targetSlug + '?ref=home';
+        }
+      } else {
+        // Resume in-progress story
+        resumeBtn.href = '/stories/' + lastStory + '?ref=home';
+      }
+
+      const info = storiesMap[targetSlug];
       if (info && strip) {
         if (rsFileNum) rsFileNum.textContent = info.fileNum;
         if (rsTitle)   rsTitle.textContent   = info.title;
-        if (rsProgFill) rsProgFill.style.width = pct + '%';
-        if (rsPct)     rsPct.textContent     = pct + '%';
-
-        try {
-          const readlist = JSON.parse(sGet('hz-readlist') ?? '[]') as string[];
-          if (readlist.length > 0 && rsList) {
-            rsList.textContent = `閱讀清單 ${readlist.length} 件`;
-            rsList.style.display = '';
-          }
-        } catch (_) {}
-
+        if (rsProgFill) rsProgFill.style.width = targetPct + '%';
+        if (rsPct)     rsPct.textContent     = isNext && targetPct === 0 ? '未讀' : targetPct + '%';
+        if (rsList) {
+          if (listLabel) { rsList.textContent = listLabel; rsList.style.display = ''; }
+          else rsList.style.display = 'none';
+        }
         strip.style.display = 'flex';
       }
     }

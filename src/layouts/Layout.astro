@@ -96,6 +96,21 @@ const defaultOgImage = new URL('/og-default.png', Astro.url).href;
   </script>
 
   <script is:inline>
+    // Clerk session keep-alive after ViewTransitions page swap.
+    // Without this, Clerk's background token refresh can stall after a client-side
+    // navigation, causing the server middleware to see an expired JWT and redirect
+    // the user to sign-in even though they are still logged in on the client.
+    document.addEventListener('astro:after-swap', function () {
+      try {
+        var c = window.Clerk;
+        if (c && c.session) {
+          c.session.getToken({ skipCache: true }).catch(function () {});
+        }
+      } catch (_) {}
+    });
+  </script>
+
+  <script is:inline>
     // Reading progress bar
     function updateProgress() {
       const el = document.getElementById('progress');

@@ -70,9 +70,11 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
       <!-- ─── Story List with read status ─── -->
       <div class="sec-hd" style="margin-top:40px">
         <div class="sec-title">卷宗追蹤</div>
-        <button class="hide-read-btn" id="hideReadBtn" title="隱藏已讀文章">
-          <span id="hideReadLabel">顯示全部</span>
-        </button>
+        <div class="read-filter-group" id="readFilterGroup">
+          <button class="rfg-btn on" data-rfg="all">全部</button>
+          <button class="rfg-btn" data-rfg="unread">未讀</button>
+          <button class="rfg-btn" data-rfg="read">已讀</button>
+        </div>
       </div>
       <div class="story-track-list" id="storyTrackList">
         {sorted.map(story => (
@@ -82,7 +84,7 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
               <div>
                 <div class="track-title">
                   <span class="track-bookmark-icon" data-slug={story.slug}></span>
-                  {story.data.title}
+                  {story.data.title}<span class="track-read-stamp" data-slug={story.slug} style="display:none"></span>
                 </div>
                 <div class="track-meta">{story.data.fileNum} · {story.data.date}</div>
                 <div class="track-progress-wrap">
@@ -171,14 +173,14 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
 
     // Achievement badges
     const readCount = Object.keys(localStorage)
-      .filter(k => k.startsWith('hz-progress:')).length;
+      .filter(k => k.startsWith('hz-read:')).length;
     const bookmarkCount = data.bookmarkedSlugs?.length ?? 0;
     const tokenCount = data.userTokenCount ?? 0;
     const totalStories = document.querySelectorAll('.track-item').length;
     renderBadges({ readCount, bookmarkCount, tokenCount, totalStories });
 
-    // Init hide-read toggle after DOM is populated with progress data
-    initHideRead();
+    // Refresh read filter and stamps after API data is loaded
+    initReadFilter();
   }
 
   function loadStats() {
@@ -213,13 +215,14 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
   // Load stats from Supabase
   loadStats();
 
-  // Render badges immediately from localStorage (no API needed)
-  // This ensures badges show instantly; applyStats will re-render with full data later
+  // Render badges and filter immediately from localStorage (no API needed)
+  // This ensures UI shows instantly; applyStats will re-render with full data later
   {
-    const readCount   = Object.keys(localStorage).filter(k => k.startsWith('hz-progress:')).length;
+    const readCount   = Object.keys(localStorage).filter(k => k.startsWith('hz-read:')).length;
     const totalStories = document.querySelectorAll('.track-item').length;
     renderBadges({ readCount, bookmarkCount: 0, tokenCount: 0, totalStories });
   }
+  initReadFilter();
 
   // Load Clerk user info — wait for Clerk to be fully initialized
   function loadMemberName() {
@@ -297,51 +300,71 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
     }).join('');
   }
 
-  // ─── Hide-read toggle ─────────────────────────────
-  function initHideRead() {
-    const btn = document.getElementById('hideReadBtn');
-    const label = document.getElementById('hideReadLabel');
-    const list = document.getElementById('storyTrackList');
-    if (!btn || !list) return;
+  // ─── Read filter (全部 / 未讀 / 已讀) ────────────────────
+  function initReadFilter() {
+    const group = document.getElementById('readFilterGroup');
+    const list  = document.getElementById('storyTrackList');
+    if (!group || !list) return;
 
-    let hidden = false;
+    // Update stamps from localStorage (idempotent — safe to call multiple times)
+    document.querySelectorAll<HTMLElement>('.track-read-stamp[data-slug]').forEach(el => {
+      const slug = el.dataset.slug ?? '';
+      const isRead = localStorage.getItem('hz-read:' + slug) === '1' ||
+                     parseInt(localStorage.getItem('hz-progress:' + slug) || '0', 10) >= 90;
+      el.style.display = isRead ? '' : 'none';
+      if (isRead) el.textContent = ' 已讀';
+    });
 
-    btn.addEventListener('click', () => {
-      hidden = !hidden;
-      if (label) label.textContent = hidden ? '顯示全部' : '隱藏已讀';
-      btn.classList.toggle('active', hidden);
+    // Determine currently active mode (preserved across repeated calls)
+    const activeBtn = group.querySelector<HTMLButtonElement>('.rfg-btn.on');
+    const mode = activeBtn?.dataset.rfg ?? 'all';
+
+    function applyFilter(m: string) {
+      group.querySelectorAll<HTMLButtonElement>('.rfg-btn').forEach(btn => {
+        btn.classList.toggle('on', btn.dataset.rfg === m);
+      });
 
       const items = list.querySelectorAll<HTMLElement>('.track-item[data-slug]');
-      let visibleCount = 0;
-      let hiddenCount = 0;
+      let readCount = 0, unreadCount = 0;
 
       items.forEach(item => {
         const slug = item.dataset.slug ?? '';
-        const pct = parseInt(localStorage.getItem('hz-progress:' + slug) || '0', 10);
-        const isRead = pct >= 80;
-        if (hidden && isRead) {
-          item.style.display = 'none';
-          hiddenCount++;
-        } else {
-          item.style.display = '';
-          visibleCount++;
-        }
+        const isRead = localStorage.getItem('hz-read:' + slug) === '1' ||
+                       parseInt(localStorage.getItem('hz-progress:' + slug) || '0', 10) >= 90;
+        if (isRead) readCount++; else unreadCount++;
+        const show = m === 'all' || (m === 'read' && isRead) || (m === 'unread' && !isRead);
+        item.style.display = show ? '' : 'none';
       });
 
-      // Show "all done" message if everything is hidden
+      // Empty state message
       let doneMsg = list.querySelector<HTMLElement>('.track-all-done');
-      if (hidden && hiddenCount > 0 && visibleCount === 0) {
+      const showEmpty = (m === 'read' && readCount === 0) || (m === 'unread' && unreadCount === 0);
+      if (showEmpty) {
         if (!doneMsg) {
           doneMsg = document.createElement('div');
           doneMsg.className = 'track-all-done';
-          doneMsg.innerHTML = '<span class="done-icon">●</span><span class="done-msg">所有卷宗已閱覽完畢<br><span class="done-sub">你已調查了這個世界的每一個角落</span></span>';
           list.appendChild(doneMsg);
+        }
+        if (m === 'read') {
+          doneMsg.innerHTML = '<span class="done-icon">◯</span><span class="done-msg">尚無已讀卷宗<br><span class="done-sub">閱讀進度達 90% 即自動標記為已讀</span></span>';
+        } else {
+          doneMsg.innerHTML = '<span class="done-icon">●</span><span class="done-msg">所有卷宗已閱覽完畢<br><span class="done-sub">你已調查了這個世界的每一個角落</span></span>';
         }
         doneMsg.style.display = 'flex';
       } else if (doneMsg) {
         doneMsg.style.display = 'none';
       }
-    });
+    }
+
+    // Set up button listeners only once (guard against repeated calls)
+    if (!group.dataset.rfgReady) {
+      group.dataset.rfgReady = '1';
+      group.querySelectorAll<HTMLButtonElement>('.rfg-btn').forEach(btn => {
+        btn.addEventListener('click', () => applyFilter(btn.dataset.rfg ?? 'all'));
+      });
+    }
+
+    applyFilter(mode);
   }
 
 
@@ -585,22 +608,43 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
   .btn-ghost:hover { border-color: var(--text); color: var(--bg); background: var(--text); }
   .btn-ghost.danger:hover { border-color: var(--danger); color: var(--danger); background: transparent; }
 
-  /* ─── Hide-read button ─── */
-  .hide-read-btn {
+  /* ─── Read filter group (全部 / 未讀 / 已讀) ─── */
+  .read-filter-group {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .rfg-btn {
     font-family: 'Share Tech Mono', monospace;
-    font-size: .6rem;
-    letter-spacing: .1em;
+    font-size: .58rem;
+    letter-spacing: .08em;
     background: none;
     border: 1px solid var(--border);
     color: var(--text-muted);
-    padding: 4px 12px;
+    padding: 3px 10px;
     cursor: pointer;
     transition: all .18s;
     text-transform: uppercase;
-    flex-shrink: 0;
   }
-  .hide-read-btn:hover,
-  .hide-read-btn.active { border-color: var(--accent); color: var(--accent); }
+  .rfg-btn:hover,
+  .rfg-btn.on { border-color: var(--accent); color: var(--accent); }
+
+  /* ─── Already-read stamp on track items ─── */
+  .track-read-stamp {
+    display: inline-block;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: .48rem;
+    letter-spacing: .15em;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 1px 4px;
+    margin-left: 7px;
+    vertical-align: middle;
+    opacity: 0.65;
+    transform: rotate(-4deg);
+    position: relative;
+    top: -1px;
+  }
 
   /* ─── Achievement Badges ─── */
   .badges-grid {

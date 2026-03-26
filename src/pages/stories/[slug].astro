@@ -445,8 +445,10 @@ const storyId = `story:${slug}`;
   let liked = sGet('hz-liked:' + currentSlug) === '1';
   let globalTokens = 0;
 
-  // Track last visited story for homepage CTA
+  // Track last visited story and list context for homepage smart resume
   sSet('hz-last-story', currentSlug);
+  const _lp = new URLSearchParams(location.search);
+  sSet('hz-last-list', _lp.get('list') || 'all');
 
   // Fetch current stats from Supabase
   fetch('/api/stats/' + currentSlug)
@@ -526,6 +528,11 @@ const storyId = `story:${slug}`;
   let progressSaveTimer = null;
   let lastSavedPct = parseInt(sGet('hz-progress:' + currentSlug) || '0', 10);
 
+  // Retroactively mark as read for users who already reached 90% before this feature
+  if (lastSavedPct >= 90 && sGet('hz-read:' + currentSlug) !== '1') {
+    sSet('hz-read:' + currentSlug, '1');
+  }
+
   function saveProgress(pct) {
     sSet('hz-progress:' + currentSlug, String(pct));
     // Fire-and-forget for logged-in users; 401 for anonymous is silently ignored
@@ -539,6 +546,11 @@ const storyId = `story:${slug}`;
   window.addEventListener('scroll', () => {
     const docH = document.documentElement.scrollHeight - window.innerHeight;
     const pct = docH > 0 ? Math.round(window.scrollY / docH * 100) : 0;
+
+    // Mark as read when reaching 90% — permanent localStorage flag
+    if (pct >= 90 && sGet('hz-read:' + currentSlug) !== '1') {
+      sSet('hz-read:' + currentSlug, '1');
+    }
 
     if (Math.abs(pct - lastSavedPct) >= 5) {
       clearTimeout(progressSaveTimer);
