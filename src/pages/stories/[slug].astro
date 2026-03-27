@@ -441,7 +441,7 @@ if (isPublic) {
   <div id="hz-nav-data" style="display:none" data-d={JSON.stringify({ all: allStoriesData, curated: curatedListsData, slug })}></div>
 </Layout>
 
-<script define:vars={{ storyId, currentSlug: slug, storyTitle: entry.data.title, serverIsLiked: isLiked, isLoggedIn: !!userId }}>
+<script define:vars={{ storyId, currentSlug: slug, storyTitle: entry.data.title, serverIsLiked: isLiked, isLoggedIn: !!userId }} nonce={Astro.locals.nonce || undefined}>
   // ─── Back button ──
   var _agBack = document.getElementById('agBack');
   if (_agBack) {
