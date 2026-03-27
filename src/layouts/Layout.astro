@@ -69,7 +69,7 @@ const defaultOgImage = new URL('/og-default.png', Astro.url).href;
   <slot name="head" />
   <ViewTransitions />
   <!-- Apply theme + plain mode before first paint to avoid flash -->
-  <script is:inline nonce={nonce}>
+  <script is:inline>
     (function () {
       try {
         var t = localStorage.getItem('hz-theme');
@@ -85,7 +85,7 @@ const defaultOgImage = new URL('/og-default.png', Astro.url).href;
   <div id="progress" aria-hidden="true"></div>
   <slot />
 
-  <script is:inline nonce={nonce}>
+  <script is:inline>
     // Re-apply theme + plain mode after each ViewTransitions page swap
     document.addEventListener('astro:after-swap', function () {
       try {
@@ -114,7 +114,6 @@ const defaultOgImage = new URL('/og-default.png', Astro.url).href;
   </script>
 
   <script is:inline>
-  <script is:inline nonce={nonce}>
     // Reading progress bar
     function updateProgress() {
       const el = document.getElementById('progress');
@@ -128,7 +127,7 @@ const defaultOgImage = new URL('/og-default.png', Astro.url).href;
     updateProgress();
   </script>
 
-  <script is:inline nonce={nonce}>
+  <script is:inline>
     // Global plain text mode intercept
     // Intercepts story links and redirects to /plain when mode is enabled
     (function interceptPlainMode() {
@@ -156,7 +155,7 @@ const defaultOgImage = new URL('/og-default.png', Astro.url).href;
     })();
   </script>
 
-  <script is:inline nonce={nonce}>
+  <script is:inline>
     // ─── Proactive Clerk JWT refresh before ViewTransitions navigation ───
     // Root cause of "suddenly logged out" bug:
     //   Clerk's session JWT has a ~60-second lifetime. When the user navigates

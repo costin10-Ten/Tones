@@ -663,7 +663,7 @@ if (isPublic) {
   _initNavLinks();
 </script>
 
-<script define:vars={{ storyId, currentSlug: slug, storyTitle: entry.data.title, isSignedIn: userId !== null }} nonce={Astro.locals.nonce || undefined}>
+<script define:vars={{ storyId, currentSlug: slug, storyTitle: entry.data.title, isSignedIn: userId !== null, serverIsLiked: isLiked, isLoggedIn: !!userId }}>
   // ─── ViewTransitions cleanup ──────────────────────────────
   // define:vars scripts re-run on every page swap — clean up window listeners
   var _pageCtrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;

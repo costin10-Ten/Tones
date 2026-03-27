@@ -89,7 +89,7 @@ const totalStories = allStories.length;
   </footer>
 </Layout>
 
-<script define:vars={{ titleMap }} nonce={Astro.locals.nonce || undefined}>
+<script define:vars={{ titleMap }}>
   function fmtN(n) { return n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(n); }
   function fmtDate(iso) {
     var d = new Date(iso);
