@@ -22,7 +22,7 @@ const tags = [...tagMap.entries()]
   .sort((a, b) => b[1].length - a[1].length);
 ---
 
-<Layout title="標籤索引 — 弦音異象" description="依異常分類瀏覽所有卷宗">
+<Layout title="異常分類索引 — 弦音異象" description="依異常類別瀏覽弦音異象所有短篇卷宗：精神汙染、深淵建築、人工意識、情感科技、異變生態等。">
   <PageHeader />
 
   <main class="tags-main">
@@ -42,7 +42,7 @@ const tags = [...tagMap.entries()]
             {stories
               .sort((a, b) => b.data.date.localeCompare(a.data.date))
               .map(s => (
-                <a href={`/stories/${s.slug}?ref=tags`} class="tag-story-item">
+                <a href={`/stories/${s.slug}?list=cat:${encodeURIComponent(tag)}&ref=tags`} class="tag-story-item">
                   <span class="tsi-num">{s.data.fileNum}</span>
                   <span class="tsi-title">{s.data.title}</span>
                   <span class="tsi-date">{s.data.date}</span>

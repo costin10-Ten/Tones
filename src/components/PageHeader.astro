@@ -3,7 +3,7 @@ import ThemeSwitcher from './ThemeSwitcher.astro';
 import { SignedIn, UserButton } from '@clerk/astro/components';
 
 interface Props {
-  active?: 'home' | 'stories' | 'about';
+  active?: 'home' | 'stories' | 'about' | 'history' | 'plan';
 }
 const { active } = Astro.props;
 ---
@@ -34,11 +34,10 @@ const { active } = Astro.props;
     height: 56px;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     padding: 0 16px;
     background: var(--bg);
     border-bottom: 1px solid var(--border);
-    overflow-x: hidden;
   }
   .logo-back {
     display: flex;
@@ -54,12 +53,13 @@ const { active } = Astro.props;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: 2px;
+    min-width: 0;
   }
   .nav-a {
     font-family: 'Share Tech Mono', monospace;
     font-size: 0.7rem;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
     color: var(--text-dim);
     text-decoration: none;
     padding: 5px 10px;
@@ -69,8 +69,8 @@ const { active } = Astro.props;
   }
   .nav-a:hover, .nav-a.on { border-color: var(--border); color: var(--text); }
 
-  @media (max-width: 600px) {
-    header { padding: 0 12px; gap: 8px; }
-    .top-nav { display: none; }
+  @media (max-width: 480px) {
+    header { padding: 0 10px; gap: 4px; }
+    .nav-a { font-size: 0.62rem; padding: 4px 7px; letter-spacing: 0; }
   }
 </style>

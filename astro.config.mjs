@@ -46,5 +46,20 @@ export default defineConfig({
     optimizeDeps: {
       exclude: ['@keystatic/core'],
     },
+    build: {
+      chunkSizeWarningLimit: 3000,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('@keystatic') || id.includes('keystatic')) {
+              return 'keystatic';
+            }
+            if (id.includes('node_modules/@clerk') || id.includes('node_modules/@clerk/astro')) {
+              return 'clerk';
+            }
+          },
+        },
+      },
+    },
   },
 });

@@ -4,6 +4,7 @@ export const prerender = false;
 import Layout from '../layouts/Layout.astro';
 import StoryCard from '../components/StoryCard.astro';
 import ThemeSwitcher from '../components/ThemeSwitcher.astro';
+import Footer from '../components/Footer.astro';
 import { SignedIn, SignedOut, UserButton, SignInButton } from '@clerk/astro/components';
 import { getCollection } from 'astro:content';
 import curatedData from '../data/curated-lists.json';
@@ -11,7 +12,11 @@ import curatedData from '../data/curated-lists.json';
 const userId = Astro.locals.auth?.()?.userId ?? null;
 
 const allStories = await getCollection('stories', ({ data }) => data.published);
-const stories = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date));
+const stories = allStories.sort((a, b) => {
+  const aDate = a.data.uploadDate || a.data.date;
+  const bDate = b.data.uploadDate || b.data.date;
+  return bDate.localeCompare(aDate);
+});
 
 const latestStoryDate = stories[0]?.data.date ?? '—';
 
@@ -42,7 +47,35 @@ const allSlugsJson = JSON.stringify(stories.map(s => s.slug));
 const curatedJson  = JSON.stringify(curatedLists.map(l => ({ id: l.id, slugs: l.slugs })));
 ---
 
-<Layout>
+<Layout
+  description="弦音異象 — 台灣原創心理驚悚短篇小說，五分鐘讀完，細思極恐。每篇故事探索 AI、記憶、情感科技與生態異變的黑暗未來。"
+>
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": `${Astro.url.origin}/#website`,
+        "name": "弦音異象",
+        "url": Astro.url.origin,
+        "description": "台灣原創心理驚悚短篇小說，五分鐘讀完，細思極恐。",
+        "inLanguage": "zh-TW",
+        "publisher": { "@id": `${Astro.url.origin}/#organization` }
+      },
+      {
+        "@type": "Organization",
+        "@id": `${Astro.url.origin}/#organization`,
+        "name": "弦音異象",
+        "url": Astro.url.origin,
+        "logo": {
+          "@type": "ImageObject",
+          "url": `${Astro.url.origin}/og-default.png`,
+          "width": 1200,
+          "height": 630
+        }
+      }
+    ]
+  })} slot="head" />
   <!-- ─── Header ─── -->
   <header>
     <button class="logo-icon" id="leftSidebarBtn" aria-label="開啟導覽側欄">
@@ -67,10 +100,10 @@ const curatedJson  = JSON.stringify(curatedLists.map(l => ({ id: l.id, slugs: l.
     <a href="/" class="logo-text-btn">弦音<em>異象</em></a>
 
     <nav class="top-nav">
-      <a class="nav-a" data-cat="記憶科技" href="#world">精神汙染</a>
-      <a class="nav-a" data-cat="地下城市" href="#world">深淵建築</a>
-      <a class="nav-a" data-cat="AI社會" href="#world">人工意識</a>
-      <a class="nav-a" data-cat="生態復育" href="#world">異變生態</a>
+      <a class="nav-a" data-cat="記憶科技" href="#stories">精神汙染</a>
+      <a class="nav-a" data-cat="地下城市" href="#stories">深淵建築</a>
+      <a class="nav-a" data-cat="AI社會" href="#stories">人工意識</a>
+      <a class="nav-a" data-cat="生態復育" href="#stories">異變生態</a>
     </nav>
 
     <ThemeSwitcher />
@@ -100,10 +133,11 @@ const curatedJson  = JSON.stringify(curatedLists.map(l => ({ id: l.id, slugs: l.
     </div>
     <div class="sb-body">
       <div class="sb-section">主目錄</div>
-      <a href="#stories" class="sb-link">> 最新文章</a>
-      <a href="#stories" class="sb-link">> 犯罪類別篩選</a>
+      <a href="#stories" class="sb-link">> 全部文章</a>
+      <a href="/tags" class="sb-link">> 犯罪類別篩選</a>
       <a href="/about" class="sb-link">> 關於作者</a>
       <a href="/history" class="sb-link">> 網站發展史</a>
+      <a href="/plan" class="sb-link sb-link-plan">> ◈ 10萬金幣企劃</a>
       <SignedIn>
         <a href="/member" class="sb-link sb-link-bold" data-astro-reload>> 會員資料</a>
       </SignedIn>
@@ -235,7 +269,7 @@ const curatedJson  = JSON.stringify(curatedLists.map(l => ({ id: l.id, slugs: l.
         ))}
       </div>
 
-      <div class="sb-section" style="margin-top:20px">留言</div>
+      <div class="sb-section" id="msgSection" style="margin-top:20px">留言</div>
       <div class="msg-box">
         <p style="font-size:0.75rem;color:var(--text-dim);margin-bottom:12px;">
           // 如果你發現了系統漏洞，或者想對作者說些什麼，請在這裡留言。訊號可能會被攔截，但我會看到的。
@@ -502,13 +536,7 @@ const curatedJson  = JSON.stringify(curatedLists.map(l => ({ id: l.id, slugs: l.
   </section>
 
   <!-- ─── Footer ─── -->
-  <footer>
-    <div class="ft-logo">弦音<em>異象</em></div>
-    <div class="ft-txt">
-      ANOMALY ARCHIVES · CLASSIFIED<br>
-      一切皆為虛構，除非你相信。
-    </div>
-  </footer>
+  <Footer active="home" />
 
   <!-- Server-side variables for client script (avoids define:vars inline-script re-evaluation) -->
   <div id="hp-meta"
@@ -600,7 +628,12 @@ const curatedJson  = JSON.stringify(curatedLists.map(l => ({ id: l.id, slugs: l.
 
     document.getElementById('leftSidebarBtn')?.addEventListener('click', openLeft, { signal: sig });
     document.getElementById('rightSidebarBtn')?.addEventListener('click', openRight, { signal: sig });
-    document.getElementById('contactBtn')?.addEventListener('click', openRight, { signal: sig });
+    document.getElementById('contactBtn')?.addEventListener('click', () => {
+      openRight();
+      setTimeout(() => {
+        document.getElementById('msgSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+    }, { signal: sig });
     document.getElementById('leftSidebarCloseBtn')?.addEventListener('click', closeAll, { signal: sig });
     document.getElementById('rightSidebarCloseBtn')?.addEventListener('click', closeAll, { signal: sig });
     overlay.addEventListener('click', closeAll, { signal: sig });
@@ -748,6 +781,15 @@ const curatedJson  = JSON.stringify(curatedLists.map(l => ({ id: l.id, slugs: l.
 
     document.querySelectorAll<HTMLButtonElement>('.tag-btn').forEach(btn => {
       btn.addEventListener('click', () => applyFilter(btn.dataset.cat ?? '全部'), { signal: sig });
+    });
+
+    // ─── Top-nav category links → scroll to #stories and apply filter ───
+    document.querySelectorAll<HTMLAnchorElement>('.nav-a[data-cat]').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        applyFilter(link.dataset.cat ?? '全部');
+        document.getElementById('stories')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, { signal: sig });
     });
 
     // Intercept story card clicks — carry active filter as list context
@@ -1048,13 +1090,16 @@ const curatedJson  = JSON.stringify(curatedLists.map(l => ({ id: l.id, slugs: l.
         el.innerHTML = '<a href="/stories" class="sb-link sb-link-manage">> 建立第一個清單</a>';
         return;
       }
-      el.innerHTML = lists.slice(0, 5).map(l =>
-        `<a href="/stories" class="sb-link" data-list-id="${l.id}">
-          > ${l.name.replace(/&/g,'&amp;').replace(/</g,'&lt;')}
-          <span class="sb-list-cnt">${l.slugs.length}</span>
-        </a>`
-      ).join('') +
-        (lists.length > 5 ? `<a href="/stories" class="sb-link sb-link-manage">> 還有 ${lists.length - 5} 個清單…</a>` : '');
+      function esc(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+      }
+      el.innerHTML = lists.slice(0, 5).map(function(l) {
+        return '<a href="/stories" class="sb-link" data-list-id="' + esc(l.id) + '">' +
+          '> ' + esc(l.name) +
+          ' <span class="sb-list-cnt">' + Number(l.slugs.length) + '</span>' +
+          '</a>';
+      }).join('') +
+        (lists.length > 5 ? '<a href="/stories" class="sb-link sb-link-manage">&gt; 還有 ' + Number(lists.length - 5) + ' 個清單…</a>' : '');
     } catch (_) { el.innerHTML = ''; }
   }
 
@@ -1408,6 +1453,7 @@ const curatedJson  = JSON.stringify(curatedLists.map(l => ({ id: l.id, slugs: l.
   .sb-link-bold:hover { color: var(--accent) !important; }
   .sb-link-manage { color: var(--text-muted); font-size: .75rem; }
   .sb-link-paid { color: #d4a017 !important; }
+  .sb-link-plan { color: var(--accent) !important; font-weight: 700; }
   .sb-list-cnt {
     float: right;
     font-size: .65rem;
