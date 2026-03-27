@@ -441,7 +441,7 @@ if (isPublic) {
   <div id="hz-nav-data" style="display:none" data-d={JSON.stringify({ all: allStoriesData, curated: curatedListsData, slug })}></div>
 </Layout>
 
-<script define:vars={{ storyId, currentSlug: slug, storyTitle: entry.data.title, serverIsLiked: isLiked, isLoggedIn: !!userId }} nonce={Astro.locals.nonce || undefined}>
+<script define:vars={{ storyId, currentSlug: slug, storyTitle: entry.data.title, serverIsLiked: isLiked, isLoggedIn: !!userId }}>
   // ─── Back button ──
   var _agBack = document.getElementById('agBack');
   if (_agBack) {
@@ -663,7 +663,7 @@ if (isPublic) {
   _initNavLinks();
 </script>
 
-<script define:vars={{ storyId, currentSlug: slug, storyTitle: entry.data.title, isSignedIn: userId !== null }} nonce={Astro.locals.nonce || undefined}>
+<script define:vars={{ storyId, currentSlug: slug, storyTitle: entry.data.title, isSignedIn: userId !== null }}>
   // ─── ViewTransitions cleanup ──────────────────────────────
   // define:vars scripts re-run on every page swap — clean up window listeners
   var _pageCtrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
