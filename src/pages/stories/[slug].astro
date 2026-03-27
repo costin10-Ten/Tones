@@ -441,8 +441,8 @@ if (isPublic) {
   <div id="hz-nav-data" style="display:none" data-d={JSON.stringify({ all: allStoriesData, curated: curatedListsData, slug })}></div>
 </Layout>
 
-<script define:vars={{ storyId, currentSlug: slug, allStoriesData, curatedListsData, storyTitle: entry.data.title, serverIsLiked: isLiked, isLoggedIn: !!userId }}>
-  // ─── Back button (use .onclick so each page-swap replaces the handler) ──
+<script define:vars={{ storyId, currentSlug: slug, storyTitle: entry.data.title, serverIsLiked: isLiked, isLoggedIn: !!userId }}>
+  // ─── Back button ──
   var _agBack = document.getElementById('agBack');
   if (_agBack) {
     _agBack.onclick = function() {
@@ -460,13 +460,9 @@ if (isPublic) {
         window.location.href = '/stories?curated=' + encodeURIComponent(listParam.slice(8));
         return;
       }
-      if (list.startsWith('cat:'))     { location.href = '/stories?cat='     + encodeURIComponent(list.slice(4)); return; }
-      if (list.startsWith('curated:')) { location.href = '/stories?curated=' + encodeURIComponent(list.slice(8)); return; }
-      location.href = '/stories';
+      window.location.href = '/stories';
     };
   }
-  document.addEventListener('astro:page-load', _initAgBack);
-  _initAgBack();
 </script>
 
 <!-- Reader controls — bundled script (wide mode, tutorial, font) so they survive ViewTransitions + CSP 'self' -->

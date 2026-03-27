@@ -35,19 +35,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   } else {
     return new Response(JSON.stringify({ error: '請先登入才能給金幣', requireLogin: true }), { status: 401, headers: JSON_HEADERS });
-    // Anonymous: rate-limit by IP, only allow add (remove requires account to prevent abuse)
-    if (action === 'remove')
-      return new Response(JSON.stringify({ error: '請登入後再移除金幣' }), { status: 401, headers: JSON_HEADERS });
-
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-    if (isAnonRateLimited(ip))
-      return new Response(JSON.stringify({ error: '操作過於頻繁，請稍後再試' }), { status: 429, headers: JSON_HEADERS });
-
-    const { error: rpcErr } = await supabase.rpc('increment_token', { p_slug: slug });
-    if (rpcErr)
-      return new Response(JSON.stringify({ error: '操作失敗，請稍後再試' }), { status: 500, headers: JSON_HEADERS });
-    // Anonymous users cannot give or remove tokens — membership required
-    return new Response(JSON.stringify({ error: '請登入後才能給金幣', requiresAuth: true }), { status: 401, headers: JSON_HEADERS });
   }
 
   const { data } = await supabase
