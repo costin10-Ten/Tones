@@ -11,16 +11,18 @@ export const GET: APIRoute = async ({ locals }) => {
   const abort = new AbortController();
   const timer = setTimeout(() => abort.abort(), 5000);
 
-  let userTokens, storyStats, bookmarkData;
+  let userTokens, storyStats, bookmarkData, readData;
   try {
     [
       { data: userTokens },
       { data: storyStats },
       { data: bookmarkData },
+      { data: readData },
     ] = await Promise.all([
       supabase.from('user_tokens').select('story_slug').eq('user_id', userId).abortSignal(abort.signal),
       supabase.from('story_stats').select('story_slug, views, tokens').limit(500).abortSignal(abort.signal),
       supabase.from('bookmarks').select('story_slug').eq('user_id', userId).abortSignal(abort.signal),
+      supabase.from('reading_progress').select('story_slug').eq('user_id', userId).gte('pct', 90).abortSignal(abort.signal),
     ]);
   } catch (err: unknown) {
     clearTimeout(timer);
@@ -42,12 +44,15 @@ export const GET: APIRoute = async ({ locals }) => {
     totalViews += row.views;
   }
 
+  const readSlugs = (readData ?? []).map((r: { story_slug: string }) => r.story_slug);
+
   return new Response(JSON.stringify({
     totalViews,
     userTokenCount: tokenedSlugs.size,
     tokenedSlugs: [...tokenedSlugs],
     bookmarkedSlugs,
     statsMap,
+    readSlugs,
   }), {
     headers: {
       'Content-Type': 'application/json',

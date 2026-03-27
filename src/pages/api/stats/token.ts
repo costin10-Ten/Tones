@@ -34,6 +34,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return new Response(JSON.stringify({ error: '操作失敗，請稍後再試' }), { status: 500, headers: JSON_HEADERS });
 
   } else {
+    return new Response(JSON.stringify({ error: '請先登入才能給金幣', requireLogin: true }), { status: 401, headers: JSON_HEADERS });
     // Anonymous: rate-limit by IP, only allow add (remove requires account to prevent abuse)
     if (action === 'remove')
       return new Response(JSON.stringify({ error: '請登入後再移除金幣' }), { status: 401, headers: JSON_HEADERS });

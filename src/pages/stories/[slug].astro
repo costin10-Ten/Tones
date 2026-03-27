@@ -40,6 +40,18 @@ if (isPaid && userId) {
   isUnlocked = !!data;
 }
 
+// Server-side liked state — avoids localStorage mismatch for logged-in users
+let isLiked = false;
+if (userId) {
+  const { data: _tokenRow } = await supabase
+    .from('user_tokens')
+    .select('story_slug')
+    .eq('user_id', userId)
+    .eq('story_slug', slug)
+    .maybeSingle();
+  isLiked = !!_tokenRow;
+}
+
 // showAccessGate: not logged in AND story requires auth (restricted, top-secret, or paid)
 const showAccessGate = !userId && (isRestricted || isTopSecret || isPaid);
 // showPaywall: logged in but paid story not yet unlocked
@@ -429,19 +441,23 @@ if (isPublic) {
   <div id="hz-nav-data" style="display:none" data-d={JSON.stringify({ all: allStoriesData, curated: curatedListsData, slug })}></div>
 </Layout>
 
-<!-- Back button — bundled script (not define:vars) so it works through ViewTransitions with CSP 'self' -->
-<script>
-  function _initAgBack() {
-    var btn = document.getElementById('agBack');
-    if (!btn) return;
-    btn.onclick = function() {
-      var p = new URLSearchParams(location.search);
-      var ref = p.get('ref') || '';
-      var list = p.get('list') || 'all';
-      if (ref === 'home')   { location.href = '/#stories'; return; }
-      if (ref === 'member') { location.href = '/member';   return; }
-      if (ref === 'tags') {
-        location.href = list.startsWith('cat:') ? '/tags#tag-' + encodeURIComponent(list.slice(4)) : '/tags';
+<script define:vars={{ storyId, currentSlug: slug, allStoriesData, curatedListsData, storyTitle: entry.data.title, serverIsLiked: isLiked, isLoggedIn: !!userId }}>
+  // ─── Back button (use .onclick so each page-swap replaces the handler) ──
+  var _agBack = document.getElementById('agBack');
+  if (_agBack) {
+    _agBack.onclick = function() {
+      var params = new URLSearchParams(location.search);
+      var ref = params.get('ref') || '';
+      var listParam = params.get('list') || 'all';
+      if (ref === 'home')   { window.location.href = '/';       return; }
+      if (ref === 'member') { window.location.href = '/member'; return; }
+      if (ref === 'tags')   { window.location.href = '/tags';   return; }
+      if (listParam.startsWith('cat:')) {
+        window.location.href = '/stories?cat=' + encodeURIComponent(listParam.slice(4));
+        return;
+      }
+      if (listParam.startsWith('curated:')) {
+        window.location.href = '/stories?curated=' + encodeURIComponent(listParam.slice(8));
         return;
       }
       if (list.startsWith('cat:'))     { location.href = '/stories?cat='     + encodeURIComponent(list.slice(4)); return; }
@@ -667,7 +683,10 @@ if (isPublic) {
   function sGet(k) { try { return localStorage.getItem(k); } catch(e) { return null; } }
   function sSet(k, v) { try { localStorage.setItem(k, v); } catch(e) {} }
 
-  let liked = sGet('hz-liked:' + currentSlug) === '1';
+  // Use server-authoritative liked state for logged-in users; localStorage for anonymous
+  let liked = isLoggedIn ? serverIsLiked : (sGet('hz-liked:' + currentSlug) === '1');
+  // Keep localStorage in sync
+  sSet('hz-liked:' + currentSlug, liked ? '1' : '0');
   let globalTokens = 0;
 
   // Track last visited story and list context for homepage smart resume
@@ -750,6 +769,13 @@ if (isPublic) {
           globalTokens = prevTokens;
           sSet('hz-liked:' + currentSlug, liked ? '1' : '0');
           updateTokenUI();
+          const btn = document.getElementById('tokenBtn');
+          const lbl = btn?.querySelector('.token-label');
+          if (lbl) {
+            const orig = lbl.textContent;
+            lbl.textContent = '請先登入';
+            setTimeout(() => { lbl.textContent = orig; }, 2000);
+          }
           return null;
         }
         return r.json();
@@ -787,9 +813,15 @@ if (isPublic) {
     const docH = document.documentElement.scrollHeight - window.innerHeight;
     const pct = docH > 0 ? Math.round(window.scrollY / docH * 100) : 0;
 
-    // Mark as read when reaching 90% — permanent localStorage flag
+    // Mark as read when reaching 90% — localStorage flag + DB record for members
     if (pct >= 90 && sGet('hz-read:' + currentSlug) !== '1') {
       sSet('hz-read:' + currentSlug, '1');
+      // Persist to DB for logged-in users (member stats readSlugs)
+      fetch('/api/progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug: currentSlug, pct: 100 }),
+      }).catch(() => {});
     }
 
     if (Math.abs(pct - lastSavedPct) >= 5) {

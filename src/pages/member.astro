@@ -152,6 +152,11 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
     const bookmarkedSet = new Set(data.bookmarkedSlugs ?? []);
     const statsMap = data.statsMap ?? {};
 
+    // Sync server-authoritative read slugs to localStorage so the filter uses accurate data
+    (data.readSlugs ?? []).forEach((slug: string) => {
+      try { localStorage.setItem('hz-read:' + slug, '1'); } catch(_) {}
+    });
+
     document.querySelectorAll('.track-views[data-slug]').forEach(el => {
       el.textContent = '👁 ' + fmtN(statsMap[el.dataset.slug]?.views ?? 0);
     });
@@ -171,9 +176,10 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
       if (pct > 0) (el as HTMLElement).style.width = pct + '%';
     });
 
-    // Achievement badges
-    const readCount = Object.keys(localStorage)
-      .filter(k => k.startsWith('hz-read:')).length;
+    // Achievement badges — prefer server readSlugs count; fall back to localStorage
+    const readCount = data.readSlugs != null
+      ? data.readSlugs.length
+      : Object.keys(localStorage).filter(k => k.startsWith('hz-read:')).length;
     const bookmarkCount = data.bookmarkedSlugs?.length ?? 0;
     const tokenCount = data.userTokenCount ?? 0;
     const totalStories = document.querySelectorAll('.track-item').length;
