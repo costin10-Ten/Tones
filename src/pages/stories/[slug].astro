@@ -40,6 +40,18 @@ if (isPaid && userId) {
   isUnlocked = !!data;
 }
 
+// Server-side liked state — avoids localStorage mismatch for logged-in users
+let isLiked = false;
+if (userId) {
+  const { data: _tokenRow } = await supabase
+    .from('user_tokens')
+    .select('story_slug')
+    .eq('user_id', userId)
+    .eq('story_slug', slug)
+    .maybeSingle();
+  isLiked = !!_tokenRow;
+}
+
 // showAccessGate: not logged in AND story requires auth (restricted, top-secret, or paid)
 const showAccessGate = !userId && (isRestricted || isTopSecret || isPaid);
 // showPaywall: logged in but paid story not yet unlocked
@@ -325,7 +337,7 @@ const storyId = `story:${slug}`;
      aria-label="下一卷宗">›</a>
 </Layout>
 
-<script define:vars={{ storyId, currentSlug: slug, allStoriesData, curatedListsData, storyTitle: entry.data.title }}>
+<script define:vars={{ storyId, currentSlug: slug, allStoriesData, curatedListsData, storyTitle: entry.data.title, serverIsLiked: isLiked, isLoggedIn: !!userId }}>
   // ─── Back button (use .onclick so each page-swap replaces the handler) ──
   var _agBack = document.getElementById('agBack');
   if (_agBack) {
@@ -442,7 +454,10 @@ const storyId = `story:${slug}`;
   function sGet(k) { try { return localStorage.getItem(k); } catch(e) { return null; } }
   function sSet(k, v) { try { localStorage.setItem(k, v); } catch(e) {} }
 
-  let liked = sGet('hz-liked:' + currentSlug) === '1';
+  // Use server-authoritative liked state for logged-in users; localStorage for anonymous
+  let liked = isLoggedIn ? serverIsLiked : (sGet('hz-liked:' + currentSlug) === '1');
+  // Keep localStorage in sync
+  sSet('hz-liked:' + currentSlug, liked ? '1' : '0');
   let globalTokens = 0;
 
   // Track last visited story and list context for homepage smart resume
@@ -505,12 +520,19 @@ const storyId = `story:${slug}`;
       body: JSON.stringify({ slug: currentSlug, action }),
     })
       .then(r => {
-        // 401 on remove = anonymous user; restore exact pre-click state
-        if (r.status === 401 && action === 'remove') {
+        if (r.status === 401) {
+          // Not logged in — restore state and prompt sign-in
           liked = prevLiked;
           globalTokens = prevTokens;
           sSet('hz-liked:' + currentSlug, liked ? '1' : '0');
           updateTokenUI();
+          const btn = document.getElementById('tokenBtn');
+          const lbl = btn?.querySelector('.token-label');
+          if (lbl) {
+            const orig = lbl.textContent;
+            lbl.textContent = '請先登入';
+            setTimeout(() => { lbl.textContent = orig; }, 2000);
+          }
           return null;
         }
         return r.json();
@@ -547,9 +569,15 @@ const storyId = `story:${slug}`;
     const docH = document.documentElement.scrollHeight - window.innerHeight;
     const pct = docH > 0 ? Math.round(window.scrollY / docH * 100) : 0;
 
-    // Mark as read when reaching 90% — permanent localStorage flag
+    // Mark as read when reaching 90% — localStorage flag + DB record for members
     if (pct >= 90 && sGet('hz-read:' + currentSlug) !== '1') {
       sSet('hz-read:' + currentSlug, '1');
+      // Persist to DB for logged-in users (member stats readSlugs)
+      fetch('/api/progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug: currentSlug, pct: 100 }),
+      }).catch(() => {});
     }
 
     if (Math.abs(pct - lastSavedPct) >= 5) {

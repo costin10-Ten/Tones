@@ -8,6 +8,8 @@ import { SignedIn, SignedOut, UserButton, SignInButton } from '@clerk/astro/comp
 import { getCollection } from 'astro:content';
 import curatedData from '../data/curated-lists.json';
 
+const userId = Astro.locals.auth?.()?.userId ?? null;
+
 const allStories = await getCollection('stories', ({ data }) => data.published);
 const stories = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date));
 
@@ -261,24 +263,7 @@ const curatedJson  = JSON.stringify(curatedLists.map(l => ({ id: l.id, slugs: l.
         當你滑到網頁最底端時——你將發現真正的怪物，<strong>就站在你身後</strong>。
       </p>
       <div class="hero-actions">
-        <SignedIn>
-          <a href={`/stories/${stories[0]?.slug ?? ''}`} class="btn-primary" id="resumeBtn">[ 繼續閱讀 ]</a>
-          <!-- Resume info strip (populated by JS) -->
-          <div class="resume-strip" id="resumeStrip" style="display:none">
-            <div class="rs-top">
-              <span class="rs-filenum" id="rsFileNum"></span>
-              <span class="rs-title" id="rsTitle"></span>
-            </div>
-            <div class="rs-prog-wrap">
-              <div class="rs-prog-fill" id="rsProgFill"></div>
-              <span class="rs-pct" id="rsPct"></span>
-            </div>
-            <span class="rs-list" id="rsList" style="display:none"></span>
-          </div>
-        </SignedIn>
-        <SignedOut>
-          <button class="btn-primary" id="unlockBtn" data-href={`/stories/${stories[0]?.slug ?? ''}`}>[ 解鎖第一份卷宗 ]</button>
-        </SignedOut>
+        <a href="/stories?curated=starter" class="btn-primary">[ 推薦閱讀 ]</a>
         <button class="btn-ghost" id="contactBtn">[ 聯繫作者 ]</button>
       </div>
     </div>
@@ -527,7 +512,7 @@ const curatedJson  = JSON.stringify(curatedLists.map(l => ({ id: l.id, slugs: l.
 
   <!-- Server-side variables for client script (avoids define:vars inline-script re-evaluation) -->
   <div id="hp-meta"
-       data-logged-in="false"
+       data-logged-in={userId ? 'true' : 'false'}
        data-total={String(totalStories)}
        data-inaccessible={String(inaccessibleCount)}
        data-stories-map={storiesMapJson}
@@ -549,102 +534,6 @@ const curatedJson  = JSON.stringify(curatedLists.map(l => ({ id: l.id, slugs: l.
       totalStories:     parseInt(el?.dataset.total      ?? '0', 10),
       inaccessibleCount: parseInt(el?.dataset.inaccessible ?? '0', 10),
     };
-  }
-
-  // ─── Resume button + strip: smart "continue reading" logic ───
-  // Priority: 1) resume in-progress story  2) next unread in last list  3) next unread site-wide
-  {
-    const meta = document.getElementById('hp-meta');
-    let storiesMap: Record<string, { fileNum: string; title: string; tags: string[] }> = {};
-    let allSlugs: string[] = [];
-    let curatedDefs: Array<{ id: string; slugs: string[] }> = [];
-    try { storiesMap  = JSON.parse(meta?.dataset.storiesMap ?? '{}'); }  catch (_) {}
-    try { allSlugs    = JSON.parse(meta?.dataset.allSlugs   ?? '[]'); }  catch (_) {}
-    try { curatedDefs = JSON.parse(meta?.dataset.curated    ?? '[]'); }  catch (_) {}
-
-    const resumeBtn  = document.getElementById('resumeBtn')  as HTMLAnchorElement | null;
-    const strip      = document.getElementById('resumeStrip') as HTMLElement | null;
-    const rsFileNum  = document.getElementById('rsFileNum');
-    const rsTitle    = document.getElementById('rsTitle');
-    const rsProgFill = document.getElementById('rsProgFill') as HTMLElement | null;
-    const rsPct      = document.getElementById('rsPct');
-    const rsList     = document.getElementById('rsList')     as HTMLElement | null;
-
-    const lastStory = sGet('hz-last-story');
-
-    if (resumeBtn && lastStory && allSlugs.length > 0) {
-      const isRead = (slug: string) =>
-        sGet('hz-read:' + slug) === '1' ||
-        parseInt(sGet('hz-progress:' + slug) || '0', 10) >= 90;
-
-      const nextUnread = (slugs: string[]): string | null => {
-        for (const s of slugs) { if (!isRead(s)) return s; }
-        return null;
-      };
-
-      const lastPct    = parseInt(sGet('hz-progress:' + lastStory) || '0', 10);
-      const lastIsRead = isRead(lastStory);
-
-      let targetSlug = lastStory;
-      let targetPct  = lastPct;
-      let isNext     = false;
-      let listLabel  = '';
-
-      if (lastIsRead) {
-        // Last story finished — find next unread in list context, then fall back to all
-        const lastList = sGet('hz-last-list') || 'all';
-        let listSlugs: string[] = [];
-
-        if (lastList.startsWith('curated:')) {
-          const id    = lastList.slice(8);
-          const found = curatedDefs.find(l => l.id === id);
-          if (found?.slugs?.length) listSlugs = found.slugs;
-        } else if (lastList.startsWith('cat:')) {
-          const tag = lastList.slice(4);
-          listSlugs = allSlugs.filter(s => storiesMap[s]?.tags?.includes(tag));
-        } else {
-          listSlugs = allSlugs;
-        }
-
-        let next = nextUnread(listSlugs);
-        let usedFallback = false;
-        if (!next && listSlugs !== allSlugs) {
-          next = nextUnread(allSlugs);
-          usedFallback = true;
-        }
-
-        if (next) {
-          targetSlug = next;
-          targetPct  = parseInt(sGet('hz-progress:' + next) || '0', 10);
-          isNext     = true;
-          const listCtx = usedFallback ? 'all' : lastList;
-          listLabel  = usedFallback ? '全站' : (lastList.startsWith('curated:') ? '清單' : lastList.startsWith('cat:') ? '分類' : '全站');
-          resumeBtn.href = '/stories/' + next + '?ref=home&list=' + encodeURIComponent(listCtx);
-        } else {
-          // All stories read — go back to first story
-          targetSlug = allSlugs[0] ?? lastStory;
-          targetPct  = 100;
-          listLabel  = '全部已讀';
-          resumeBtn.href = '/stories/' + targetSlug + '?ref=home';
-        }
-      } else {
-        // Resume in-progress story
-        resumeBtn.href = '/stories/' + lastStory + '?ref=home';
-      }
-
-      const info = storiesMap[targetSlug];
-      if (info && strip) {
-        if (rsFileNum) rsFileNum.textContent = info.fileNum;
-        if (rsTitle)   rsTitle.textContent   = info.title;
-        if (rsProgFill) rsProgFill.style.width = targetPct + '%';
-        if (rsPct)     rsPct.textContent     = isNext && targetPct === 0 ? '未讀' : targetPct + '%';
-        if (rsList) {
-          if (listLabel) { rsList.textContent = listLabel; rsList.style.display = ''; }
-          else rsList.style.display = 'none';
-        }
-        strip.style.display = 'flex';
-      }
-    }
   }
 
   // ─── Update hero stats (全員可見全站統計) ──────────────────
@@ -671,6 +560,19 @@ const curatedJson  = JSON.stringify(curatedLists.map(l => ({ id: l.id, slugs: l.
       })
       .catch(() => {});
 
+    // For logged-in users: fetch member stats to show unread count as "未解之謎"
+    if (isLoggedIn) {
+      fetch('/api/member/stats')
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(data => {
+          const mysteriesEl = document.getElementById('statMysteries');
+          if (mysteriesEl && data.readSlugs != null) {
+            const unread = Math.max(0, totalStories - (data.readSlugs as string[]).length);
+            mysteriesEl.textContent = String(unread);
+          }
+        })
+        .catch(() => {});
+    }
   }
   updateHeroStats();
 
