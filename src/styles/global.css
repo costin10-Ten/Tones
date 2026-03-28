@@ -674,6 +674,49 @@ img {
   overflow: hidden;
 }
 
+/* ─── 未讀/已讀燈號 — 未來可能會用到，先留著 ─── */
+.card-read-light {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border); /* 全關（預設未讀色） */
+  pointer-events: none;
+  /* .card-read-light.on { background: var(--accent); } ← 啟用時取消此行 */
+}
+/* ─── 已讀章 ─── */
+.card-read-stamp {
+  display: inline-block;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.44rem;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 1px 5px;
+  margin-left: 8px;
+  opacity: 0.7;
+  transform: rotate(-4deg);
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+  white-space: nowrap;
+}
+
+/* ─── 閱讀進度條（暫時全設成0）— 未來可能會用到，先留著 ─── */
+.card-prog-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: var(--accent);
+  opacity: 0.45;
+  width: 0; /* 暫時全設成0，待連接 localStorage 後啟用 */
+  transition: width 0.3s;
+  pointer-events: none;
+}
+
 .story-card::before {
   content: '';
   position: absolute;

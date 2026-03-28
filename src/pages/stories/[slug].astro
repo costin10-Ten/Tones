@@ -439,6 +439,12 @@ if (isPublic) {
      aria-label="下一卷宗">›</a>
   <!-- Nav data for client-side list navigation (not a script — browser ignores non-JS types) -->
   <div id="hz-nav-data" style="display:none" data-d={JSON.stringify({ all: allStoriesData, curated: curatedListsData, slug })}></div>
+
+  <!-- ─── 左上懸浮快速導覽（上箭頭 / 下箭頭）─── -->
+  <div class="scroll-nav" id="scrollNav" aria-label="快速導覽">
+    <button class="scroll-nav-btn" id="scrollUp" aria-label="回到最上方" title="回到最上方">↑</button>
+    <button class="scroll-nav-btn" id="scrollDown" aria-label="跳到文章結尾" title="跳到文章結尾">↓</button>
+  </div>
 </Layout>
 
 <script define:vars={{ storyId, currentSlug: slug, storyTitle: entry.data.title, serverIsLiked: isLiked, isLoggedIn: !!userId }}>
@@ -753,6 +759,18 @@ if (isPublic) {
     sSet('hz-liked:' + currentSlug, liked ? '1' : '0');
     updateTokenUI();
 
+    // 彈跳動畫
+    const _tb = document.getElementById('tokenBtn');
+    if (_tb) {
+      _tb.classList.remove('coin-pop');
+      void _tb.offsetWidth; // reflow 觸發重播
+      _tb.classList.add('coin-pop');
+      _tb.addEventListener('animationend', function _pop() {
+        _tb.classList.remove('coin-pop');
+        _tb.removeEventListener('animationend', _pop);
+      });
+    }
+
     fetch('/api/stats/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -785,12 +803,36 @@ if (isPublic) {
       .catch(() => {}); // keep optimistic update on network error
   });
 
+  // ─── 左上快速導覽按鈕 ─────────────────────────────────────
+  var _scrollUp   = document.getElementById('scrollUp');
+  var _scrollDown = document.getElementById('scrollDown');
+  if (_scrollUp) {
+    _scrollUp.addEventListener('click', function() {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, { signal: _pageSig });
+  }
+  if (_scrollDown) {
+    _scrollDown.addEventListener('click', function() {
+      // 捲動到文章主體的最後兩行處
+      var artBody = document.querySelector('.art-body');
+      if (artBody) {
+        var rect = artBody.getBoundingClientRect();
+        var bodyBottom = rect.bottom + window.scrollY;
+        // 保留約兩行高度在視窗底部
+        var twoLines = parseFloat(getComputedStyle(document.body).fontSize || '16') * 2 * 2.2;
+        window.scrollTo({ top: Math.max(0, bodyBottom - window.innerHeight + twoLines), behavior: 'smooth' });
+      } else {
+        window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
+      }
+    }, { signal: _pageSig });
+  }
+
   // ─── Reading progress bar + save ──────────────────────────
   let progressSaveTimer = null;
   let lastSavedPct = parseInt(sGet('hz-progress:' + currentSlug) || '0', 10);
 
-  // Retroactively mark as read for users who already reached 90% before this feature
-  if (lastSavedPct >= 90 && sGet('hz-read:' + currentSlug) !== '1') {
+  // Retroactively mark as read for users who already reached 80% before this feature
+  if (lastSavedPct >= 80 && sGet('hz-read:' + currentSlug) !== '1') {
     sSet('hz-read:' + currentSlug, '1');
   }
 
@@ -809,8 +851,8 @@ if (isPublic) {
     const docH = document.documentElement.scrollHeight - window.innerHeight;
     const pct = docH > 0 ? Math.round(window.scrollY / docH * 100) : 0;
 
-    // Mark as read when reaching 90% — localStorage flag + DB record for members
-    if (pct >= 90 && sGet('hz-read:' + currentSlug) !== '1') {
+    // Mark as read when reaching 80% — localStorage flag + DB record for members
+    if (pct >= 80 && sGet('hz-read:' + currentSlug) !== '1') {
       sSet('hz-read:' + currentSlug, '1');
       // Persist to DB for logged-in users (member stats readSlugs)
       fetch('/api/progress', {
@@ -1421,6 +1463,68 @@ if (isPublic) {
   :global(body.wide) .side-nav {
     opacity: 0;
   }
+  /* ─── 左上快速導覽按鈕（並排）───────────────────────── */
+  .scroll-nav {
+    position: fixed;
+    left: 8px;
+    top: 66px; /* 56px header + 10px gap */
+    display: flex;
+    flex-direction: row; /* 並排 */
+    gap: 4px;
+    z-index: 200;
+  }
+  .scroll-nav-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem;
+    cursor: pointer;
+    opacity: 0.45;
+    transition: opacity 0.2s, background 0.2s, color 0.2s, border-color 0.2s;
+    border-radius: 2px;
+    padding: 0;
+    line-height: 1;
+  }
+  .scroll-nav-btn:hover {
+    opacity: 1;
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+  }
+  /* 全螢幕模式降低不透明度但仍可見 */
+  :global(body.wide) .scroll-nav { opacity: 0.2; transition: opacity 0.4s ease; }
+  :global(body.wide.ui-fade-in) .scroll-nav { opacity: 0.45; }
+  :global(body.wide) .scroll-nav-btn:hover { opacity: 1 !important; }
+  @media (max-width: 680px) {
+    .scroll-nav { top: 62px; left: 4px; }
+    .scroll-nav-btn { width: 24px; height: 24px; font-size: 0.75rem; }
+  }
+
+  /* ─── 金幣按鈕動畫 ───────────────────────────────────── */
+  @keyframes coinGive {
+    0%   { transform: scale(1); }
+    20%  { transform: scale(0.88); }
+    55%  { transform: scale(1.18); }
+    75%  { transform: scale(0.96); }
+    100% { transform: scale(1); }
+  }
+  @keyframes coinPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb, 160, 30, 30), 0); }
+    40%      { box-shadow: 0 0 0 6px rgba(var(--accent-rgb, 160, 30, 30), 0.22); }
+    80%      { box-shadow: 0 0 0 10px rgba(var(--accent-rgb, 160, 30, 30), 0); }
+  }
+  @keyframes iconBounce {
+    0%   { transform: translateY(0); }
+    30%  { transform: translateY(-4px); }
+    60%  { transform: translateY(1px); }
+    100% { transform: translateY(0); }
+  }
   .token-btn {
     display: flex;
     align-items: center;
@@ -1432,13 +1536,36 @@ if (isPublic) {
     font-family: 'Share Tech Mono', monospace;
     font-size: .75rem;
     color: var(--accent);
-    transition: all .2s;
+    transition: background .18s, color .18s, border-color .18s, transform .15s, box-shadow .3s;
     letter-spacing: .1em;
     flex: 0 0 auto;
+    position: relative;
+    overflow: hidden;
   }
   .token-label { font-size: .65rem; letter-spacing: .08em; }
-  .token-btn.on { background: var(--accent); color: var(--bg); }
-  .token-btn:hover { background: var(--accent); color: var(--bg); }
+
+  /* 已給出金幣狀態：填色 + 持續呼吸光暈 */
+  .token-btn.on {
+    background: var(--accent);
+    color: var(--bg);
+    animation: coinPulse 2.8s ease-in-out infinite;
+  }
+  /* hover：加亮 + 輕微放大 */
+  .token-btn:hover {
+    background: var(--accent);
+    color: var(--bg);
+    transform: scale(1.04);
+    box-shadow: 0 0 12px rgba(160, 30, 30, 0.35);
+  }
+  /* 點擊瞬間彈跳動畫（由 JS 加上 .coin-pop 觸發）*/
+  .token-btn.coin-pop {
+    animation: coinGive 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards;
+  }
+  /* icon 跳動 */
+  .token-btn.coin-pop #tokenIcon {
+    display: inline-block;
+    animation: iconBounce 0.38s ease forwards;
+  }
   .token-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; }
   .token-anon-hint {
     font-family: 'Share Tech Mono', monospace;

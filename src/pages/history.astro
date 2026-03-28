@@ -21,15 +21,31 @@ export const prerender = true;
           <div class="tl-dot"></div>
           <div class="tl-date">2026.03</div>
           <div class="tl-content">
-            <div class="tl-ver">v2.2 — 安全強化 · 使用體驗</div>
-            <p>導入 CSP nonce 機制，所有 SSR 頁面以隨機 nonce 防範 XSS 注入；
-               Keystatic 後台路由獨立繞過 CSP，修復後台無法存取的問題。
-               閱讀器控制元件（滿版模式、字型大小、字型切換、? 說明鍵）從 define:vars 移植至
-               bundled script，徹底解決 ViewTransitions 換頁後按鈕失效的根本原因。
-               新增 robots.txt、SVG favicon、JSON-LD 結構化資料、sitemap，完成基礎 SEO 建設。</p>
+            <div class="tl-ver">v2.3 — 觀測者系統 · 閱讀追蹤</div>
+            <p>觀測者（會員）系統全面升級。新增個人化閱讀進度追蹤與已讀標記機制，
+               讓每位調查員都能掌握自己探索異常的進度。
+               金幣贊助功能上線——讀者可對喜愛的卷宗給予金幣支持。
+               新增成就徽章系統，記錄每一位深度觀測者的探索歷程。
+               介面互動細節全面優化。</p>
             <div class="tl-tags">
-              <span class="tl-tag">CSP nonce</span>
-              <span class="tl-tag">ViewTransitions 修復</span>
+              <span class="tl-tag">閱讀進度追蹤</span>
+              <span class="tl-tag">金幣贊助</span>
+              <span class="tl-tag">成就徽章</span>
+              <span class="tl-tag">介面優化</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tl-item">
+          <div class="tl-dot"></div>
+          <div class="tl-date">2026.03</div>
+          <div class="tl-content">
+            <div class="tl-ver">v2.2 — 安全強化 · 使用體驗</div>
+            <p>強化整體安全機制，修復登入穩定性問題，確保會員在閱覽過程中不會意外斷線。
+               閱讀器控制元件全面穩定化，解決換頁後功能異常的問題。
+               完成 SEO 基礎建設（robots.txt、favicon、結構化資料、sitemap）。</p>
+            <div class="tl-tags">
+              <span class="tl-tag">登入穩定性</span>
               <span class="tl-tag">閱讀器穩定化</span>
               <span class="tl-tag">SEO 基礎建設</span>
             </div>
@@ -43,11 +59,11 @@ export const prerender = true;
             <div class="tl-ver">v2.1 — 卷宗擴充 · 精選系統</div>
             <p>新增 FILE-012 至 FILE-047 共十餘篇卷宗，涵蓋記憶科技、AI 社會、生態復育、深淵建築等主題。
                加入「★ 精選」篩選標籤，支援精選卷宗標記與過濾。
-               Keystatic 後台新增精選清單編輯介面，可直接選取入門推薦與深度驚悚名單。</p>
+               站內精選清單正式上線，提供入門推薦與深度驚悚導讀路線。</p>
             <div class="tl-tags">
               <span class="tl-tag">12+ 篇卷宗</span>
               <span class="tl-tag">★ 精選篩選</span>
-              <span class="tl-tag">Keystatic 精選清單</span>
+              <span class="tl-tag">精選清單</span>
             </div>
           </div>
         </div>

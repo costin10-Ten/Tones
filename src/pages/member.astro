@@ -45,11 +45,11 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
       <div class="stats-grid">
         <div class="stat-box">
           <div class="stat-box-num skeleton" id="statViews">—</div>
-          <div class="stat-box-lbl">全站瀏覽</div>
+          <div class="stat-box-lbl">個人瀏覽</div>
         </div>
         <div class="stat-box">
           <div class="stat-box-num skeleton" id="statTokens">—</div>
-          <div class="stat-box-lbl">沒收金幣</div>
+          <div class="stat-box-lbl">已給出金幣</div>
         </div>
         <div class="stat-box">
           <div class="stat-box-num skeleton" id="statRead">—</div>
@@ -74,6 +74,7 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
           <button class="rfg-btn on" data-rfg="all">全部</button>
           <button class="rfg-btn" data-rfg="unread">未讀</button>
           <button class="rfg-btn" data-rfg="read">已讀</button>
+          <button class="rfg-btn" data-rfg="bookmarked">收藏</button>
         </div>
       </div>
       <div class="story-track-list" id="storyTrackList">
@@ -115,6 +116,9 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
 <script>
   function fmtN(n) { return n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(n); }
 
+  // 收藏清單 — 由 applyStats 更新，供 applyFilter 使用
+  var _bookmarkedSet = new Set();
+
   function clearSkeleton() {
     document.querySelectorAll('.stat-box-num.skeleton').forEach(el => {
       el.classList.remove('skeleton');
@@ -150,6 +154,7 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
 
     const tokenedSet = new Set(data.tokenedSlugs ?? []);
     const bookmarkedSet = new Set(data.bookmarkedSlugs ?? []);
+    _bookmarkedSet = bookmarkedSet; // 供收藏篩選使用
     const statsMap = data.statsMap ?? {};
 
     // Sync server-authoritative read slugs to localStorage so the filter uses accurate data
@@ -316,7 +321,7 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
     document.querySelectorAll<HTMLElement>('.track-read-stamp[data-slug]').forEach(el => {
       const slug = el.dataset.slug ?? '';
       const isRead = localStorage.getItem('hz-read:' + slug) === '1' ||
-                     parseInt(localStorage.getItem('hz-progress:' + slug) || '0', 10) >= 90;
+                     parseInt(localStorage.getItem('hz-progress:' + slug) || '0', 10) >= 80;
       el.style.display = isRead ? '' : 'none';
       if (isRead) el.textContent = ' 已讀';
     });
@@ -331,20 +336,27 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
       });
 
       const items = list.querySelectorAll<HTMLElement>('.track-item[data-slug]');
-      let readCount = 0, unreadCount = 0;
+      let readCount = 0, unreadCount = 0, bookmarkedCount = 0;
 
       items.forEach(item => {
         const slug = item.dataset.slug ?? '';
         const isRead = localStorage.getItem('hz-read:' + slug) === '1' ||
-                       parseInt(localStorage.getItem('hz-progress:' + slug) || '0', 10) >= 90;
+                       parseInt(localStorage.getItem('hz-progress:' + slug) || '0', 10) >= 80;
+        const isBookmarked = _bookmarkedSet.has(slug);
         if (isRead) readCount++; else unreadCount++;
-        const show = m === 'all' || (m === 'read' && isRead) || (m === 'unread' && !isRead);
+        if (isBookmarked) bookmarkedCount++;
+        const show = m === 'all'
+          || (m === 'read'       && isRead)
+          || (m === 'unread'     && !isRead)
+          || (m === 'bookmarked' && isBookmarked);
         item.style.display = show ? '' : 'none';
       });
 
       // Empty state message
       let doneMsg = list.querySelector<HTMLElement>('.track-all-done');
-      const showEmpty = (m === 'read' && readCount === 0) || (m === 'unread' && unreadCount === 0);
+      const showEmpty = (m === 'read' && readCount === 0)
+        || (m === 'unread' && unreadCount === 0)
+        || (m === 'bookmarked' && bookmarkedCount === 0);
       if (showEmpty) {
         if (!doneMsg) {
           doneMsg = document.createElement('div');
@@ -352,7 +364,9 @@ const sorted = allStories.sort((a, b) => b.data.date.localeCompare(a.data.date))
           list.appendChild(doneMsg);
         }
         if (m === 'read') {
-          doneMsg.innerHTML = '<span class="done-icon">◯</span><span class="done-msg">尚無已讀卷宗<br><span class="done-sub">閱讀進度達 90% 即自動標記為已讀</span></span>';
+          doneMsg.innerHTML = '<span class="done-icon">◯</span><span class="done-msg">尚無已讀卷宗<br><span class="done-sub">閱讀進度達 80% 即自動標記為已讀</span></span>';
+        } else if (m === 'bookmarked') {
+          doneMsg.innerHTML = '<span class="done-icon">☐</span><span class="done-msg">尚無收藏卷宗<br><span class="done-sub">在閱讀器中點擊「書籤」即可收藏</span></span>';
         } else {
           doneMsg.innerHTML = '<span class="done-icon">●</span><span class="done-msg">所有卷宗已閱覽完畢<br><span class="done-sub">你已調查了這個世界的每一個角落</span></span>';
         }

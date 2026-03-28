@@ -46,7 +46,11 @@ const levelClass: Record<string, string> = {
 };
 ---
 
-<a href={`/stories/${slug}`} class={`story-card vis-${vis}${featured ? ' featured' : ''}`} aria-label={`閱讀：${title}`}>
+<a href={`/stories/${slug}`} class={`story-card vis-${vis}${featured ? ' featured' : ''}`} aria-label={`閱讀：${title}`} data-slug={slug}>
+  {/* 未讀/已讀燈號 — 未來可能會用到，先留著 */}
+  <span class="card-read-light" data-slug={slug}></span>
+  {/* 閱讀進度條（暫時全設成0）— 未來可能會用到，先留著 */}
+  <div class="card-prog-bar" data-slug={slug} style="width:0%"></div>
   <div class="card-header">
     <div class="card-meta-left">
       <span class="file-num">{fileNum}</span>
@@ -59,7 +63,10 @@ const levelClass: Record<string, string> = {
     <span class="card-icon" aria-hidden="true">{icon}</span>
   </div>
 
-  <h2 class="card-title">{title}</h2>
+  <h2 class="card-title">
+    {title}
+    <span class="card-read-stamp" data-slug={slug} style="display:none">已讀</span>
+  </h2>
   <p class="card-excerpt">{excerpt}</p>
 
   <div class="card-footer">
