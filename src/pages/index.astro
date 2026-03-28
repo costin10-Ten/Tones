@@ -1136,14 +1136,24 @@ const curatedJson  = JSON.stringify(curatedLists.map(l => ({ id: l.id, slugs: l.
   }
   maybeSbLists();
 
+  // ─── 已讀章 ───────────────────────────────────────────────
+  function applyReadStamps() {
+    document.querySelectorAll<HTMLElement>('.card-read-stamp[data-slug]').forEach(stamp => {
+      const isRead = localStorage.getItem('hz-read:' + stamp.dataset.slug) === '1';
+      stamp.style.display = isRead ? '' : 'none';
+    });
+  }
+
   document.addEventListener('astro:after-swap', () => {
     updateHeroStats();
     initHomepage();
     maybeSbLists();
     initNewsletter();
+    applyReadStamps();
   });
   initHomepage();
   initNewsletter();
+  applyReadStamps();
 
   function initNewsletter() {
     var form = document.getElementById('nlForm') as HTMLFormElement | null;

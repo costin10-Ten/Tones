@@ -63,7 +63,10 @@ const levelClass: Record<string, string> = {
     <span class="card-icon" aria-hidden="true">{icon}</span>
   </div>
 
-  <h2 class="card-title">{title}</h2>
+  <h2 class="card-title">
+    {title}
+    <span class="card-read-stamp" data-slug={slug} style="display:none">已讀</span>
+  </h2>
   <p class="card-excerpt">{excerpt}</p>
 
   <div class="card-footer">

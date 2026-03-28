@@ -1463,13 +1463,13 @@ if (isPublic) {
   :global(body.wide) .side-nav {
     opacity: 0;
   }
-  /* ─── 左上快速導覽按鈕 ──────────────────────────────── */
+  /* ─── 左上快速導覽按鈕（並排）───────────────────────── */
   .scroll-nav {
     position: fixed;
     left: 8px;
-    top: 72px; /* 56px header + 16px gap */
+    top: 66px; /* 56px header + 10px gap */
     display: flex;
-    flex-direction: column;
+    flex-direction: row; /* 並排 */
     gap: 4px;
     z-index: 200;
   }
@@ -1497,12 +1497,12 @@ if (isPublic) {
     color: var(--bg);
     border-color: var(--accent);
   }
-  /* 全螢幕模式時淡出（與其他浮動按鈕一致）*/
-  :global(body.wide) .scroll-nav { opacity: 0; transition: opacity 0.4s ease; }
-  :global(body.wide.ui-fade-in) .scroll-nav { opacity: 0.35; }
+  /* 全螢幕模式降低不透明度但仍可見 */
+  :global(body.wide) .scroll-nav { opacity: 0.2; transition: opacity 0.4s ease; }
+  :global(body.wide.ui-fade-in) .scroll-nav { opacity: 0.45; }
   :global(body.wide) .scroll-nav-btn:hover { opacity: 1 !important; }
   @media (max-width: 680px) {
-    .scroll-nav { top: 64px; left: 4px; }
+    .scroll-nav { top: 62px; left: 4px; }
     .scroll-nav-btn { width: 24px; height: 24px; font-size: 0.75rem; }
   }
 

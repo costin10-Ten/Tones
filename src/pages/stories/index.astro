@@ -155,6 +155,7 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
             </span>
             <span class="file-num">{story.data.fileNum}</span>
             <span class="file-title">{story.data.title}</span>
+            <span class="file-read-stamp" data-slug={story.slug} style="display:none">已讀</span>
             <div class="file-tags">
               {story.data.tags.slice(0, 2).map(tag => (
                 <span class="file-tag">{tag}</span>
@@ -294,20 +295,23 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
     }
   }
 
-  // ─── 未讀/已讀燈號 — 未來可能會用到，先留著 ─────────────
-  // function applyReadLights() {
-  //   document.querySelectorAll('.read-light[data-slug]').forEach(dot => {
-  //     const isRead = localStorage.getItem('hz-read:' + dot.dataset.slug) === '1';
-  //     dot.classList.toggle('on', isRead);
-  //   });
-  // }
+  // ─── 已讀章 ───────────────────────────────────────────────
+  function applyReadStamps() {
+    document.querySelectorAll<HTMLElement>('.file-read-stamp[data-slug]').forEach(stamp => {
+      const isRead = localStorage.getItem('hz-read:' + stamp.dataset.slug) === '1';
+      stamp.style.display = isRead ? '' : 'none';
+    });
+    // 燈號（未來可能會用到，先留著）
+    // document.querySelectorAll('.read-light[data-slug]').forEach(dot => {
+    //   const isRead = localStorage.getItem('hz-read:' + (dot as HTMLElement).dataset.slug) === '1';
+    //   (dot as HTMLElement).classList.toggle('on', isRead);
+    // });
+  }
 
-  // ─── Progress bars from localStorage ─────────────────────
+  // ─── Progress bars — 書籤點（進度條暫不顯示）────────────
+  // 未來可能會用到，先留著：bar.style.width = pct + '%'
   function applyLocalProgress() {
     document.querySelectorAll<HTMLElement>('.file-prog-bar[data-slug]').forEach(bar => {
-      const pct = parseInt(localStorage.getItem('hz-progress:' + bar.dataset.slug) || '0', 10);
-      bar.style.width = pct > 0 ? pct + '%' : '0';
-
       // Bookmark dot on file-num
       if (localStorage.getItem('hz-bookmark:' + bar.dataset.slug) === '1') {
         const row = bar.closest('.file-row');
@@ -325,6 +329,7 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
   function init() {
     initExplorer();
     applyLocalProgress();
+    applyReadStamps();
   }
 
   document.addEventListener('astro:after-swap', init);
@@ -523,6 +528,21 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
     flex-shrink: 0;
   }
   .bm-dot { color: var(--accent); font-size: 0.65rem; }
+  /* ─── 已讀章 ──────────────────────────────────────────── */
+  .file-read-stamp {
+    flex-shrink: 0;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.44rem;
+    letter-spacing: 0.16em;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 1px 5px;
+    opacity: 0.65;
+    transform: rotate(-3deg);
+    white-space: nowrap;
+    margin-right: 8px;
+    align-self: center;
+  }
   .file-title {
     font-family: 'Noto Serif TC', serif;
     font-size: 0.85rem;

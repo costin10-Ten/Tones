@@ -686,6 +686,24 @@ img {
   pointer-events: none;
   /* .card-read-light.on { background: var(--accent); } ← 啟用時取消此行 */
 }
+/* ─── 已讀章 ─── */
+.card-read-stamp {
+  display: inline-block;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.44rem;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 1px 5px;
+  margin-left: 8px;
+  opacity: 0.7;
+  transform: rotate(-4deg);
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+  white-space: nowrap;
+}
+
 /* ─── 閱讀進度條（暫時全設成0）— 未來可能會用到，先留著 ─── */
 .card-prog-bar {
   position: absolute;
