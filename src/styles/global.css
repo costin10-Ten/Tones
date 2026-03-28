@@ -674,6 +674,31 @@ img {
   overflow: hidden;
 }
 
+/* ─── 未讀/已讀燈號 — 未來可能會用到，先留著 ─── */
+.card-read-light {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border); /* 全關（預設未讀色） */
+  pointer-events: none;
+  /* .card-read-light.on { background: var(--accent); } ← 啟用時取消此行 */
+}
+/* ─── 閱讀進度條（暫時全設成0）— 未來可能會用到，先留著 ─── */
+.card-prog-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: var(--accent);
+  opacity: 0.45;
+  width: 0; /* 暫時全設成0，待連接 localStorage 後啟用 */
+  transition: width 0.3s;
+  pointer-events: none;
+}
+
 .story-card::before {
   content: '';
   position: absolute;

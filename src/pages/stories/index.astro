@@ -148,7 +148,11 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
           data-base-href={`/stories/${story.slug}`}
         >
           <a class="file-row-link" href={`/stories/${story.slug}`}>
-            <span class="file-icon" aria-hidden="true">{story.data.icon}</span>
+            <span class="file-icon" aria-hidden="true">
+              {story.data.icon}
+              {/* 未讀/已讀燈號 — 未來可能會用到，先留著 */}
+              <span class="read-light" data-slug={story.slug}></span>
+            </span>
             <span class="file-num">{story.data.fileNum}</span>
             <span class="file-title">{story.data.title}</span>
             <div class="file-tags">
@@ -289,6 +293,14 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
       if (savedBtn) selectCat(urlCat, savedBtn.dataset.label ?? '', savedBtn.dataset.code ?? '');
     }
   }
+
+  // ─── 未讀/已讀燈號 — 未來可能會用到，先留著 ─────────────
+  // function applyReadLights() {
+  //   document.querySelectorAll('.read-light[data-slug]').forEach(dot => {
+  //     const isRead = localStorage.getItem('hz-read:' + dot.dataset.slug) === '1';
+  //     dot.classList.toggle('on', isRead);
+  //   });
+  // }
 
   // ─── Progress bars from localStorage ─────────────────────
   function applyLocalProgress() {
@@ -488,6 +500,19 @@ const paidStories = stories.filter(s => s.data.level === 'paid');
     color: var(--text-muted);
     flex-shrink: 0;
     text-align: center;
+    position: relative;
+  }
+  /* ─── 未讀/已讀燈號 — 未來可能會用到，先留著 ──── */
+  .read-light {
+    position: absolute;
+    bottom: -2px;
+    right: 0;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--border); /* 全關（預設未讀色） */
+    pointer-events: none;
+    /* .read-light.on { background: var(--accent); } ← 啟用時取消此註解 */
   }
   .file-num {
     width: 80px;
